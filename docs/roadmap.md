@@ -13,6 +13,12 @@ Implementation phases for CostGate OSS. Business plans (Free / Pro / Team) are i
 
 See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
 
+## Git workflow
+
+Daily work: **feature branch → PR → `main`** (one PR per feature).  
+`develop` is not used.  
+Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
+
 ---
 
 ## Implementation phases

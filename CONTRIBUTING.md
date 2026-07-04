@@ -51,19 +51,45 @@ npm run build:gate
 
 | Branch | Role |
 |--------|------|
-| `develop` | 日常開発・push 先（デフォルト） |
-| `main` | 安定版。`develop` から PR でマージ |
-| `feature/*` | 機能ブランチ（`develop` 向け PR） |
+| `main` | デフォルト・安定版。feature PR のマージ先 |
+| `feat/*`, `fix/*`, `docs/*`, `chore/*` | 機能ブランチ。`main` 向け PR を 1 本ずつ |
+
+`develop` ブランチは **使わない**（PR #1 マージ後に廃止）。
+
+### Daily workflow
+
+**1 機能 = 1 ブランチ = 1 PR**（`main` 向け）。`main` への直接 push は使わない。
 
 ```bash
-git checkout develop
-git pull
-# … 作業 …
-git push origin develop
-# リリース時: develop → main の PR を作成
+git checkout main
+git pull origin main
+
+git checkout -b feat/short-description   # 例: feat/gate-filter
+# … 作業・コミット …
+
+git push -u origin feat/short-description
+gh pr create --draft --base main --head feat/short-description \
+  --title "短い説明" --body "## Summary\n…"
+```
+
+マージ後:
+
+```bash
+git checkout main && git pull
+git branch -d feat/short-description
+git push origin --delete feat/short-description   # 任意
 ```
 
 **`main` への直接 push はしない**（PR 経由）。
+
+### Branch naming
+
+| Prefix | Use |
+|--------|-----|
+| `feat/` | 新機能 |
+| `fix/` | バグ修正 |
+| `docs/` | ドキュメントのみ |
+| `chore/` | ビルド・CI・依存関係 |
 
 ## Log schema changes
 
