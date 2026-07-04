@@ -15,7 +15,7 @@ See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
 
 ## Git workflow
 
-Daily work: **feature branch → PR → `main`** (one PR per feature).  
+Daily work: **feature branch → PR → `main`** via `npm run feat:ship`.  
 `develop` is not used.  
 Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 

@@ -6,25 +6,29 @@ alwaysApply: true
 
 # Git ブランチ運用（CostGate）
 
-## 日常開発
+## 必須（エージェント向け）
 
-- ベースブランチは **`main`**（`develop` は使わない）
-- **機能ブランチ**から `main` 向け PR を作る（`main` への直接 push は避ける）
-- ブランチ名: `feat/` `fix/` `docs/` `chore/` + 短い説明
-- コミットメッセージは日本語
-
-## 手順
+**コミット・push・PR は `npm run feat:ship` を使う。** `main` 上にいる場合は `feat/*` ブランチを自動作成する。
 
 ```bash
-git checkout main && git pull origin main
-git checkout -b feat/xxx
-# 作業・コミット
-git push -u origin feat/xxx
-gh pr create --draft --base main --head feat/xxx
+git add <files>
+npm run feat:ship -- --message "日本語のコミットメッセージ"
+# ブランチ名を指定する場合
+npm run feat:ship -- -m "…" --name feat/short-name
 ```
 
-マージ後は feature ブランチを削除する。
-
-## PR
-
+- `main` / `develop` への直接 push 禁止（`.githooks/pre-push`）
+- コミットメッセージは日本語
 - 1 機能 = 1 ブランチ = 1 PR（`main` 向け）
+
+## ブランチ開始のみ
+
+```bash
+npm run feat:start -- short-name
+```
+
+## 初回セットアップ
+
+```bash
+npm run hooks:install
+```
