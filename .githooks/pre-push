@@ -1,0 +1,11 @@
+#!/bin/sh
+# CostGate: block direct push to main/develop
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+case "$branch" in
+  main|develop|master)
+    echo "[costgate] push to '$branch' is blocked."
+    echo "Use: npm run feat:ship -- --message \"...\""
+    exit 1
+    ;;
+esac
+exit 0

@@ -58,18 +58,32 @@ npm run build:gate
 
 ### Daily workflow
 
-**1 機能 = 1 ブランチ = 1 PR**（`main` 向け）。`main` への直接 push は使わない。
+**1 機能 = 1 ブランチ = 1 PR**（`main` 向け）。自動化スクリプトを使う:
+
+```bash
+# 初回: フックを有効化（main への直接 push を拒否）
+npm run hooks:install
+
+# ブランチだけ作る
+npm run feat:start -- gate-filter-v2
+
+# コミット・push・ドラフト PR を一括（main 上なら feat ブランチを自動作成）
+git add …
+npm run feat:ship -- --message "変更の説明"
+npm run feat:ship -- -m "…" --name fix/bug-name   # ブランチ名を指定
+```
+
+手動で行う場合:
 
 ```bash
 git checkout main
 git pull origin main
 
-git checkout -b feat/short-description   # 例: feat/gate-filter
-# … 作業・コミット …
+git checkout -b feat/short-description
+# … 作業・git add …
 
 git push -u origin feat/short-description
-gh pr create --draft --base main --head feat/short-description \
-  --title "短い説明" --body "## Summary\n…"
+gh pr create --draft --base main --head feat/short-description
 ```
 
 マージ後:
