@@ -1,3 +1,3 @@
-module github.com/costgate/costgate/packages/gate
+module github.com/YukiMiyatake/costgate/packages/gate
 
 go 1.22

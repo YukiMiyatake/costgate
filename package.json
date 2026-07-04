@@ -3,12 +3,15 @@
   "private": true,
   "description": "Gate your MCP. Cut your bill.",
   "workspaces": [
+    "packages/schema",
     "packages/probe"
   ],
   "scripts": {
-    "build": "npm run build -w @costgate/probe",
+    "build": "npm run build -w @costgate/schema && npm run build -w @costgate/probe",
+    "build:schema": "npm run build -w @costgate/schema",
     "build:probe": "npm run build -w @costgate/probe",
-    "dev:probe": "npm run dev -w @costgate/probe"
+    "dev:probe": "npm run dev -w @costgate/probe",
+    "build:gate": "go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate"
   },
   "engines": {
     "node": ">=20"

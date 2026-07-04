@@ -2,6 +2,8 @@
 
 Shared between Probe, Gate, and costgate-cloud. One JSON object per line.
 
+**Canonical definition:** [`packages/schema/log-event.schema.json`](../packages/schema/log-event.schema.json)
+
 ## Event types
 
 | `type` | Description |

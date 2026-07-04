@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costgate.dev/schema/log-event.json",
+  "title": "CostGateLogEvent",
+  "description": "One JSONL log line from Probe or Gate",
+  "oneOf": [
+    { "$ref": "#/$defs/sessionStart" },
+    { "$ref": "#/$defs/sessionEnd" },
+    { "$ref": "#/$defs/toolsList" },
+    { "$ref": "#/$defs/toolCall" },
+    { "$ref": "#/$defs/toolResult" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["type", "ts", "session_id"],
+      "properties": {
+        "type": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" },
+        "session_id": { "type": "string" }
+      }
+    },
+    "sessionStart": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "session_start" },
+            "client": { "type": "string" }
+          },
+          "required": ["client"]
+        }
+      ]
+    },
+    "sessionEnd": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "session_end" }
+          }
+        }
+      ]
+    },
+    "toolsList": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "tools_list" },
+            "tool_count": { "type": "integer", "minimum": 0 },
+            "total_schema_bytes": { "type": "integer", "minimum": 0 },
+            "estimated_tokens": { "type": "integer", "minimum": 0 },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "schema_bytes"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "schema_bytes": { "type": "integer", "minimum": 0 },
+                  "estimated_tokens": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          },
+          "required": ["tool_count", "total_schema_bytes"]
+        }
+      ]
+    },
+    "toolCall": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "tool_call" },
+            "client": { "type": "string" },
+            "backend": { "type": "string" },
+            "tool": { "type": "string" },
+            "request_bytes": { "type": "integer", "minimum": 0 },
+            "response_bytes": { "type": "integer", "minimum": 0 },
+            "estimated_tokens": { "type": "integer", "minimum": 0 },
+            "duration_ms": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["client", "backend", "tool", "request_bytes"]
+        }
+      ]
+    },
+    "toolResult": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "tool_result" },
+            "backend": { "type": "string" },
+            "tool": { "type": "string" },
+            "response_bytes": { "type": "integer", "minimum": 0 },
+            "estimated_tokens": { "type": "integer", "minimum": 0 },
+            "duration_ms": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["backend", "tool", "response_bytes"]
+        }
+      ]
+    }
+  }
+}

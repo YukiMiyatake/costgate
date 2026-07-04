@@ -2,6 +2,18 @@
 
 MCP measurement proxy for CostGate. Sits between your MCP client and backend servers to log token-related metrics.
 
+## Layout
+
+```
+packages/probe/
+├── src/
+│   ├── index.ts      entry point
+│   ├── proxy.ts      stdio MCP relay
+│   ├── metrics.ts    token / byte estimation
+│   └── logger.ts     JSONL output
+└── package.json
+```
+
 ## Status
 
 **Scaffold** — core proxy implementation in progress.
@@ -9,11 +21,16 @@ MCP measurement proxy for CostGate. Sits between your MCP client and backend ser
 ## Usage
 
 ```bash
-npm install
-npm run build
+# from repo root
+npm run build:probe
+npm run dev:probe
 ```
 
-Configure as an MCP server in Cursor or Claude Desktop. See [examples](../../examples/).
+After publish:
+
+```bash
+npx @costgate/probe
+```
 
 ## Environment
 
@@ -22,3 +39,7 @@ Configure as an MCP server in Cursor or Claude Desktop. See [examples](../../exa
 | `COSTGATE_PROBE_LOG_DIR` | Log directory (default: `~/.costgate/logs`) |
 | `COSTGATE_CLIENT` | Client name: `cursor`, `claude-desktop`, etc. |
 | `COSTGATE_BACKENDS` | JSON config for backend MCP servers to proxy |
+
+## Dependencies
+
+Uses `@costgate/schema` from the same monorepo for log event types.
