@@ -55,6 +55,36 @@ Or after npm publish: `npx @costgate/probe`
 
 See [examples/cursor/](./examples/cursor/) for full configuration.
 
+## Quick start (Gate)
+
+Requires **Go 1.25+**.
+
+```bash
+npm run build:gate
+npm run test:gate   # smoke test (GitHub backend via ~/.costgate/backends.json)
+```
+
+Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)):
+
+```json
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "/path/to/costgate/packages/gate/bin/costgate-gate",
+      "env": {
+        "COSTGATE_CONFIG": "~/.costgate/backends.json"
+      }
+    }
+  }
+}
+```
+
+**Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. Set `COSTGATE_GATE_MODE=transparent` for pass-through baseline. See [packages/gate/README.md](./packages/gate/README.md).
+
+Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
+
+Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
+
 ## Plans (roadmap)
 
 | Plan | Scope |
@@ -65,6 +95,7 @@ See [examples/cursor/](./examples/cursor/) for full configuration.
 
 ## Documentation
 
+- [Development roadmap](./docs/roadmap.md)
 - [Repository structure](./docs/structure.md)
 - [Docker / Dev Container](./docs/docker.md)
 - [Architecture](./docs/architecture.md)

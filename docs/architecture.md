@@ -47,7 +47,9 @@ Cursor ─────────────┼── costgate-probe ───
 
 ## Gate (production)
 
-- Filters `tools/list` for delegated backends
+- Filters `tools/list` for delegated backends (Tier A/B/C + meta tools)
+- `discover_tools` / `invoke_tool` for on-demand access to hidden tools
+- Usage store at `~/.costgate/usage.json` (imports Probe JSONL when present)
 - Serena stays outside Gate
 
 ## Cloud (private — costgate-cloud repo)

@@ -49,8 +49,21 @@ npm run build:gate
 
 ## Branch policy
 
-- Default branch: `main`
-- Feature branches: `feature/<name>`
+| Branch | Role |
+|--------|------|
+| `develop` | 日常開発・push 先（デフォルト） |
+| `main` | 安定版。`develop` から PR でマージ |
+| `feature/*` | 機能ブランチ（`develop` 向け PR） |
+
+```bash
+git checkout develop
+git pull
+# … 作業 …
+git push origin develop
+# リリース時: develop → main の PR を作成
+```
+
+**`main` への直接 push はしない**（PR 経由）。
 
 ## Log schema changes
 
