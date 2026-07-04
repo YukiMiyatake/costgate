@@ -83,6 +83,8 @@ Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github
 
 Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
 
+Session breakdown: `npm run session-report` (fixed + variable + overall % scenarios).
+
 Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
 
 Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud).

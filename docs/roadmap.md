@@ -31,7 +31,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **4. Before/After compare** | ✅ Done | `npm run compare` — schema token estimate report |
 | **5. Cursor production switch** | ✅ Done | `npm run cursor:production`, measurement rollback |
 | **6. costgate-cloud** | ✅ MVP | Reporter, API, OSS `cloud:upload` |
-| **7. Session token breakdown** | ⬜ Next | 固定 + 変動コスト込みの全体削減 % レポート |
+| **7. Session token breakdown** | ✅ Done | `npm run session-report` |
 
 ### Phase 1 — Probe MVP ✅
 
@@ -82,23 +82,13 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 **Planned:** web dashboard, Stripe billing, scheduled PDF
 
-### Phase 7 — Session token breakdown ⬜
+### Phase 7 — Session token breakdown ✅
 
-**Goal:** 請求トークン全体に対する Gate の効果を **%** で示す（定義だけでなく変動コスト込み）。
+- CLI: `npm run session-report` — Probe JSONL 内訳 + Gate  live compare + 全体削減シナリオ
+- Options: `--json`, `--skip-compare`, `--intent`
+- costgate-cloud Reporter: `mcp_measurable_total_tokens`, `fixed_share_pct` をレポートに追加
 
-| Layer | 内容 | 現状 |
-|-------|------|------|
-| **固定** | `tools/list` スキーマ（毎ターン） | `npm run compare` で計測済み |
-| **変動** | `tool_call` 入出力バイト数 | Probe JSONL に記録あり、レポート未集計 |
-| **対象外** | 会話・システムプロンプト・Serena 等 | Cursor 内部のため直接計測不可 |
-
-**Deliverables (planned):**
-
-- Probe / Reporter: セッション単位で `tools_list` vs `tool_call` の推定 tokens 内訳
-- Gate 適用前後の **全体に占める固定コスト比率** と **推定削減 %**
-- costgate-cloud Pro レポートへの統合
-
-**Not in scope for Phase 7:** 会話文・プロンプト・rules の自動最適化（別項目、未スケジュール）
+**Example output:** fixed ~100% when no tool_call logs; Gate saves ~3,074 tokens/turn → ~15% at 20k turn.
 
 ---
 
@@ -171,4 +161,5 @@ npm run build:probe && npm run build:gate
 npm run test:gate
 npm run test:gate:filter
 npm run compare
+npm run session-report
 ```
