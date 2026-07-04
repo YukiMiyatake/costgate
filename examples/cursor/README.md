@@ -1,23 +1,54 @@
 # Cursor MCP examples
 
-## Recommended
+## Production (daily use) — recommended
 
-**[mcp-direct-serena.json](./mcp-direct-serena.json)** — Serena 直結（常時）。
+**[mcp-production.json](./mcp-production.json)** — Serena 直結 + **costgate-gate**（GitHub フィルタ済み）。
 
-**[mcp-probe-github.json](./mcp-probe-github.json)** — Serena 直結 + Probe が GitHub MCP を計測（要 PAT）。
+```bash
+npm run build:gate
+cp examples/backends.github.json ~/.costgate/backends.json   # if needed
+npm run cursor:production
+# Restart Cursor MCP
+```
 
-Probe は **Serena を subprocess で起動しません。** Serena と Probe は同時 ON 可。
+- **serena** — コード操作（常時直結）
+- **costgate-gate** — GitHub MCP（Tier フィルタ + `discover_tools`）
+- その他の MCP（aieph 等）は `cursor-mcp` が **保持** します
 
-## Setup Probe + GitHub
+## Measurement (development only)
 
-1. Ensure `gh auth login` is done (token via `gh auth token`)
-2. Copy [backends.github.json](../backends.github.json) → `~/.costgate/backends.json`
-3. Merge [mcp-probe-github.json](./mcp-probe-github.json) into `~/.cursor/mcp.json`
-4. `npm run build:probe`
-5. Restart Cursor MCP (or reload window)
+**[mcp-probe-github.json](./mcp-probe-github.json)** — Serena + **costgate-probe**（JSONL 計測）。
 
-## Future (Gate)
+```bash
+npm run build:probe
+npm run cursor:measurement
+# Restart Cursor MCP
+```
 
-`costgate-gate` replaces direct GitHub path; Serena stays direct.
+ロールバック・ベースライン再計測時のみ Probe を有効化してください。
 
-See [docs/architecture.md](../../docs/architecture.md).
+## Switch commands
+
+| Command | Effect |
+|---------|--------|
+| `npm run cursor:production` | `costgate-gate` ON, `costgate-probe` OFF |
+| `npm run cursor:measurement` | `costgate-probe` ON, `costgate-gate` OFF |
+| `npm run cursor:mcp -- status` | 現在のモードを表示 |
+
+`~/.cursor/mcp.json` は切替前に `mcp.json.bak` へバックアップされます。
+
+## Other examples
+
+| File | Use |
+|------|-----|
+| [mcp-direct-serena.json](./mcp-direct-serena.json) | Serena のみ |
+| [mcp-gate-github.json](./mcp-gate-github.json) | Gate 最小構成（パス差し替え用） |
+| [mcp-probe-github.json](./mcp-probe-github.json) | Probe 計測用テンプレート |
+
+## Verify
+
+```bash
+npm run test:cursor-gate   # Cursor 相当のクライアント名で Gate を smoke test
+```
+
+See [docs/architecture.md](../../docs/architecture.md) and [docs/roadmap.md](../../docs/roadmap.md).

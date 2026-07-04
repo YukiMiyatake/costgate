@@ -23,8 +23,8 @@ See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
 | **2. Gate MVP** | ✅ Done | Go proxy, `tools/list` + `tools/call` pass-through |
 | **3. Gate filter v1** | ✅ Done | Tier A/B/C, `discover_tools`, `invoke_tool`, usage store |
 | **4. Before/After compare** | ✅ Done | `npm run compare` — schema token estimate report |
-| **5. Cursor production switch** | ⬜ Next | Replace `costgate-probe` with `costgate-gate` in `mcp.json` |
-| **6. costgate-cloud** | ⬜ Planned | Pro reports, API, billing ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
+| **5. Cursor production switch** | ✅ Done | `npm run cursor:production`, measurement rollback |
+| **6. costgate-cloud** | ⬜ Next | Pro reports, API, billing ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
 
 ### Phase 1 — Probe MVP ✅
 
@@ -58,14 +58,13 @@ See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
 - Compares gate transparent (or `--via-probe`) vs gate filter
 - Options: `--intent`, `--json`
 
-### Phase 5 — Cursor production switch ⬜
+### Phase 5 — Cursor production switch ✅
 
-- [ ] Update `~/.cursor/mcp.json` to use `costgate-gate` for GitHub
-- [ ] Keep **serena** direct; remove or disable `costgate-probe` in daily use
-- [ ] Document rollback to probe for measurement sessions
-- [ ] Verify real Cursor sessions (not just test scripts)
-
-Example: [examples/cursor/mcp-gate-github.json](../examples/cursor/mcp-gate-github.json)
+- `npm run cursor:production` — Gate ON, Probe OFF（`~/.cursor/mcp.json`）
+- `npm run cursor:measurement` — 計測時のみ Probe に戻す
+- Example: [examples/cursor/mcp-production.json](../examples/cursor/mcp-production.json)
+- Test: `npm run test:cursor-gate`
+- **Restart Cursor** after switching MCP config
 
 ### Phase 6 — costgate-cloud ⬜
 

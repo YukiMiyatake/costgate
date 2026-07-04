@@ -83,6 +83,8 @@ Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github
 
 Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
 
+Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
+
 ## Plans (roadmap)
 
 | Plan | Scope |
