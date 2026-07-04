@@ -1,46 +1,28 @@
-# costgate-gate
+# CostGate Gate MVP
 
-CostGate Gateway MCP — filters tool definitions and delegates to backend MCP servers.
-
-## Layout
-
-```
-packages/gate/
-├── cmd/costgate-gate/    CLI entry point
-├── internal/
-│   ├── config/           YAML config loading
-│   ├── proxy/            stdio MCP proxy + filter
-│   └── metrics/          usage store for tier classification
-└── go.mod
-```
-
-## Status
-
-**Planned** — Go implementation. See [docs/architecture.md](../../docs/architecture.md).
+Transparent stdio MCP proxy (Go). Delegates to GitHub MCP — no filtering yet.
 
 ## Build
 
 ```bash
-# from repo root
+# from repo root (requires Go 1.25+)
 npm run build:gate
 
-# or directly
-go build -o bin/costgate-gate ./cmd/costgate-gate
+# or
+cd packages/gate && go build -o bin/costgate-gate ./cmd/costgate-gate
 ```
 
-## Distribution
+## Cursor
 
-Single binary for Cursor / Claude Desktop:
+See [examples/cursor/mcp-gate-github.json](../../examples/cursor/mcp-gate-github.json).
 
-```json
-{
-  "mcpServers": {
-    "costgate": {
-      "command": "/path/to/costgate-gate",
-      "args": ["--config", "/path/to/costgate.yaml"]
-    }
-  }
-}
-```
+- **serena** — direct in Cursor
+- **costgate-gate** — GitHub MCP (replaces costgate-probe for production path)
 
-Released via GitHub Releases (same repo as Probe).
+Uses the same `~/.costgate/backends.json` as Probe.
+
+## MVP scope
+
+- ✅ Transparent `tools/list` + `tools/call` forwarding
+- ❌ Tool filtering (Phase B)
+- ❌ `discover_tools` meta tools (Phase B)

@@ -1,14 +1,72 @@
-// Package config loads Gate runtime settings.
 package config
 
-// Config holds gateway configuration (backends, filter tiers, etc.).
-type Config struct {
-	Backends map[string]Backend `yaml:"backends"`
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// BackendConfig describes a downstream MCP server process.
+type BackendConfig struct {
+	Always  bool              `json:"always,omitempty"`
+	Command string            `json:"command"`
+	Args    []string          `json:"args,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	Cwd     string            `json:"cwd,omitempty"`
 }
 
-// Backend describes a downstream MCP server to delegate to.
-type Backend struct {
-	Command string   `yaml:"command"`
-	Args    []string `yaml:"args"`
-	Env     []string `yaml:"env,omitempty"`
+// GateConfig is the Probe-compatible backends file format.
+type GateConfig struct {
+	Backends map[string]BackendConfig `json:"backends"`
+}
+
+var excludedBackends = map[string]bool{"serena": true}
+
+// ResolveConfigPath returns COSTGATE_CONFIG or ~/.costgate/backends.json.
+func ResolveConfigPath() string {
+	if p := os.Getenv("COSTGATE_CONFIG"); p != "" {
+		return p
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "backends.json"
+	}
+	return filepath.Join(home, ".costgate", "backends.json")
+}
+
+// Load reads and validates the gate backends configuration.
+func Load() (GateConfig, error) {
+	path := ResolveConfigPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return GateConfig{}, fmt.Errorf("read config %s: %w\nCopy examples/backends.github.json to ~/.costgate/backends.json", path, err)
+	}
+
+	var cfg GateConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return GateConfig{}, fmt.Errorf("parse config %s: %w", path, err)
+	}
+	if len(cfg.Backends) == 0 {
+		return GateConfig{}, fmt.Errorf("no backends in %s", path)
+	}
+	for name := range cfg.Backends {
+		if excludedBackends[name] {
+			return GateConfig{}, fmt.Errorf("gate must not configure %q; keep serena direct in Cursor", name)
+		}
+	}
+	return cfg, nil
+}
+
+// PrimaryBackend returns github if present, otherwise the first backend.
+func PrimaryBackend(cfg GateConfig) (string, BackendConfig, error) {
+	if b, ok := cfg.Backends["github"]; ok {
+		return "github", b, nil
+	}
+	for name, backend := range cfg.Backends {
+		if !excludedBackends[name] {
+			return name, backend, nil
+		}
+	}
+	return "", BackendConfig{}, fmt.Errorf("no gate backends configured")
 }
