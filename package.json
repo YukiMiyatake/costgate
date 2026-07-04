@@ -1,0 +1,21 @@
+{
+  "name": "costgate",
+  "private": true,
+  "description": "Gate your MCP. Cut your bill.",
+  "workspaces": [
+    "packages/probe"
+  ],
+  "scripts": {
+    "build": "npm run build -w @costgate/probe",
+    "build:probe": "npm run build -w @costgate/probe",
+    "dev:probe": "npm run dev -w @costgate/probe"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/costgate/costgate.git"
+  }
+}

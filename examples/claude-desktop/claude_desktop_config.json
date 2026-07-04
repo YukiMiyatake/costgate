@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "costgate-probe": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/costgate/packages/probe/dist/index.js"],
+      "env": {
+        "COSTGATE_PROBE_LOG_DIR": "${HOME}/.costgate/logs",
+        "COSTGATE_CLIENT": "claude-desktop"
+      }
+    }
+  }
+}

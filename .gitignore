@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+*.tsbuildinfo
+.costgate/logs/
+
+# Go
+packages/gate/bin/
+packages/gate/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
