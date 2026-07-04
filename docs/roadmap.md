@@ -31,6 +31,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **4. Before/After compare** | ✅ Done | `npm run compare` — schema token estimate report |
 | **5. Cursor production switch** | ✅ Done | `npm run cursor:production`, measurement rollback |
 | **6. costgate-cloud** | ✅ MVP | Reporter, API, OSS `cloud:upload` |
+| **7. Session token breakdown** | ⬜ Next | 固定 + 変動コスト込みの全体削減 % レポート |
 
 ### Phase 1 — Probe MVP ✅
 
@@ -81,6 +82,73 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 **Planned:** web dashboard, Stripe billing, scheduled PDF
 
+### Phase 7 — Session token breakdown ⬜
+
+**Goal:** 請求トークン全体に対する Gate の効果を **%** で示す（定義だけでなく変動コスト込み）。
+
+| Layer | 内容 | 現状 |
+|-------|------|------|
+| **固定** | `tools/list` スキーマ（毎ターン） | `npm run compare` で計測済み |
+| **変動** | `tool_call` 入出力バイト数 | Probe JSONL に記録あり、レポート未集計 |
+| **対象外** | 会話・システムプロンプト・Serena 等 | Cursor 内部のため直接計測不可 |
+
+**Deliverables (planned):**
+
+- Probe / Reporter: セッション単位で `tools_list` vs `tool_call` の推定 tokens 内訳
+- Gate 適用前後の **全体に占める固定コスト比率** と **推定削減 %**
+- costgate-cloud Pro レポートへの統合
+
+**Not in scope for Phase 7:** 会話文・プロンプト・rules の自動最適化（別項目、未スケジュール）
+
+---
+
+## Token impact (measured & estimated)
+
+CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）** が中心。請求全体への効果はセッション構成に依存する。
+
+### ツール定義のみ（GitHub MCP・実測）
+
+| 状態 | tools | est. tokens (`tools/list`) |
+|------|-------|----------------------------|
+| 透明（全件） | 26 | ~3,957 |
+| Gate filter | 8 | ~883 |
+| **定義のみの削減** | | **~78%** |
+
+### 請求トークン全体への目安（GitHub MCP を Gate した場合）
+
+1 ターンの合計 ≈ システム/会話 + **ツール定義（固定）** + **ツール結果（変動）** + 他 MCP（Serena 等）。
+
+| 使い方 | Gate による全体削減の目安 |
+|--------|---------------------------|
+| 短い会話・定義が効きやすい | **15〜30%** |
+| 通常のコーディング | **5〜15%** |
+| 長い会話 + 大きな tool 結果 | **3〜8%** |
+| Serena 定義が支配的 | **1〜5%**（GitHub 分のみ削減） |
+
+例: 1 ターン 20,000 tokens のうち GitHub 定義 ~4,000 → Gate で ~3,000 削減 → **全体 ~15%**。
+
+`npm run compare` は **定義レイヤのみ**。変動コスト込みは **Phase 7**。
+
+### 削減対象の整理
+
+| 対象 | OSS 現状 | 今後 |
+|------|----------|------|
+| MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter | 動的 intent（Later） |
+| MCP ツール実行結果 | ❌ | Response compression（Later） |
+| ファイル読取の出力量 | ❌ | Code Mode MCP（Later） |
+| 会話・ユーザープロンプト・rules | ❌ | **未計画** |
+| Serena / 直結 MCP の定義 | ❌（意図的に対象外） | — |
+
+### Pro / Team プランとの関係
+
+| Plan | 主な価値 |
+|------|----------|
+| **Free (OSS)** | 定義削減（Gate）+ 計測（Probe） |
+| **Pro** | レポート・クラウド履歴・**Phase 7 的な全体 % 表示** |
+| **Team** | ダッシュボード・ポリシー |
+
+Pro/Team は **可視化・レポート** が中心。会話トークンそのものを削る機能はロードマップに含めていない。
+
 ---
 
 ## Later (not scheduled)
@@ -88,8 +156,9 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | Item | Notes |
 |------|-------|
 | Dynamic intent per turn | Keyword/env today; needs client message hook or heuristics |
-| Response compression | Inside Gate, after filter is stable |
-| Code Mode MCP | Token-optimized file/symbol output |
+| Response compression | Tool **results** (not definitions); inside Gate |
+| Code Mode MCP | Token-optimized file/symbol **output** |
+| Prompt / rules optimization | **Not scheduled** — conversation token reduction |
 | tiktoken | Replace ≈4 bytes/token estimate in Probe/compare |
 | GitHub Releases + goreleaser | Gate binary distribution |
 
