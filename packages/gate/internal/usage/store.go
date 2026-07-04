@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -146,4 +147,54 @@ func (s *Store) importJSONL(path string) error {
 // CallCount returns how many times a tool was recorded.
 func (s *Store) CallCount(tool string) int64 {
 	return s.Tools[tool].CallCount
+}
+
+var keywordStopWords = map[string]bool{
+	"get": true, "set": true, "list": true, "create": true, "update": true,
+	"delete": true, "add": true, "remove": true, "search": true, "find": true,
+	"read": true, "write": true, "run": true, "call": true, "for": true, "the": true,
+}
+
+// RecentKeywords builds intent text from recently used tool names.
+func (s *Store) RecentKeywords(maxTools int, within time.Duration) string {
+	if s == nil || len(s.Tools) == 0 {
+		return ""
+	}
+	if maxTools <= 0 {
+		maxTools = 5
+	}
+	cutoff := time.Now().UTC().Add(-within)
+
+	type item struct {
+		name string
+		used time.Time
+	}
+	var recent []item
+	for name, st := range s.Tools {
+		if st.LastUsed.IsZero() || st.LastUsed.Before(cutoff) {
+			continue
+		}
+		recent = append(recent, item{name: name, used: st.LastUsed})
+	}
+	sort.Slice(recent, func(i, j int) bool {
+		return recent[i].used.After(recent[j].used)
+	})
+	if len(recent) > maxTools {
+		recent = recent[:maxTools]
+	}
+
+	seen := map[string]bool{}
+	var tokens []string
+	for _, it := range recent {
+		phrase := strings.ReplaceAll(it.name, "_", " ")
+		for _, word := range strings.Fields(phrase) {
+			word = strings.ToLower(word)
+			if len(word) < 3 || keywordStopWords[word] || seen[word] {
+				continue
+			}
+			seen[word] = true
+			tokens = append(tokens, word)
+		}
+	}
+	return strings.Join(tokens, " ")
 }

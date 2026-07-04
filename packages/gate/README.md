@@ -16,12 +16,13 @@ npm run build:gate
 | `filter` (default) | Tier A/B/C + meta tools |
 | `transparent` | Pass-through (MVP / baseline comparison) |
 
-## Filter mode (v0.2)
+## Filter mode (v0.3)
 
 - **Tier A** (~20%): always in `tools/list`
-- **Tier B** (~30%): in list when `COSTGATE_INTENT` keywords match
+- **Tier B** (~30%): in list when intent keywords match
 - **Tier C**: hidden — use `discover_tools` + `invoke_tool`
 - **Meta tools** (always): `discover_tools`, `invoke_tool`
+- **Dynamic intent** (default ON): recent tool usage augments `COSTGATE_INTENT`; Tier B exposure refreshes after each call
 - **Usage**: `~/.costgate/usage.json` (+ optional import from Probe JSONL logs)
 
 ### Environment
@@ -30,7 +31,8 @@ npm run build:gate
 |----------|---------|-------------|
 | `COSTGATE_CONFIG` | `~/.costgate/backends.json` | Backend MCP processes |
 | `COSTGATE_GATE_MODE` | `filter` | `filter` or `transparent` |
-| `COSTGATE_INTENT` | (empty) | Keywords to expose Tier B tools |
+| `COSTGATE_INTENT` | (empty) | Static keywords to expose Tier B tools |
+| `COSTGATE_INTENT_DYNAMIC` | `1` | `0`/`false` disables usage-based intent inference |
 | `COSTGATE_USAGE_PATH` | `~/.costgate/usage.json` | Tool usage store |
 | `COSTGATE_PROBE_LOG_DIR` | `~/.costgate/logs` | Probe logs for usage import |
 
