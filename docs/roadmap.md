@@ -30,7 +30,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **3. Gate filter v1** | ✅ Done | Tier A/B/C, `discover_tools`, `invoke_tool`, usage store |
 | **4. Before/After compare** | ✅ Done | `npm run compare` — schema token estimate report |
 | **5. Cursor production switch** | ✅ Done | `npm run cursor:production`, measurement rollback |
-| **6. costgate-cloud** | ⬜ Next | Pro reports, API, billing ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
+| **6. costgate-cloud** | ✅ MVP | Reporter, API, OSS `cloud:upload` |
 
 ### Phase 1 — Probe MVP ✅
 
@@ -72,12 +72,14 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 - Test: `npm run test:cursor-gate`
 - **Restart Cursor** after switching MCP config
 
-### Phase 6 — costgate-cloud ⬜
+### Phase 6 — costgate-cloud ✅ (MVP)
 
-- Automated Before/After reports (Pro)
-- Team usage dashboard, policies (Team / Enterprise)
-- Opt-in metrics upload from Probe/Gate
-- Scaffold: [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)
+- **Reporter**: `npm run report` in costgate-cloud — local markdown from Probe JSONL
+- **API**: `npm run api:dev` — `POST /v1/metrics` (file-backed)
+- **OSS upload**: `npm run cloud:upload` — opt-in (`COSTGATE_CLOUD_URL`, `COSTGATE_CLOUD_API_KEY`)
+- Repo: [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)
+
+**Planned:** web dashboard, Stripe billing, scheduled PDF
 
 ---
 
