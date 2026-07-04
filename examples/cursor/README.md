@@ -1,29 +1,22 @@
-# Cursor + Serena via CostGate Probe
+# Cursor MCP examples
 
-Replace direct `serena` entry in `~/.cursor/mcp.json` with Probe.
-Probe spawns Serena as a backend subprocess.
+## Recommended
 
-## Setup
+**[mcp-direct-serena.json](./mcp-direct-serena.json)** — Serena 直結（常時）。
 
-```bash
-cd /path/to/costgate
-npm install
-npm run build:probe
-```
+**[mcp-probe-github.json](./mcp-probe-github.json)** — Serena 直結 + Probe が GitHub MCP を計測（要 PAT）。
 
-Copy or merge [mcp-probe-serena.json](./mcp-probe-serena.json) into `~/.cursor/mcp.json`.
-Adjust absolute paths for your machine.
+Probe は **Serena を subprocess で起動しません。** Serena と Probe は同時 ON 可。
 
-## Logs
+## Setup Probe + GitHub
 
-JSONL files are written to `~/.costgate/logs/probe-YYYY-MM-DD.jsonl`.
+1. Copy [backends.github.json](../backends.github.json) → `~/.costgate/backends.json`
+2. Set `GITHUB_PERSONAL_ACCESS_TOKEN`
+3. Merge [mcp-probe-github.json](./mcp-probe-github.json) into `~/.cursor/mcp.json`
+4. `npm run build:probe`
 
-Events:
+## Future (Gate)
 
-- `session_start` / `session_end`
-- `tools_list` — tool definition sizes (fixed token cost)
-- `tool_call` — per-invocation request/response sizes
+`costgate-gate` replaces direct GitHub path; Serena stays direct.
 
-## Note
-
-Do **not** enable both `serena` and `costgate-probe` at once (Serena would start twice).
+See [docs/architecture.md](../../docs/architecture.md).

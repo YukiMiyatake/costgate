@@ -1,47 +1,40 @@
 # @costgate/probe
 
-MCP measurement proxy for CostGate. Sits between your MCP client and backend servers to log token-related metrics.
+MCP measurement proxy for CostGate. Measures **GitHub and other heavy MCPs** — not Serena.
+
+## Policy
+
+- **Serena**: always direct in Cursor (`mcp.json`). Probe never spawns it.
+- **Probe**: wraps GitHub MCP (and similar) for JSONL metrics.
 
 ## Layout
 
 ```
 packages/probe/
 ├── src/
-│   ├── index.ts      entry point
-│   ├── proxy.ts      stdio MCP relay
-│   ├── metrics.ts    token / byte estimation
-│   └── logger.ts     JSONL output
+│   ├── index.ts
+│   ├── proxy.ts
+│   ├── metrics.ts
+│   ├── logger.ts
+│   ├── config.ts
+│   └── backend.ts
 └── package.json
 ```
-
-## Status
-
-**MVP** — stdio proxy for a single backend (Serena). Logs JSONL metrics.
 
 ## Usage
 
 ```bash
-# from repo root
 npm run build:probe
 ```
 
-Configure `COSTGATE_CONFIG` to point at a backends JSON file.
-See [examples/backends.serena.json](../../examples/backends.serena.json).
+Configure `COSTGATE_CONFIG` → [examples/backends.github.json](../../examples/backends.github.json).
 
-After publish:
-
-```bash
-npx @costgate/probe
-```
+Cursor example: [examples/cursor/mcp-probe-github.json](../../examples/cursor/mcp-probe-github.json).
 
 ## Environment
 
 | Variable | Description |
 |----------|-------------|
+| `COSTGATE_CONFIG` | Backends JSON path (default: `~/.costgate/backends.json`) |
 | `COSTGATE_PROBE_LOG_DIR` | Log directory (default: `~/.costgate/logs`) |
-| `COSTGATE_CLIENT` | Client name: `cursor`, `claude-desktop`, etc. |
-| `COSTGATE_BACKENDS` | JSON config for backend MCP servers to proxy |
-
-## Dependencies
-
-Uses `@costgate/schema` from the same monorepo for log event types.
+| `COSTGATE_CLIENT` | Client id: `cursor`, `claude-desktop`, etc. |

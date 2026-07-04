@@ -1,7 +1,6 @@
 {
-  "backends": {
+  "mcpServers": {
     "serena": {
-      "always": true,
       "command": "/home/yuki/.local/bin/uvx",
       "args": [
         "--from",
