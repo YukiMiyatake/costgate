@@ -2,11 +2,11 @@
   "backends": {
     "github": {
       "always": true,
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PAT_HERE"
-      }
+      "command": "bash",
+      "args": [
+        "-lc",
+        "export GITHUB_PERSONAL_ACCESS_TOKEN=\"$(gh auth token)\"; exec npx -y @modelcontextprotocol/server-github"
+      ]
     }
   }
 }

@@ -10,10 +10,11 @@ Probe は **Serena を subprocess で起動しません。** Serena と Probe �
 
 ## Setup Probe + GitHub
 
-1. Copy [backends.github.json](../backends.github.json) → `~/.costgate/backends.json`
-2. Set `GITHUB_PERSONAL_ACCESS_TOKEN`
+1. Ensure `gh auth login` is done (token via `gh auth token`)
+2. Copy [backends.github.json](../backends.github.json) → `~/.costgate/backends.json`
 3. Merge [mcp-probe-github.json](./mcp-probe-github.json) into `~/.cursor/mcp.json`
 4. `npm run build:probe`
+5. Restart Cursor MCP (or reload window)
 
 ## Future (Gate)
 
