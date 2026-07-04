@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -16,7 +17,12 @@ func callBackend(ctx context.Context, backend *mcp.ClientSession, name string, r
 		}
 		params.Arguments = args
 	}
-	return backend.CallTool(ctx, params)
+	result, err := backend.CallTool(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	out, _ := compress.MaybeCompress(name, result)
+	return out, nil
 }
 
 func callBackendFromRequest(ctx context.Context, backend *mcp.ClientSession, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

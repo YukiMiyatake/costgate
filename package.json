@@ -14,6 +14,7 @@
     "build:gate": "cd packages/gate && go build -o bin/costgate-gate ./cmd/costgate-gate",
     "test:gate": "node test/gate-measurement.mjs",
     "test:gate:filter": "node test/gate-filter.mjs",
+    "test:gate:compress": "cd packages/gate && go test ./internal/compress/...",
     "compare": "node scripts/compare-report.mjs",
     "session-report": "node scripts/session-report.mjs",
     "cursor:production": "node scripts/cursor-mcp.mjs production",

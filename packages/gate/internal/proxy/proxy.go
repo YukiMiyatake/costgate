@@ -71,7 +71,7 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 func newServer() *mcp.Server {
 	return mcp.NewServer(&mcp.Implementation{
 		Name:    "costgate-gate",
-		Version: "0.3.0",
+		Version: "0.4.0",
 	}, nil)
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -127,6 +128,9 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.Client
 		params.Arguments = parsed
 	}
 	result, err := backend.CallTool(ctx, params)
+	if err == nil && result != nil {
+		result, _ = compress.MaybeCompress(args.Name, result)
+	}
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
 	}
