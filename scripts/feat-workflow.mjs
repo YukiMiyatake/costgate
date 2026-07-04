@@ -4,8 +4,10 @@
  *
  * Usage:
  *   npm run feat:start -- my-feature        # feat/my-feature
- *   npm run feat:ship -- --message "..."    # auto branch if on main
+ *   npm run feat:ship -- --message "..."    # auto branch, ready PR, auto-merge queue
  *   npm run feat:ship -- -m "..." --name fix/bug
+ *   npm run feat:ship -- -m "..." --draft    # 手動レビュー用ドラフト PR
+ *   npm run feat:ship -- -m "..." --no-auto   # auto-merge しない
  */
 import { execSync, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -57,6 +59,8 @@ function parseArgs(argv) {
     title: "",
     body: "",
     skipPr: false,
+    draft: false,
+    auto: true,
   };
   const rest = argv[0] === "start" ? argv.slice(1) : argv.slice(1);
   if (out.cmd === "start") {
@@ -72,6 +76,10 @@ function parseArgs(argv) {
     else if (a === "--title") out.title = rest[++i] ?? "";
     else if (a === "--body") out.body = rest[++i] ?? "";
     else if (a === "--no-pr") out.skipPr = true;
+    else if (a === "--draft") {
+      out.draft = true;
+      out.auto = false;
+    } else if (a === "--no-auto") out.auto = false;
   }
   return out;
 }
@@ -111,21 +119,26 @@ function tryGet(cmd) {
   }
 }
 
-function openPr(branch, opts) {
-  const existing = tryGet(
-    `gh pr list --head ${branch} --base main --state open --json number`
+function prNumberForBranch(branch) {
+  const raw = tryGet(
+    `gh pr list --head ${branch} --base main --state open --json number -q '.[0].number'`
   );
-  if (existing) {
-    try {
-      const prs = JSON.parse(existing);
-      if (prs.length > 0) {
-        const url = tryGet(`gh pr view ${prs[0].number} --json url -q .url`);
-        console.error(`[feat] PR already open: ${url || prs[0].number}`);
-        return;
-      }
-    } catch {
-      // continue
-    }
+  return raw ? Number(raw) : 0;
+}
+
+function queueAutoMerge(prNum) {
+  if (!prNum) return;
+  run(`gh pr merge ${prNum} --auto --squash`, { allowFail: true });
+  console.error(`[feat] auto-merge queued: PR #${prNum}`);
+}
+
+function openPr(branch, opts) {
+  const existingNum = prNumberForBranch(branch);
+  if (existingNum) {
+    const url = tryGet(`gh pr view ${existingNum} --json url -q .url`);
+    console.error(`[feat] PR already open: ${url || existingNum}`);
+    if (opts.auto && !opts.draft) queueAutoMerge(existingNum);
+    return;
   }
 
   const title = opts.title || opts.message.split("\n")[0] || branch;
@@ -135,12 +148,20 @@ function openPr(branch, opts) {
   const dir = mkdtempSync(join(tmpdir(), "costgate-pr-"));
   const bodyFile = join(dir, "body.md");
   writeFileSync(bodyFile, body, "utf8");
+  const draftFlag = opts.draft ? "--draft" : "";
   try {
     run(
-      `gh pr create --draft --base main --head ${branch} --title ${JSON.stringify(title)} --body-file ${JSON.stringify(bodyFile)}`
+      `gh pr create ${draftFlag} --base main --head ${branch} --title ${JSON.stringify(title)} --body-file ${JSON.stringify(bodyFile)}`.replace(
+        /\s+/g,
+        " "
+      )
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+
+  if (opts.auto && !opts.draft) {
+    queueAutoMerge(prNumberForBranch(branch));
   }
 }
 

@@ -67,10 +67,12 @@ npm run hooks:install
 # ブランチだけ作る
 npm run feat:start -- gate-filter-v2
 
-# コミット・push・ドラフト PR を一括（main 上なら feat ブランチを自動作成）
+# コミット・push・ready PR・auto-merge キューを一括（main 上なら feat ブランチを自動作成）
 git add …
 npm run feat:ship -- --message "変更の説明"
 npm run feat:ship -- -m "…" --name fix/bug-name   # ブランチ名を指定
+npm run feat:ship -- -m "…" --draft               # 手動レビュー用ドラフト PR
+npm run feat:ship -- -m "…" --no-auto             # auto-merge しない
 ```
 
 手動で行う場合:
@@ -83,8 +85,25 @@ git checkout -b feat/short-description
 # … 作業・git add …
 
 git push -u origin feat/short-description
-gh pr create --draft --base main --head feat/short-description
+gh pr create --base main --head feat/short-description
+gh pr merge --auto --squash   # CI 通過後に自動マージ（任意）
 ```
+
+### PR 自動レビュー・マージ
+
+GitHub Actions（`.github/workflows/`）:
+
+| Workflow | 役割 |
+|----------|------|
+| `ci.yml` | build + go test |
+| `pr-automation.yml` | 自動レビューコメント + CI 通過後 squash auto-merge |
+
+**初回のみ** GitHub リポジトリ設定:
+
+1. Settings → General → **Allow auto-merge** を ON
+2. （任意）Settings → Branches → `main` に **Require status checks** → `CI / build-and-test` を必須化
+
+`npm run feat:ship` はデフォルトで ready PR を作成し auto-merge をキューします。GitHub 上で CI が通れば `main` に squash マージされます。
 
 マージ後:
 
