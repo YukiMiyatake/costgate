@@ -28,7 +28,7 @@ func main() {
 	}
 
 	configPath := config.ResolveConfigPath()
-	log.Printf("[costgate-gate] v0.1.0 backend=%s config=%s", name, configPath)
+	log.Printf("[costgate-gate] v0.2.0 backend=%s config=%s mode=%s", name, configPath, proxy.GateModeLabel())
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()

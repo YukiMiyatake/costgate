@@ -79,7 +79,7 @@ Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github
 }
 ```
 
-MVP: transparent proxy (no tool filtering yet). Same backends file as Probe.
+**Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. Set `COSTGATE_GATE_MODE=transparent` for pass-through baseline. See [packages/gate/README.md](./packages/gate/README.md).
 
 ## Plans (roadmap)
 

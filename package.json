@@ -13,6 +13,7 @@
     "dev:probe": "npm run dev -w @costgate/probe",
     "build:gate": "cd packages/gate && go build -o bin/costgate-gate ./cmd/costgate-gate",
     "test:gate": "node test/gate-measurement.mjs",
+    "test:gate:filter": "node test/gate-filter.mjs",
     "docker:build": "docker compose -f docker-compose.dev.yml run --rm dev npm run build",
     "docker:gate": "docker compose -f docker-compose.dev.yml run --rm go go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate",
     "docker:shell": "docker compose -f docker-compose.dev.yml run --rm dev bash",
