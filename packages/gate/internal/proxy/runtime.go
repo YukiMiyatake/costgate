@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/intent"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
@@ -121,7 +122,7 @@ func (r *filterRuntime) logStartup() {
 	intentText := r.currentIntent()
 	a, b, c := filter.CountTiers(r.tiers)
 	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d) intent=%q dynamic=%v",
-		r.exposedCount(), len(r.cat.Tools), a, b, c, intentText, intent.DynamicEnabled(),
+		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d) intent=%q dynamic=%v compress=%v",
+		r.exposedCount(), len(r.cat.Tools), a, b, c, intentText, intent.DynamicEnabled(), compress.Enabled(),
 	)
 }
