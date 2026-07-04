@@ -85,6 +85,8 @@ Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
 
 Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
 
+Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud).
+
 ## Plans (roadmap)
 
 | Plan | Scope |
