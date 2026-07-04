@@ -46,4 +46,16 @@ See [examples/cursor/mcp-gate-github.json](../../examples/cursor/mcp-gate-github
 ```bash
 npm run test:gate            # transparent mode (26 tools)
 npm run test:gate:filter     # filter mode + discover_tools
+npm run compare              # Before/After token estimate report
 ```
+
+## Before/After comparison
+
+```bash
+npm run compare
+npm run compare -- --intent "pull request"
+npm run compare -- --via-probe    # use Probe as baseline
+npm run compare -- --json
+```
+
+Measures `tools/list` schema size: **gate transparent** (or Probe) vs **gate filter**.

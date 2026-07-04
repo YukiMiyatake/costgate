@@ -81,6 +81,8 @@ Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github
 
 **Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. Set `COSTGATE_GATE_MODE=transparent` for pass-through baseline. See [packages/gate/README.md](./packages/gate/README.md).
 
+Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
+
 ## Plans (roadmap)
 
 | Plan | Scope |
