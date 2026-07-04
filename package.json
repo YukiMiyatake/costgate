@@ -15,6 +15,7 @@
     "test:gate": "node test/gate-measurement.mjs",
     "test:gate:filter": "node test/gate-filter.mjs",
     "compare": "node scripts/compare-report.mjs",
+    "session-report": "node scripts/session-report.mjs",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",
     "cursor:mcp": "node scripts/cursor-mcp.mjs",
