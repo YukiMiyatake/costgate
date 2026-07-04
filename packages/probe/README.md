@@ -16,15 +16,17 @@ packages/probe/
 
 ## Status
 
-**Scaffold** — core proxy implementation in progress.
+**MVP** — stdio proxy for a single backend (Serena). Logs JSONL metrics.
 
 ## Usage
 
 ```bash
 # from repo root
 npm run build:probe
-npm run dev:probe
 ```
+
+Configure `COSTGATE_CONFIG` to point at a backends JSON file.
+See [examples/backends.serena.json](../../examples/backends.serena.json).
 
 After publish:
 

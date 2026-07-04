@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "costgate-probe": {
+      "command": "node",
+      "args": ["/home/yuki/work/costgate/packages/probe/dist/index.js"],
+      "env": {
+        "COSTGATE_CONFIG": "/home/yuki/work/costgate/examples/backends.serena.json",
+        "COSTGATE_PROBE_LOG_DIR": "/home/yuki/.costgate/logs",
+        "COSTGATE_CLIENT": "cursor"
+      }
+    }
+  }
+}
