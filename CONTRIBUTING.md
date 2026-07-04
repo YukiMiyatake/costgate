@@ -12,12 +12,27 @@
 
 ## Development setup
 
+### Option A — Host (Node 20+, Go 1.22+ optional)
+
 ```bash
 git clone https://github.com/YukiMiyatake/costgate.git
 cd costgate
 npm install
 npm run build
 ```
+
+### Option B — Docker (no host Node/Go required)
+
+```bash
+npm run docker:build
+npm run docker:gate
+```
+
+### Option C — Dev Container (Cursor / VS Code)
+
+Command Palette → **Dev Containers: Reopen in Container**
+
+See [docs/docker.md](./docs/docker.md) for details.
 
 ### Probe
 

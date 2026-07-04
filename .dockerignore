@@ -1,0 +1,9 @@
+node_modules
+packages/gate/bin
+.git
+.costgate/logs
+*.log
+.env
+.env.*
+coverage
+dist

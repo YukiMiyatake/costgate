@@ -11,7 +11,11 @@
     "build:schema": "npm run build -w @costgate/schema",
     "build:probe": "npm run build -w @costgate/probe",
     "dev:probe": "npm run dev -w @costgate/probe",
-    "build:gate": "go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate"
+    "build:gate": "go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate",
+    "docker:build": "docker compose -f docker-compose.dev.yml run --rm dev npm run build",
+    "docker:gate": "docker compose -f docker-compose.dev.yml run --rm go go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate",
+    "docker:shell": "docker compose -f docker-compose.dev.yml run --rm dev bash",
+    "docker:test": "docker compose -f docker-compose.test.yml --profile test run --rm test-runner"
   },
   "engines": {
     "node": ">=20"

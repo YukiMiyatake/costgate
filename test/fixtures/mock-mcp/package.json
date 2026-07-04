@@ -1,0 +1,8 @@
+{
+  "name": "@costgate/mock-mcp",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}

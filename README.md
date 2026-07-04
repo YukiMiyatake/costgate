@@ -66,6 +66,7 @@ See [examples/cursor/](./examples/cursor/) for full configuration.
 ## Documentation
 
 - [Repository structure](./docs/structure.md)
+- [Docker / Dev Container](./docs/docker.md)
 - [Architecture](./docs/architecture.md)
 - [Log schema](./docs/log-schema.md)
 - [Contributing](./CONTRIBUTING.md)

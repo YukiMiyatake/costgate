@@ -7,7 +7,7 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
-.costgate/logs/
+.costgate/
 
 # Go
 packages/gate/bin/

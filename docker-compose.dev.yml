@@ -1,0 +1,29 @@
+# Development toolchain — does NOT run MCP for Cursor attach.
+# Use for build/test without installing Node/Go on the host.
+#
+#   docker compose -f docker-compose.dev.yml run --rm dev npm run build
+#   docker compose -f docker-compose.dev.yml run --rm go npm run build:gate
+
+services:
+  dev:
+    image: node:22-bookworm
+    working_dir: /app
+    volumes:
+      - .:/app
+      - costgate_node_modules:/app/node_modules
+    environment:
+      COSTGATE_PROBE_LOG_DIR: /app/.costgate/logs
+    command: sleep infinity
+
+  go:
+    image: golang:1.22-bookworm
+    working_dir: /app
+    volumes:
+      - .:/app
+      - costgate_go_build:/root/go/pkg/mod
+    environment:
+      GOMODCACHE: /root/go/pkg/mod
+
+volumes:
+  costgate_node_modules:
+  costgate_go_build:
