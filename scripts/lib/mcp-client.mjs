@@ -47,7 +47,15 @@ export function createMcpClient(proc, { timeoutMs = 120000 } = {}) {
     return res.result?.tools ?? [];
   }
 
-  return { send, initialize, listTools };
+  async function callTool(name, arguments_ = {}) {
+    const res = await send("tools/call", { name, arguments: arguments_ });
+    if (res.error) {
+      throw new Error(res.error.message ?? JSON.stringify(res.error));
+    }
+    return res.result;
+  }
+
+  return { send, initialize, listTools, callTool };
 }
 
 export async function withMcpProcess(command, args, env, fn, options = {}) {
@@ -90,4 +98,20 @@ export function summarizeTools(tools) {
 export function pctReduction(before, after) {
   if (before <= 0) return 0;
   return Math.round((1 - after / before) * 1000) / 10;
+}
+
+export function summarizeCallResult(result) {
+  const serialized = JSON.stringify(result ?? {});
+  const response_bytes = Buffer.byteLength(serialized, "utf8");
+  let text_chars = 0;
+  for (const item of result?.content ?? []) {
+    if (item?.type === "text" && item.text) {
+      text_chars += item.text.length;
+    }
+  }
+  return {
+    response_bytes,
+    text_chars,
+    estimated_tokens: Math.max(1, Math.ceil(response_bytes / 4)),
+  };
 }
