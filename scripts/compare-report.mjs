@@ -74,6 +74,7 @@ async function measureGateFilter() {
       ...baseEnv,
       COSTGATE_GATE_MODE: "filter",
       COSTGATE_INTENT: intent,
+      COSTGATE_INTENT_DYNAMIC: args.includes("--dynamic") ? "1" : "0",
     },
     async (client) => {
       await client.initialize("compare-after");

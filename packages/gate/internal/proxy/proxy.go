@@ -8,7 +8,6 @@ import (
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
-	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -63,32 +62,16 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 	}
 
 	tiers := filter.Classify(cat.Tools, store)
-	intent := intentKeywords()
-	exposed := filter.SelectExposed(cat.Tools, tiers, intent)
-	a, b, c := filter.CountTiers(tiers)
-
-	record := func(tool string) {
-		store.Record(tool)
-		if err := store.Save(); err != nil {
-			log.Printf("[costgate-gate] usage save: %v", err)
-		}
-	}
-
 	server := newServer()
-	meta.Register(server, cat, tiers, backend, record)
-	registerBackendTools(server, exposed, backend, record)
-
-	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d) intent=%q",
-		len(exposed), len(cat.Tools), a, b, c, intent,
-	)
+	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords())
+	rt.logStartup()
 	return serve(ctx, server)
 }
 
 func newServer() *mcp.Server {
 	return mcp.NewServer(&mcp.Implementation{
 		Name:    "costgate-gate",
-		Version: "0.2.0",
+		Version: "0.3.0",
 	}, nil)
 }
 
