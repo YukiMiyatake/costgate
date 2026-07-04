@@ -93,6 +93,7 @@ Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
 
 ## Documentation
 
+- [Development roadmap](./docs/roadmap.md)
 - [Repository structure](./docs/structure.md)
 - [Docker / Dev Container](./docs/docker.md)
 - [Architecture](./docs/architecture.md)
