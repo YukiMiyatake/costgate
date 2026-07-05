@@ -41,7 +41,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
 | **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
 | **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
-| **23. Dashboard read-only** | 📋 Planned | Local Web UI — metrics, stale tools, recommendations |
+| **23. Dashboard read-only** | ✅ Done | Local Web UI — metrics, stale tools, recommendations |
 | **24. Dashboard control** | 📋 Planned | Tool overrides, mcp.json enable/disable |
 | **25. Gate event log** | 📋 Planned | Production stats without Probe |
 | **26. MCP add wizard** | 📋 Planned | Marketplace catalog, config scaffolding |
@@ -283,13 +283,13 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 
 | Phase | Status | Deliverable |
 |-------|--------|-------------|
-| **23. Dashboard read-only** | 📋 Planned | `npm run dashboard`, overview / tools / mcps / recommendations API |
+| **23. Dashboard read-only** | ✅ Done | `npm run dashboard`, overview / tools / mcps / recommendations API |
 | **24. Dashboard control** | 📋 Planned | `tool-overrides.json`, mcp.json PATCH + backup |
 | **25. Gate event log** | 📋 Planned | `gate-*.jsonl`, 本番統計、schema 拡張 |
 | **26. MCP add wizard** | 📋 Planned | `catalog/marketplace/`, 追加ウィザード |
 | **27. Project recommend** | 📋 Planned | リポジトリ解析による MCP 提案 |
 
-### Phase 23 — Dashboard read-only 📋
+### Phase 23 — Dashboard read-only ✅
 
 **目的:** 計測データを **localhost Web UI** で一覧。書き込みなし。
 

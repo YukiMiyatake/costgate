@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "/path/to/costgate-gate",
+      "env": {
+        "COSTGATE_CONFIG": "/home/user/.costgate/backends.json"
+      }
+    },
+    "cursor-app-control": {
+      "command": "cursor-app-control"
+    }
+  }
+}
