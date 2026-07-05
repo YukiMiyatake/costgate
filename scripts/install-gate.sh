@@ -78,4 +78,5 @@ mkdir -p "$INSTALL_DIR"
 install -m 755 "$src" "$INSTALL_DIR/$bin"
 
 echo "[install-gate] installed: $INSTALL_DIR/$bin"
+echo "[install-gate] ensure $INSTALL_DIR is on your PATH"
 "$INSTALL_DIR/$bin" --version
