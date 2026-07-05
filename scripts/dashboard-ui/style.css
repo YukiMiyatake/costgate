@@ -385,6 +385,23 @@ td code {
   background: var(--surface-raised);
 }
 
+.trust-select {
+  font: inherit;
+  font-size: 0.85rem;
+  text-transform: lowercase;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  min-width: 6.5rem;
+}
+
+.trust-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .tier-badge.tier-b {
   border-color: var(--warn);
   color: var(--warn);

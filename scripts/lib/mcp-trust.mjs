@@ -1,11 +1,11 @@
 /**
- * Phase 31a: MCP trust levels — load/merge/resolve for Dashboard (read-only).
+ * Phase 31a/31c: MCP trust levels — load/merge/resolve/patch for Dashboard.
  * Global: ~/.costgate/mcp-trust.json
  * Project: <root>/.costgate/mcp-trust.json (overrides Global when scoped)
  */
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { mergeNamedRecords } from "./dashboard-config-merge.mjs";
 import { loadMarketplaceCatalog } from "./dashboard-marketplace.mjs";
 import { readJson } from "./read-json.mjs";
@@ -237,6 +237,74 @@ export function buildMcpTrustApiPayload(paths = {}) {
     origins: loaded.origins,
     config_merge: loaded.config_merge,
     levels: MCP_TRUST_LEVELS,
-    read_only: true,
+    read_only: false,
+  };
+}
+
+function assertTrustLevel(trust, label = "trust") {
+  if (!MCP_TRUST_LEVELS.includes(trust)) {
+    throw new Error(`invalid ${label}: ${trust}`);
+  }
+}
+
+function collectServerPatches(partial = {}) {
+  const patches = {};
+  if (partial.servers && typeof partial.servers === "object") {
+    for (const [name, entry] of Object.entries(partial.servers)) {
+      if (!entry || typeof entry !== "object") {
+        throw new Error(`invalid server entry for ${name}`);
+      }
+      assertTrustLevel(entry.trust, `trust for ${name}`);
+      patches[name] = normalizeServerEntry(entry);
+    }
+  }
+  if (typeof partial.server === "string" && partial.trust) {
+    assertTrustLevel(partial.trust, `trust for ${partial.server}`);
+    patches[partial.server] = normalizeServerEntry({ trust: partial.trust });
+  }
+  return patches;
+}
+
+export function saveMcpTrust(config, paths = {}) {
+  const scoped = Boolean(paths.scoped && paths.projectRoot);
+  const path = scoped
+    ? projectMcpTrustPath(paths.projectRoot)
+    : paths.globalPath ?? globalMcpTrustPath();
+  mkdirSync(dirname(path), { recursive: true });
+  const payload = normalizeTrustConfig(config);
+  writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return { path, config: payload };
+}
+
+export function patchMcpTrust(partial, paths = {}) {
+  const serverPatches = collectServerPatches(partial);
+  const hasDefaults = partial.defaults && typeof partial.defaults === "object";
+  if (!Object.keys(serverPatches).length && !hasDefaults) {
+    throw new Error("servers or server+trust required");
+  }
+
+  const current = loadMcpTrust(paths);
+  const nextDefaults = { ...current.config.defaults };
+  if (hasDefaults) {
+    for (const [key, value] of Object.entries(partial.defaults)) {
+      if (key in nextDefaults) {
+        assertTrustLevel(value, `default ${key}`);
+        nextDefaults[key] = value;
+      }
+    }
+  }
+
+  const nextServers = { ...current.config.servers, ...serverPatches };
+  const saved = saveMcpTrust(
+    { version: MCP_TRUST_VERSION, defaults: nextDefaults, servers: nextServers },
+    paths
+  );
+  const reloaded = loadMcpTrust(paths);
+  return {
+    ...saved,
+    paths: reloaded.paths,
+    origins: reloaded.origins,
+    config_merge: reloaded.config_merge,
+    requires_gate_restart: true,
   };
 }

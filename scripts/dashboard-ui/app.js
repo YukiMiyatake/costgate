@@ -210,11 +210,54 @@ function setupWorkspaces() {
   });
 }
 
+const MCP_TRUST_LEVELS = ["trusted", "standard", "restricted", "untrusted"];
+
 function trustBadge(trust, origin) {
   const level = (trust ?? "—").toLowerCase();
   const label = origin && origin !== "default" && origin !== "config" ? `${trust} (${origin})` : (trust ?? "—");
   const ok = level === "trusted" || level === "standard";
   return badge(label, ok, `trust-badge trust-${level}`);
+}
+
+function trustSelect(server) {
+  const select = document.createElement("select");
+  select.className = "trust-select";
+  select.title =
+    server.origin && server.origin !== "default" && server.origin !== "config"
+      ? `Resolved from ${server.resolved_from ?? server.origin}`
+      : "MCP trust level";
+  for (const level of MCP_TRUST_LEVELS) {
+    const opt = document.createElement("option");
+    opt.value = level;
+    opt.textContent = level;
+    select.appendChild(opt);
+  }
+  const current = MCP_TRUST_LEVELS.includes(server.trust) ? server.trust : "restricted";
+  select.value = current;
+  let lastValue = current;
+  let saving = false;
+  select.addEventListener("change", async () => {
+    if (saving) return;
+    const next = select.value;
+    const prev = lastValue;
+    saving = true;
+    select.disabled = true;
+    try {
+      await fetchJson(apiPath("mcp-trust"), {
+        method: "PATCH",
+        body: JSON.stringify({ server: server.name, trust: next }),
+      });
+      lastValue = next;
+      await reload();
+    } catch (e) {
+      select.value = prev;
+      alert(e.message);
+    } finally {
+      select.disabled = false;
+      saving = false;
+    }
+  });
+  return select;
 }
 
 function renderOverview(data) {
@@ -597,7 +640,11 @@ function renderMcps(data) {
         )
       );
     }
-    tr.children[2].appendChild(trustBadge(s.trust, s.origin));
+    tr.children[2].appendChild(
+      s.enabled === false || s.trust === "disabled"
+        ? trustBadge(s.trust, s.origin)
+        : trustSelect(s)
+    );
     tr.children[3].appendChild(measured);
     tr.children[5].appendChild(toggle);
     body.appendChild(tr);
