@@ -3,6 +3,7 @@
  * Merge CostGate Cursor hooks into ~/.cursor/hooks.json
  *  · workspace registry (workspaceOpen / Read / Tab)
  *  · prompt intent (beforeSubmitPrompt)
+ *  · shield MCP trust (beforeMCPExecution)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -12,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const REGISTRY_SCRIPT = join(ROOT, "cursor-registry-hook.mjs");
 const PROMPT_SCRIPT = join(ROOT, "cursor-prompt-intent-hook.mjs");
+const SHIELD_MCP_SCRIPT = join(ROOT, "cursor-shield-mcp-hook.mjs");
 const CURSOR_DIR = join(homedir(), ".cursor");
 const HOOKS_PATH = join(CURSOR_DIR, "hooks.json");
 
@@ -35,6 +37,15 @@ const HOOK_DEFS = [
     key: "beforeSubmitPrompt",
     script: PROMPT_SCRIPT,
     hook: { command: `node ${PROMPT_SCRIPT}`, timeout: 5 },
+  },
+  {
+    key: "beforeMCPExecution",
+    script: SHIELD_MCP_SCRIPT,
+    hook: {
+      command: `node ${SHIELD_MCP_SCRIPT}`,
+      timeout: 5,
+      failClosed: true,
+    },
   },
 ];
 
@@ -71,6 +82,7 @@ function main() {
   console.error(`[cursor:hooks] added: ${installed.length ? installed.join(", ") : "(already present)"}`);
   console.error(`[cursor:hooks] registry: ${REGISTRY_SCRIPT}`);
   console.error(`[cursor:hooks] prompt-intent: ${PROMPT_SCRIPT}`);
+  console.error(`[cursor:hooks] shield-mcp: ${SHIELD_MCP_SCRIPT}`);
   console.error("[cursor:hooks] Restart Cursor after install.");
   console.error(
     "[cursor:hooks] Transcript tail (opt-in): COSTGATE_PROMPT_INTENT_TRANSCRIPT=1 on the hook process."
