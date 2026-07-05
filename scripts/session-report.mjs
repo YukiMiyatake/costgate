@@ -125,7 +125,7 @@ function buildReport(logs, gate) {
     notes: [
       "MCP-measurable = tools/list (fixed) + tool_call I/O (variable) from Probe logs only.",
       "Overall % scenarios assume Gate savings apply once per turn (tools/list layer).",
-      "Conversation, system prompt, Serena, and other MCPs are not included.",
+      "Conversation, system prompt, and MCPs outside Probe/Gate are not included.",
     ],
   };
 }

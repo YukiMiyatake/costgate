@@ -14,9 +14,6 @@ export interface ProbeConfig {
   backends: Record<string, BackendConfig>;
 }
 
-/** Serena is always direct in Cursor — never a Probe backend. */
-export const EXCLUDED_PROBE_BACKENDS = ["serena"] as const;
-
 export function resolveConfigPath(): string {
   if (process.env.COSTGATE_CONFIG) {
     return process.env.COSTGATE_CONFIG;
@@ -38,29 +35,18 @@ export function loadConfig(): ProbeConfig {
     throw new Error(`No backends defined in ${configPath}`);
   }
 
-  for (const name of EXCLUDED_PROBE_BACKENDS) {
-    if (raw.backends[name]) {
-      throw new Error(
-        `Probe must not configure "${name}" as a backend. ` +
-          "Keep serena direct in Cursor mcp.json; Probe targets GitHub and other MCPs only."
-      );
-    }
-  }
-
   return raw;
 }
 
-/** Single primary backend (github preferred, otherwise first non-excluded entry). */
+/** Single primary backend (github preferred, otherwise first entry). */
 export function getPrimaryBackend(
   config: ProbeConfig
 ): { name: string; backend: BackendConfig } {
-  const entries = Object.entries(config.backends).filter(
-    ([name]) => !EXCLUDED_PROBE_BACKENDS.includes(name as (typeof EXCLUDED_PROBE_BACKENDS)[number])
-  );
+  const entries = Object.entries(config.backends);
 
   if (entries.length === 0) {
     throw new Error(
-      "No Probe backends configured. Add github (or another MCP). Serena stays direct in Cursor."
+      "No Probe backends configured. Add github (or another MCP) to backends.json."
     );
   }
 

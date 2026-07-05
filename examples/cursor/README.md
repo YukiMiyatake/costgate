@@ -2,7 +2,7 @@
 
 ## Production (daily use) — recommended
 
-**[mcp-production.json](./mcp-production.json)** — Serena 直結 + **costgate-gate**（GitHub フィルタ済み）。
+**[mcp-production.json](./mcp-production.json)** — **costgate-gate** (GitHub filtered via `~/.costgate/backends.json`).
 
 ```bash
 npm run build:gate
@@ -21,13 +21,12 @@ Docker のみ（ホスト Node/Go 不要）:
 
 更新（ローカル再ビルド）: `npm run docker:update` — [docs/docker.md](../../docs/docker.md)
 
-- **serena** — コード操作（常時直結）
 - **costgate-gate** — GitHub MCP（Tier フィルタ + `discover_tools`）
 - その他の MCP（aieph 等）は `cursor-mcp` が **保持** します
 
 ## Measurement (development only)
 
-**[mcp-probe-github.json](./mcp-probe-github.json)** — Serena + **costgate-probe**（JSONL 計測）。
+**[mcp-probe-github.json](./mcp-probe-github.json)** — **costgate-probe**（JSONL 計測）。
 
 ```bash
 npm run build:probe
@@ -52,7 +51,6 @@ npm run cursor:measurement
 
 | File | Use |
 |------|-----|
-| [mcp-direct-serena.json](./mcp-direct-serena.json) | Serena のみ |
 | [mcp-gate-github.json](./mcp-gate-github.json) | Gate 最小構成（パス差し替え用） |
 | [mcp-probe-github.json](./mcp-probe-github.json) | Probe 計測用テンプレート |
 

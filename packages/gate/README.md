@@ -71,8 +71,7 @@ Usage-based `Classify()` runs first; catalog rules overlay explicit A/B/C for kn
 
 See [examples/cursor/mcp-gate-github.json](../../examples/cursor/mcp-gate-github.json).
 
-- **serena** — direct in Cursor
-- **costgate-gate** — GitHub MCP (filtered)
+- **costgate-gate** — GitHub MCP (filtered via `~/.costgate/backends.json`)
 
 ## Tests
 
