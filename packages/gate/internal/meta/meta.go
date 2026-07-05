@@ -98,6 +98,9 @@ func handleDiscover(
 	out := make([]item, 0, len(matches))
 	for _, tool := range matches {
 		tier := tiers[tool.Name]
+		if tier == filter.TierHidden {
+			continue
+		}
 		inList := false
 		if isListed != nil {
 			inList = isListed(tool.Name)

@@ -9,8 +9,12 @@
 <body>
   <header>
     <h1>CostGate Dashboard</h1>
-    <p class="subtitle">Read-only · localhost · Phase 23</p>
+    <p class="subtitle">localhost · Phase 24 · <span id="write-mode">…</span></p>
   </header>
+
+  <div id="token-bar" class="token-bar hidden">
+    <label>Write token <input type="password" id="dash-token" placeholder="COSTGATE_DASHBOARD_TOKEN" /></label>
+  </div>
 
   <nav id="tabs">
     <button type="button" data-tab="overview" class="active">Overview</button>
@@ -37,6 +41,7 @@
             <th>Last used</th>
             <th>List tokens</th>
             <th>Flag</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="tools-body"></tbody>
@@ -51,6 +56,7 @@
             <th>Role</th>
             <th>Measured</th>
             <th>Command</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="mcps-body"></tbody>

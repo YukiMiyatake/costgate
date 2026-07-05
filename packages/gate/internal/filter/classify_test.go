@@ -24,9 +24,9 @@ func TestClassifyBootstrap(t *testing.T) {
 	if tiers["get_file_contents"] != TierA {
 		t.Fatalf("get_file_contents: got %s, want A", tiers["get_file_contents"])
 	}
-	a, b, c := CountTiers(tiers)
-	if a+b+c != len(tools) {
-		t.Fatalf("tier count mismatch: %d %d %d", a, b, c)
+	a, b, c, h := CountTiers(tiers)
+	if a+b+c+h != len(tools) {
+		t.Fatalf("tier count mismatch: %d %d %d %d", a, b, c, h)
 	}
 }
 
@@ -61,5 +61,17 @@ func TestSelectExposed(t *testing.T) {
 	}
 	if names["fork_repository"] {
 		t.Fatal("tier C tool should not be exposed")
+	}
+}
+
+func TestSelectExposedHidden(t *testing.T) {
+	tools := []*mcp.Tool{{Name: "search_repositories"}, {Name: "fork_repository"}}
+	tiers := map[string]Tier{
+		"search_repositories": TierA,
+		"fork_repository":     TierHidden,
+	}
+	exposed := SelectExposed(tools, tiers, "")
+	if len(exposed) != 1 || exposed[0].Name != "search_repositories" {
+		t.Fatalf("hidden tool must not expose: %v", exposed)
 	}
 }

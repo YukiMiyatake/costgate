@@ -121,9 +121,9 @@ func (r *filterRuntime) exposedCount() int {
 
 func (r *filterRuntime) logStartup() {
 	intentText := r.currentIntent()
-	a, b, c := filter.CountTiers(r.tiers)
+	a, b, c, h := filter.CountTiers(r.tiers)
 	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d) intent=%q dynamic=%v compress=%v codemode=%v",
-		r.exposedCount(), len(r.cat.Tools), a, b, c, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(),
+		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q dynamic=%v compress=%v codemode=%v",
+		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(),
 	)
 }

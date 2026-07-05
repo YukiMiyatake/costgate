@@ -8,6 +8,7 @@ import (
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/overrides"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -73,6 +74,12 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 	} else if rules != nil {
 		tiers = rules.Apply(tiers)
 		log.Printf("[costgate-gate] tier catalog: %s (%d overrides)", backendName, len(rules.Overrides))
+	}
+	if ov, err := overrides.Load(); err != nil {
+		return fmt.Errorf("load tool overrides: %w", err)
+	} else if ov != nil && len(ov.Tools) > 0 {
+		tiers = ov.Apply(tiers)
+		log.Printf("[costgate-gate] tool overrides: %d entries", len(ov.Tools))
 	}
 	server := newServer()
 	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords())

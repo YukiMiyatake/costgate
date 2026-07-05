@@ -62,6 +62,8 @@ func parseTierLabel(label string) (filter.Tier, bool) {
 		return filter.TierB, true
 	case "C":
 		return filter.TierC, true
+	case "HIDDEN":
+		return filter.TierHidden, true
 	default:
 		return filter.TierC, false
 	}
