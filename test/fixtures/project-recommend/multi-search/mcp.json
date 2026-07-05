@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "/path/to/costgate-gate"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"]
+    },
+    "tavily-search": {
+      "command": "npx",
+      "args": ["-y", "tavily-mcp"]
+    }
+  }
+}

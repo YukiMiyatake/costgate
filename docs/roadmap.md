@@ -45,7 +45,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **24. Dashboard control** | ✅ Done | Tool overrides, mcp.json enable/disable |
 | **25. Gate event log** | ✅ Done | Production stats without Probe |
 | **26. MCP add wizard** | ✅ Done | Marketplace catalog, add wizard API/UI |
-| **27. Project recommend** | 📋 Planned | Repo-aware MCP suggestions |
+| **27. Project recommend** | ✅ Done | Repo-aware MCP suggestions |
 
 **costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照  
 **Dashboard 仕様:** [dashboard.md](./dashboard.md)（利用者） / [dev/dashboard.md](./dev/dashboard.md)（開発者）  
@@ -287,7 +287,7 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 | **24. Dashboard control** | ✅ Done | `tool-overrides.json`, mcp.json PATCH + backup |
 | **25. Gate event log** | 📋 Planned | `gate-*.jsonl`, 本番統計、schema 拡張 |
 | **26. MCP add wizard** | 📋 Planned | `catalog/marketplace/`, 追加ウィザード |
-| **27. Project recommend** | 📋 Planned | リポジトリ解析による MCP 提案 |
+| **27. Project recommend** | ✅ Done | リポジトリ解析による MCP 提案 |
 
 ### Phase 23 — Dashboard read-only ✅
 
@@ -331,13 +331,15 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 - Test: `npm run test:dashboard:marketplace`
 - 将来: MCP Registry / Smithery API 検索（26b）
 
-### Phase 27 — Project recommend 📋
+### Phase 27 — Project recommend ✅
 
 **目的:** ワークスペース構成から MCP 追加・削除を提案。
 
 - シグナル: `package.json`, `go.mod`, `.cursor/rules`, 既存 `mcp.json`
 - `recommend_add` / 既存 Phase 23 削除推奨との統合 UI
 - 外部 API 不要（ローカル解析のみ）
+- Test: `npm run test:dashboard:project-recommend`
+- Env: `COSTGATE_PROJECT_ROOT` でスキャン対象を上書き
 
 ---
 

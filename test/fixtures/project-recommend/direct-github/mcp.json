@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "/path/to/costgate-gate"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    }
+  }
+}

@@ -95,6 +95,8 @@ async function testHttpApi() {
 
     const recs = await fetchJson(port, "/api/recommendations");
     assert(recs.items.length >= 1, "recommendations");
+    assert(Array.isArray(recs.signals_detected), "signals_detected array");
+    assert(typeof recs.project_root === "string", "project_root string");
 
     const marketplace = await fetchJson(port, "/api/marketplace");
     assert(Array.isArray(marketplace.templates), "marketplace templates");

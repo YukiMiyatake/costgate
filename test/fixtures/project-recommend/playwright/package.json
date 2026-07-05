@@ -1,0 +1,6 @@
+{
+  "name": "playwright-app",
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
