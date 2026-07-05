@@ -3,6 +3,7 @@
  * Merge CostGate Cursor hooks into ~/.cursor/hooks.json
  *  · workspace registry (workspaceOpen / Read / Tab)
  *  · prompt intent (beforeSubmitPrompt)
+ *  · shield prompt secret block (beforeSubmitPrompt)
  *  · shield MCP trust (beforeMCPExecution)
  *  · shield Read sanitizer (preToolUse / Read)
  */
@@ -14,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 export const REGISTRY_SCRIPT = join(ROOT, "cursor-registry-hook.mjs");
 export const PROMPT_SCRIPT = join(ROOT, "cursor-prompt-intent-hook.mjs");
+export const SHIELD_PROMPT_SCRIPT = join(ROOT, "cursor-shield-prompt-hook.mjs");
 export const SHIELD_MCP_SCRIPT = join(ROOT, "cursor-shield-mcp-hook.mjs");
 export const SHIELD_READ_SCRIPT = join(ROOT, "cursor-shield-read-hook.mjs");
 const CURSOR_DIR = join(homedir(), ".cursor");
@@ -46,6 +48,16 @@ export function buildHookDefs() {
       key: "beforeSubmitPrompt",
       script: PROMPT_SCRIPT,
       hook: { command: `node ${PROMPT_SCRIPT}`, timeout: 5 },
+    },
+    {
+      key: "beforeSubmitPrompt",
+      script: SHIELD_PROMPT_SCRIPT,
+      hook: {
+        command: `node ${SHIELD_PROMPT_SCRIPT}`,
+        timeout: 5,
+        failClosed: true,
+        env: { ...SHIELD_HOOK_ENV, COSTGATE_SHIELD_PROMPT: "1" },
+      },
     },
     {
       key: "beforeMCPExecution",
@@ -149,6 +161,7 @@ function main() {
   console.error(`[cursor:hooks] added: ${installed.length ? installed.join(", ") : "(already present)"}`);
   console.error(`[cursor:hooks] registry: ${REGISTRY_SCRIPT}`);
   console.error(`[cursor:hooks] prompt-intent: ${PROMPT_SCRIPT}`);
+  console.error(`[cursor:hooks] shield-prompt: ${SHIELD_PROMPT_SCRIPT}`);
   console.error(`[cursor:hooks] shield-mcp: ${SHIELD_MCP_SCRIPT}`);
   console.error(`[cursor:hooks] shield-read: ${SHIELD_READ_SCRIPT}`);
   console.error("[cursor:hooks] Restart Cursor after install.");

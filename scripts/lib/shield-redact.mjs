@@ -48,6 +48,99 @@ export function shieldEnabled() {
   return v === "1" || v === "true" || v === "yes";
 }
 
+/** Whether beforeSubmitPrompt secret blocking is active (COSTGATE_SHIELD or COSTGATE_SHIELD_PROMPT). */
+export function shieldPromptEnabled() {
+  if (shieldEnabled()) return true;
+  const v = process.env.COSTGATE_SHIELD_PROMPT;
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/** When true, prompt hook errors allow submit instead of blocking (default: fail-closed). */
+export function shieldPromptFailOpen() {
+  const v = process.env.COSTGATE_SHIELD_PROMPT_FAIL_OPEN;
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function maskSecret(value) {
+  if (!value || value.length <= 8) return "••••";
+  return `${value.slice(0, 4)}…${value.slice(-4)}`;
+}
+
+function collectPatternMatches(text, re, kind, submatch, findings, seen) {
+  const regex = new RegExp(re.source, re.flags);
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const secret = submatch > 0 ? match[submatch] : match[0];
+    if (!secret || seen.has(secret)) continue;
+    seen.add(secret);
+    findings.push({ kind, masked: maskSecret(secret) });
+  }
+}
+
+function collectEnvSecrets(text, findings, seen) {
+  const regex = new RegExp(PATTERNS.envValue.source, PATTERNS.envValue.flags);
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const val = match[2]?.trim();
+    if (!val || val.startsWith(PLACEHOLDER_PREFIX) || seen.has(val)) continue;
+    seen.add(val);
+    findings.push({ kind: "ENV", masked: maskSecret(val) });
+  }
+}
+
+function collectSensitiveJsonFields(value, findings, seen) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectSensitiveJsonFields(item, findings, seen);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, val] of Object.entries(value)) {
+    if (typeof val === "string" && val && isSensitiveKey(key) && !seen.has(val)) {
+      seen.add(val);
+      findings.push({ kind: classifyKey(key), masked: maskSecret(val) });
+    } else {
+      collectSensitiveJsonFields(val, findings, seen);
+    }
+  }
+}
+
+/**
+ * Detect secret-like substrings in text using the same rules as Mode.Secrets redact.
+ * @returns {{ kind: string, masked: string }[]}
+ */
+export function inferSecrets(text, options = {}) {
+  if (!text) return [];
+  const mode = options.mode ?? Mode.Secrets;
+  if (mode === Mode.Off) return [];
+
+  const findings = [];
+  const seen = new Set();
+
+  if (looksLikeJSON(text)) {
+    try {
+      collectSensitiveJsonFields(JSON.parse(text), findings, seen);
+    } catch {
+      // fall through to string scan
+    }
+  }
+
+  collectPatternMatches(text, PATTERNS.ghToken, "GITHUB_PAT", 1, findings, seen);
+  collectPatternMatches(text, PATTERNS.ghFineToken, "GITHUB_PAT", 1, findings, seen);
+  collectPatternMatches(text, PATTERNS.awsKey, "AWS_KEY", 1, findings, seen);
+  collectPatternMatches(text, PATTERNS.bearer, "BEARER", 1, findings, seen);
+  collectPatternMatches(text, PATTERNS.jwt, "JWT", 0, findings, seen);
+  collectPatternMatches(text, PATTERNS.connString, "CONN_STRING", 0, findings, seen);
+
+  if (mode >= Mode.Aggressive) {
+    collectPatternMatches(text, PATTERNS.email, "EMAIL", 0, findings, seen);
+    collectPatternMatches(text, PATTERNS.phone, "PHONE", 0, findings, seen);
+    collectPatternMatches(text, PATTERNS.path, "PATH", 1, findings, seen);
+    collectEnvSecrets(text, findings, seen);
+  }
+
+  return findings;
+}
+
 function looksLikeJSON(text) {
   const trimmed = text.trim();
   return trimmed.startsWith("{") || trimmed.startsWith("[");
