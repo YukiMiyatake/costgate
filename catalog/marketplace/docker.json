@@ -1,0 +1,28 @@
+{
+  "id": "docker",
+  "name": "Docker MCP",
+  "description": "List containers, inspect images, and read logs via Docker MCP server. Gate-backed via backends.json.",
+  "category": "cloud",
+  "category_label": "Cloud & Infra",
+  "official": false,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/ckreiling/mcp-server-docker",
+  "tags": ["docker", "containers", "devops", "infra"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "docker",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "mcp-server-docker"],
+    "env": {}
+  },
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 22,
+    "before_tokens": 2100,
+    "after_tokens": 840,
+    "source": "mcp-reduction-survey — docker inspect/logs variable"
+  }
+}

@@ -231,6 +231,40 @@ footer {
   color: var(--text);
 }
 
+.workspace-help {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  max-width: 52rem;
+}
+
+.workspace-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.workspace-bar select {
+  min-width: 12rem;
+  margin-left: 0.35rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+#workspace-path {
+  flex: 1;
+  min-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .btn-sm {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
@@ -255,6 +289,32 @@ footer {
 .btn-primary:hover {
   opacity: 0.9;
   color: #fff;
+}
+
+.btn-enable {
+  background: rgba(61, 214, 140, 0.18);
+  border-color: #3dd68c;
+  color: #3dd68c;
+  font-weight: 600;
+}
+
+.btn-enable:hover {
+  background: rgba(61, 214, 140, 0.32);
+  border-color: #3dd68c;
+  color: #3dd68c;
+}
+
+.btn-disable {
+  background: rgba(232, 93, 93, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.btn-disable:hover {
+  background: rgba(232, 93, 93, 0.28);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .wizard-toolbar {
@@ -314,6 +374,79 @@ footer {
 .marketplace-card-est {
   font-size: 0.75rem;
   color: var(--accent);
+}
+
+.marketplace-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+
+.category-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+}
+
+.category-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.marketplace-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.marketplace-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.25rem 0;
+}
+
+.badge {
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.badge-installed {
+  background: #1a3d2e;
+  color: #6ee7a0;
+}
+
+.badge-official {
+  background: #1e2a44;
+  color: #93c5fd;
+}
+
+.badge-gate {
+  background: #2a2418;
+  color: #fcd34d;
+}
+
+.badge-pop {
+  background: #3b1f2a;
+  color: #f9a8d4;
+}
+
+.marketplace-card.installed {
+  border-color: #6ee7a0;
+  opacity: 0.92;
 }
 
 .wizard-form {
@@ -400,5 +533,29 @@ footer {
     --border: #d8dee8;
     --text: #1a2332;
     --muted: #5c6b80;
+  }
+
+  .btn-enable {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: #16a34a;
+    color: #15803d;
+  }
+
+  .btn-enable:hover {
+    background: rgba(22, 163, 74, 0.22);
+    border-color: #16a34a;
+    color: #14532d;
+  }
+
+  .btn-disable {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: #dc2626;
+    color: #b91c1c;
+  }
+
+  .btn-disable:hover {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: #dc2626;
+    color: #991b1b;
   }
 }

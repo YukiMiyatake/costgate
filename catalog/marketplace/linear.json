@@ -1,0 +1,36 @@
+{
+  "id": "linear",
+  "name": "Linear MCP",
+  "description": "Issues, projects, and cycles in Linear via community MCP server. Gate-backed via backends.json.",
+  "category": "saas",
+  "category_label": "SaaS & Team",
+  "official": false,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/jerhadf/linear-mcp-server",
+  "tags": ["linear", "issues", "project-management", "team"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "linear",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "linear-mcp-server"],
+    "env": {
+      "LINEAR_API_KEY": "${LINEAR_API_KEY}"
+    }
+  },
+  "required_env": [
+    {
+      "name": "LINEAR_API_KEY",
+      "description": "Linear personal API key",
+      "secret": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 15,
+    "before_tokens": 1400,
+    "after_tokens": 560,
+    "source": "mcp-reduction-survey — SaaS API wrapper tool proliferation"
+  }
+}

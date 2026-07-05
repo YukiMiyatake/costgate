@@ -13,6 +13,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/config"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/proxy"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/workspace"
 )
 
 func main() {
@@ -23,6 +24,8 @@ func main() {
 
 	log.SetOutput(os.Stderr)
 	log.SetFlags(0)
+
+	workspace.RegisterFromEnv()
 
 	cfg, err := config.Load()
 	if err != nil {

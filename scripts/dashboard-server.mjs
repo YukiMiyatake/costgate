@@ -19,8 +19,15 @@ import {
   previewMcpDisable,
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
-import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths } from "./lib/dashboard-marketplace.mjs";
+import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
+import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
+import {
+  listWorkspaces,
+  pinWorkspace,
+  resolveWorkspace,
+  registryPath,
+} from "./lib/dashboard-workspaces.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -108,10 +115,211 @@ function resolveMarketplaceDir(controlPaths, dataOptions) {
   );
 }
 
+function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
+  const global = defaultPaths();
+  return {
+    ...global,
+    ...dataOptions,
+    ...controlPaths,
+    projectRoot: workspaceCtx.projectRoot,
+    configPath: workspaceCtx.configPath,
+    overridesPath: workspaceCtx.overridesPath,
+    disabledPath: workspaceCtx.disabledPath,
+    usagePath: workspaceCtx.usagePath,
+    logDir: workspaceCtx.logDir,
+    gateLogDir: workspaceCtx.gateLogDir,
+    mcpPath: workspaceCtx.mcpPath ?? controlPaths.mcpPath ?? global.mcpPath,
+    workspace_id: workspaceCtx.id,
+    workspace_path: workspaceCtx.projectRoot,
+    scoped: true,
+    globalPaths: global,
+  };
+}
+
+function marketplacePayload(url, paths, marketplaceDirPath) {
+  const pathHints = suggestAllowedPaths({ projectRoot: paths.projectRoot });
+  const opts = parseMarketplaceOptions(url.searchParams);
+  const globalPaths = paths.globalPaths ?? defaultPaths();
+  const effective = resolveEffectiveConfig(
+    { ...paths, scoped: Boolean(paths.scoped ?? paths.workspace_id) },
+    globalPaths
+  );
+  const installedKeys = new Set(Object.keys(effective.backends ?? {}));
+  const allPublic = searchMarketplace("", marketplaceDirPath, { installedKeys });
+  const templates = searchMarketplace(url.searchParams, marketplaceDirPath, { installedKeys });
+  return {
+    query: opts.q,
+    category: opts.category || null,
+    sort: opts.sort,
+    filters: {
+      gate_only: opts.gate_only,
+      official_only: opts.official_only,
+      hide_secrets: opts.hide_secrets,
+    },
+    catalog_dir: marketplaceDirPath,
+    catalog_available: existsSync(marketplaceDirPath),
+    catalog_count: allPublic.length,
+    categories: buildCategorySummary(allPublic),
+    project_root: pathHints.project_root,
+    path_candidates: pathHints.candidates,
+    installed_backends: [...installedKeys],
+    templates,
+    workspace_id: paths.workspace_id ?? null,
+    workspace_path: paths.workspace_path ?? null,
+  };
+}
+
+async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
+  const { dataOptions, controlPaths, marketplaceDirPath } = ctx;
+
+  if (pathname === "/api/workspaces" && method === "GET") {
+    json(res, 200, listWorkspaces({ registryPath: registryPath() }));
+    return true;
+  }
+
+  if (pathname === "/api/workspaces/pin" && method === "POST") {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const body = await readBody(req);
+    if (!body.path) {
+      json(res, 400, { error: "path required" });
+      return true;
+    }
+    json(res, 200, pinWorkspace(body.path));
+    return true;
+  }
+
+  const wsMatch = pathname.match(
+    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace))?$/
+  );
+  if (!wsMatch) return false;
+
+  const wsId = decodeURIComponent(wsMatch[1]);
+  const section = wsMatch[2];
+  let workspaceCtx;
+  try {
+    workspaceCtx = resolveWorkspace(wsId, { globalFallback: defaultPaths() });
+  } catch (e) {
+    json(res, 404, { error: e.message ?? String(e) });
+    return true;
+  }
+  const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
+
+  if (method === "GET") {
+    if (!section) {
+      json(res, 200, {
+        workspace: {
+          id: wsId,
+          path: workspaceCtx.projectRoot,
+          paths: {
+            config: paths.configPath,
+            overrides: paths.overridesPath,
+            usage: paths.usagePath,
+            logs: paths.logDir,
+            mcp: paths.mcpPath,
+          },
+        },
+        ...buildDashboardData(paths),
+      });
+      return true;
+    }
+    const data = buildDashboardData(paths);
+    if (section === "overview") json(res, 200, data.overview);
+    else if (section === "tools") json(res, 200, data.tools);
+    else if (section === "mcps") json(res, 200, data.mcps);
+    else if (section === "recommendations") json(res, 200, data.recommendations);
+    else if (section === "overrides") {
+      json(res, 200, {
+        path: paths.overridesPath,
+        ...loadToolOverrides(paths.overridesPath),
+      });
+    } else if (section === "marketplace") {
+      json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
+    } else {
+      apiNotFound(res, pathname);
+    }
+    return true;
+  }
+
+  if (method === "POST" && section === "mcps") {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const body = await readBody(req);
+    if (!body.template) {
+      json(res, 400, { error: "template required" });
+      return true;
+    }
+    const result = addMcpFromTemplate(body.template, body.env ?? {}, {
+      ...paths,
+      marketplaceDir: marketplaceDirPath,
+    });
+    json(res, 200, { ...result, workspace_id: wsId, workspace_path: paths.projectRoot });
+    return true;
+  }
+
+  const toolPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/tools\/([^/]+)$/);
+  if (method === "PATCH" && toolPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const name = decodeURIComponent(toolPatch[2]);
+    const body = await readBody(req);
+    const forceTier =
+      body.force_tier ??
+      (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
+    if (!forceTier) {
+      json(res, 400, { error: "force_tier or enabled required" });
+      return true;
+    }
+    const data = setToolForceTier(name, forceTier, paths.overridesPath);
+    json(res, 200, {
+      ok: true,
+      workspace_id: wsId,
+      tool: name,
+      force_tier: forceTier === "default" ? null : forceTier,
+      requires_gate_restart: true,
+      overrides: data,
+    });
+    return true;
+  }
+
+  const mcpPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcps\/([^/]+)$/);
+  if (method === "PATCH" && mcpPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const name = decodeURIComponent(mcpPatch[2]);
+    const body = await readBody(req);
+    if (typeof body.enabled !== "boolean") {
+      json(res, 400, { error: "enabled (boolean) required" });
+      return true;
+    }
+    const result = setMcpServerEnabled(name, body.enabled, {
+      mcpPath: paths.mcpPath,
+      disabledPath: paths.disabledPath,
+    });
+    json(res, 200, { ok: true, workspace_id: wsId, ...result });
+    return true;
+  }
+
+  if (pathname.startsWith("/api/workspaces/")) {
+    apiNotFound(res, pathname);
+    return true;
+  }
+  return false;
+}
+
 function createDashboardServer(options = {}) {
   const dataOptions = options.dataOptions ?? {};
   const controlPaths = options.controlPaths ?? {};
   const marketplaceDirPath = resolveMarketplaceDir(controlPaths, dataOptions);
+  const routeCtx = { dataOptions, controlPaths, marketplaceDirPath };
 
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
@@ -119,6 +327,10 @@ function createDashboardServer(options = {}) {
     const method = req.method ?? "GET";
 
     try {
+      if (await handleWorkspaceRoute(method, pathname, url, req, res, routeCtx)) {
+        return;
+      }
+
       if (method === "GET") {
         if (pathname === "/api/health") {
           json(res, 200, buildHealth({ writeTokenRequired: Boolean(WRITE_TOKEN) }));
@@ -148,18 +360,8 @@ function createDashboardServer(options = {}) {
           return;
         }
         if (pathname === "/api/marketplace") {
-          const q = url.searchParams.get("q") ?? "";
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
-          const pathHints = suggestAllowedPaths({ projectRoot: paths.projectRoot });
-          const templates = searchMarketplace(q, marketplaceDirPath);
-          json(res, 200, {
-            query: q,
-            catalog_dir: marketplaceDirPath,
-            catalog_available: existsSync(marketplaceDirPath),
-            project_root: pathHints.project_root,
-            path_candidates: pathHints.candidates,
-            templates,
-          });
+          json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
           return;
         }
         const mcpPreview = pathname.match(/^\/api\/mcps\/([^/]+)\/preview$/);
@@ -230,7 +432,11 @@ function createDashboardServer(options = {}) {
             json(res, 400, { error: "force_tier or enabled required" });
             return;
           }
-          const data = setToolForceTier(name, forceTier, controlPaths.overridesPath);
+          const data = setToolForceTier(
+            name,
+            forceTier,
+            controlPaths.overridesPath ?? toolOverridesPath()
+          );
           json(res, 200, {
             ok: true,
             tool: name,

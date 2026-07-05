@@ -11,6 +11,8 @@ import {
   addMcpFromTemplate,
   loadMarketplaceCatalog,
   suggestAllowedPaths,
+  buildCategorySummary,
+  parseMarketplaceOptions,
 } from "../scripts/lib/dashboard-marketplace.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 
@@ -29,16 +31,51 @@ function tempDir() {
 
 function testCatalogLoad() {
   const items = loadMarketplaceCatalog(MARKETPLACE);
-  assert(items.length >= 3, "expected at least 3 marketplace templates");
+  assert(items.length >= 15, `expected at least 15 marketplace templates, got ${items.length}`);
   assert(items.some((t) => t.id === "github"), "github template missing");
   assert(items.some((t) => t.id === "filesystem"), "filesystem template missing");
   assert(items.some((t) => t.id === "browser"), "browser template missing");
+  assert(items.some((t) => t.id === "postgres"), "postgres template missing");
+  assert(items.some((t) => t.id === "playwright"), "playwright template missing");
   console.error("[marketplace] catalog load ok");
+}
+
+function testCategoriesAndFilters() {
+  const all = searchMarketplace("", MARKETPLACE);
+  const cats = buildCategorySummary(all);
+  assert(cats.length >= 5, "expected multiple categories");
+  assert(cats.some((c) => c.id === "database" && c.count >= 2), "database category");
+
+  const db = searchMarketplace({ category: "database" }, MARKETPLACE);
+  assert(db.length >= 2, "database filter");
+  assert(db.every((t) => t.category === "database"), "all database");
+
+  const official = searchMarketplace({ official_only: true }, MARKETPLACE);
+  assert(official.length >= 5, "official filter");
+  assert(official.every((t) => t.official === true), "all official");
+
+  const noSecrets = searchMarketplace({ hide_secrets: true }, MARKETPLACE);
+  assert(noSecrets.every((t) => !t.requires_secrets), "no secret templates");
+
+  const sorted = searchMarketplace({ sort: "reduction" }, MARKETPLACE);
+  assert(sorted.length >= 15, "sort reduction");
+  assert(
+    (sorted[0].compare_estimate?.reduction_pct ?? 0) >=
+      (sorted[sorted.length - 1].compare_estimate?.reduction_pct ?? 0),
+    "reduction sort order"
+  );
+
+  const pub = all[0];
+  assert(pub.category_label, "category_label present");
+  assert(typeof pub.official === "boolean", "official flag");
+  assert(typeof pub.gate_ready === "boolean", "gate_ready flag");
+
+  console.error("[marketplace] categories/filters ok");
 }
 
 function testSearch() {
   const all = searchMarketplace("", MARKETPLACE);
-  assert(all.length >= 3, "search all");
+  assert(all.length >= 15, "search all");
 
   const browser = searchMarketplace("browser", MARKETPLACE);
   assert(browser.length >= 1, "browser search");
@@ -168,6 +205,12 @@ async function testHttpMarketplaceAndPost() {
     assert(list.templates?.length >= 1, "marketplace GET");
     assert(list.query === "github", "query echoed");
     assert(list.catalog_available === true, "catalog_available");
+    assert(list.catalog_count >= 15, "catalog_count");
+    assert(Array.isArray(list.categories) && list.categories.length >= 5, "categories");
+
+    const db = await fetch(`${base}/api/marketplace?category=database`).then((r) => r.json());
+    assert(db.templates?.length >= 2, "category=database");
+    assert(db.templates.every((t) => t.category === "database"), "database templates only");
 
     const slash = await fetch(`${base}/api/marketplace/`).then((r) => r.json());
     assert(slash.templates?.length >= 1, "marketplace trailing slash");
@@ -188,8 +231,11 @@ async function testHttpMarketplaceAndPost() {
     assert(body.backend === "github", "POST backend");
     assert(body.compare_estimate?.after_tokens > 0, "POST compare_estimate");
 
+    const installed = await fetch(`${base}/api/marketplace?q=github`).then((r) => r.json());
+    assert(installed.templates.some((t) => t.id === "github" && t.installed === true), "installed flag");
+
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert(health.version === "phase27", "phase27 health");
+    assert(health.version === "phase29", "phase29 health");
 
     console.error("[marketplace] HTTP API ok");
   } finally {
@@ -199,6 +245,7 @@ async function testHttpMarketplaceAndPost() {
 
 async function main() {
   testCatalogLoad();
+  testCategoriesAndFilters();
   testSearch();
   testPathSuggestions();
   testAddGithubBackend();

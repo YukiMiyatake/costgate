@@ -1,0 +1,28 @@
+{
+  "id": "playwright",
+  "name": "Playwright MCP",
+  "description": "Browser automation for E2E testing via @playwright/mcp. Enable in mcp.json or Gate backends when proxied.",
+  "category": "browser",
+  "category_label": "Browser & E2E",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "high",
+  "docs_url": "https://github.com/microsoft/playwright-mcp",
+  "tags": ["playwright", "browser", "e2e", "automation", "testing"],
+  "tier_catalog": "browser",
+  "install_target": "backend",
+  "backend_key": "playwright",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@playwright/mcp@latest"],
+    "env": {}
+  },
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 18,
+    "before_tokens": 1800,
+    "after_tokens": 720,
+    "source": "mcp-reduction-survey — playwright tool count estimate"
+  }
+}

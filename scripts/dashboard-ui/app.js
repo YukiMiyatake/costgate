@@ -45,6 +45,163 @@ async function fetchJson(path, options = {}) {
   return res.json();
 }
 
+const WORKSPACE_EXPLICIT_KEY = "costgate_workspace_explicit";
+
+let activeWorkspaceId = sessionStorage.getItem("costgate_workspace_id") || null;
+let workspaceApiAvailable = true;
+
+function isWorkspaceApiError(message) {
+  if (!message) return false;
+  return (
+    message === "not_found" ||
+    message.startsWith("unknown workspace:") ||
+    /\/api\/workspaces\//.test(message)
+  );
+}
+
+function clearWorkspaceSelection() {
+  activeWorkspaceId = null;
+  sessionStorage.removeItem("costgate_workspace_id");
+  sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
+  setActiveWorkspace(null, "Global (~/.costgate)");
+}
+
+function isExplicitWorkspaceChoice() {
+  return sessionStorage.getItem(WORKSPACE_EXPLICIT_KEY) === "1";
+}
+
+function apiPath(segment) {
+  if (activeWorkspaceId) {
+    return `/api/workspaces/${encodeURIComponent(activeWorkspaceId)}/${segment}`;
+  }
+  return `/api/${segment}`;
+}
+
+function setActiveWorkspace(id, pathLabel, { explicit = false } = {}) {
+  activeWorkspaceId = id || null;
+  if (id) {
+    sessionStorage.setItem("costgate_workspace_id", id);
+    if (explicit) sessionStorage.setItem(WORKSPACE_EXPLICIT_KEY, "1");
+  } else {
+    sessionStorage.removeItem("costgate_workspace_id");
+    if (explicit) sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
+  }
+  const note = document.getElementById("workspace-path");
+  if (note) note.textContent = pathLabel ?? (id ? "" : "Global (~/.costgate)");
+}
+
+async function loadWorkspaces() {
+  const select = document.getElementById("workspace-select");
+  const bar = document.getElementById("workspace-bar");
+  try {
+    const data = await fetchJson("/api/workspaces");
+    workspaceApiAvailable = true;
+    if (bar) bar.classList.remove("hidden");
+    if (!select) return data;
+    select.innerHTML = "";
+    const globalOpt = document.createElement("option");
+    globalOpt.value = "";
+    globalOpt.textContent = "Global (~/.costgate)";
+    select.appendChild(globalOpt);
+    for (const w of data.workspaces ?? []) {
+      const opt = document.createElement("option");
+      opt.value = w.id;
+      opt.dataset.path = w.path;
+      const pin = w.pinned ? "📌 " : "";
+      const src = w.source_label ? ` · ${w.source_label}` : "";
+      opt.textContent = `${pin}${w.label}${src}${w.has_config ? "" : " (new)"}`;
+      select.appendChild(opt);
+    }
+
+    const help = document.getElementById("workspace-help");
+    if (help) {
+      help.textContent =
+        data.help ??
+        "Projects appear when Gate runs, Cursor opens a folder, or you Pin a path.";
+    }
+
+    let selectedId = isExplicitWorkspaceChoice() ? activeWorkspaceId : null;
+    if (selectedId && ![...select.options].some((o) => o.value === selectedId)) {
+      selectedId = null;
+      sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
+    }
+    if (selectedId) {
+      select.value = selectedId;
+      activeWorkspaceId = selectedId;
+    } else {
+      select.value = "";
+      activeWorkspaceId = null;
+      sessionStorage.removeItem("costgate_workspace_id");
+    }
+    const current = data.workspaces?.find((w) => w.id === select.value);
+    if (select.value) {
+      setActiveWorkspace(select.value, current?.path);
+    } else {
+      setActiveWorkspace(null, "Global (~/.costgate)");
+    }
+    return data;
+  } catch (e) {
+    workspaceApiAvailable = false;
+    clearWorkspaceSelection();
+    if (select) {
+      select.innerHTML = "";
+      const globalOpt = document.createElement("option");
+      globalOpt.value = "";
+      globalOpt.textContent = "Global (~/.costgate)";
+      select.appendChild(globalOpt);
+      select.value = "";
+    }
+    if (bar) bar.classList.add("hidden");
+    return { workspaces: [], legacy: true };
+  }
+}
+
+function setupWorkspaces() {
+  const select = document.getElementById("workspace-select");
+  const pinBtn = document.getElementById("workspace-pin-btn");
+  const refreshBtn = document.getElementById("workspace-refresh-btn");
+  if (!select) return;
+  select.addEventListener("change", async () => {
+    const opt = select.selectedOptions[0];
+    const id = select.value || null;
+    setActiveWorkspace(id, id ? opt?.dataset?.path ?? opt?.textContent : "Global (~/.costgate)", {
+      explicit: true,
+    });
+    try {
+      await reload();
+      await loadMarketplace();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  refreshBtn?.addEventListener("click", async () => {
+    try {
+      await loadWorkspaces();
+      await reload();
+      await loadMarketplace();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  pinBtn?.addEventListener("click", async () => {
+    const path = prompt("Pin workspace folder (absolute path):");
+    if (!path?.trim()) return;
+    try {
+      await fetchJson("/api/workspaces/pin", {
+        method: "POST",
+        body: JSON.stringify({ path: path.trim() }),
+      });
+      await loadWorkspaces();
+      if (select.value) {
+        sessionStorage.setItem(WORKSPACE_EXPLICIT_KEY, "1");
+      }
+      await reload();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+}
+
 function renderOverview(data) {
   const cards = document.getElementById("overview-cards");
   cards.innerHTML = "";
@@ -66,12 +223,18 @@ function renderOverview(data) {
     cards.appendChild(card);
   }
   const note = document.getElementById("overview-note");
+  let noteText = "";
   if (data.period) {
-    note.textContent = `Period: ${data.period.from} → ${data.period.to}. Gate/Probe 外 MCP は blind spot として表示されます。`;
+    noteText = `Period: ${data.period.from} → ${data.period.to}. Gate/Probe 外 MCP は blind spot として表示されます。`;
   } else {
-    note.textContent =
+    noteText =
       "Probe ログがありません。npm run cursor:measurement で計測を開始してください。";
   }
+  if (data.config_merge) {
+    noteText +=
+      " プロジェクト表示では Global の backends / overrides / disabled を継承し、同名キーはプロジェクト設定が優先されます。";
+  }
+  note.textContent = noteText;
 }
 
 function renderTools(data) {
@@ -94,7 +257,7 @@ function renderTools(data) {
     hideBtn.textContent = t.tier === "hidden" ? "Unhide" : "Hide";
     hideBtn.onclick = async () => {
       try {
-        await fetchJson(`/api/tools/${encodeURIComponent(t.name)}`, {
+        await fetchJson(apiPath(`tools/${encodeURIComponent(t.name)}`), {
           method: "PATCH",
           body: JSON.stringify({
             force_tier: t.tier === "hidden" ? "default" : "hidden",
@@ -133,13 +296,13 @@ function renderMcps(data) {
         : badge("blind spot");
     const toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = "btn-sm";
+    toggle.className = s.enabled === false ? "btn-sm btn-enable" : "btn-sm btn-disable";
     toggle.textContent = s.enabled === false ? "Enable" : "Disable";
     toggle.onclick = async () => {
       const enable = s.enabled === false;
       if (!enable && !confirm(`Disable MCP "${s.name}"? Cursor restart required.`)) return;
       try {
-        await fetchJson(`/api/mcps/${encodeURIComponent(s.name)}`, {
+        await fetchJson(apiPath(`mcps/${encodeURIComponent(s.name)}`), {
           method: "PATCH",
           body: JSON.stringify({ enabled: enable }),
         });
@@ -151,10 +314,21 @@ function renderMcps(data) {
     };
     tr.innerHTML = `
       <td>${s.name}</td>
-      <td>${s.role}</td>
+      <td></td>
       <td></td>
       <td><code>${s.command ?? "—"}</code></td>
       <td></td>`;
+    const roleCell = tr.children[1];
+    roleCell.textContent = s.role;
+    if (s.config_origin && s.role === "backend") {
+      roleCell.appendChild(document.createElement("br"));
+      roleCell.appendChild(
+        badge(
+          s.config_origin === "global" ? "Global" : "Project",
+          s.config_origin === "project"
+        )
+      );
+    }
     tr.children[2].appendChild(measured);
     tr.children[4].appendChild(toggle);
     body.appendChild(tr);
@@ -297,6 +471,56 @@ function renderCompareEstimate(est) {
   return `~${fmt(est.before_tokens)} → ~${fmt(est.after_tokens)} tokens/tools/list (${est.reduction_pct}% reduction, ${est.tool_count ?? "?"} tools)`;
 }
 
+function renderMarketplaceBadges(t) {
+  const parts = [];
+  if (t.installed) parts.push('<span class="badge badge-installed">Installed</span>');
+  if (t.official) parts.push('<span class="badge badge-official">Official</span>');
+  if (t.gate_ready) parts.push('<span class="badge badge-gate">Gate ready</span>');
+  if (t.popularity === "high") parts.push('<span class="badge badge-pop">Popular</span>');
+  return parts.length ? `<div class="marketplace-card-badges">${parts.join("")}</div>` : "";
+}
+
+function renderCategoryTabs(categories, activeId) {
+  const container = document.getElementById("marketplace-categories");
+  if (!container) return;
+  container.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = `category-tab${activeId ? "" : " active"}`;
+  allBtn.textContent = "All";
+  allBtn.onclick = () => {
+    marketplaceCategory = "";
+    loadMarketplace().catch((e) => alert(e.message));
+  };
+  container.appendChild(allBtn);
+  for (const cat of categories ?? []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `category-tab${activeId === cat.id ? " active" : ""}`;
+    btn.textContent = `${cat.label} (${cat.count})`;
+    btn.onclick = () => {
+      marketplaceCategory = cat.id;
+      loadMarketplace().catch((e) => alert(e.message));
+    };
+    container.appendChild(btn);
+  }
+}
+
+function marketplaceQueryParams() {
+  const params = new URLSearchParams();
+  const q = document.getElementById("marketplace-search")?.value.trim();
+  if (q) params.set("q", q);
+  if (marketplaceCategory) params.set("category", marketplaceCategory);
+  const sort = document.getElementById("marketplace-sort")?.value;
+  if (sort && sort !== "name") params.set("sort", sort);
+  if (document.getElementById("filter-gate-only")?.checked) params.set("gate_only", "1");
+  if (document.getElementById("filter-official-only")?.checked) params.set("official_only", "1");
+  if (document.getElementById("filter-hide-secrets")?.checked) params.set("hide_secrets", "1");
+  return params;
+}
+
+let marketplaceCategory = "";
+
 function renderMarketplaceResults(templates) {
   const grid = document.getElementById("marketplace-results");
   const form = document.getElementById("wizard-form");
@@ -305,17 +529,18 @@ function renderMarketplaceResults(templates) {
   selectedTemplate = null;
 
   if (!templates.length) {
-    grid.innerHTML = '<p class="note">No templates match your search.</p>';
+    grid.innerHTML = '<p class="note">No templates match your filters.</p>';
     return;
   }
 
   for (const t of templates) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "marketplace-card";
+    card.className = `marketplace-card${t.installed ? " installed" : ""}`;
     card.innerHTML = `
       <div class="marketplace-card-title">${t.name}</div>
-      <div class="marketplace-card-meta">${t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
+      ${renderMarketplaceBadges(t)}
+      <div class="marketplace-card-meta">${t.category_label ?? t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
       <div class="marketplace-card-desc">${t.description}</div>
       <div class="marketplace-card-est">${renderCompareEstimate(t.compare_estimate)}</div>`;
     card.onclick = () => openWizard(t);
@@ -373,12 +598,12 @@ function closeWizard() {
   document.getElementById("marketplace-results").classList.remove("hidden");
 }
 
-async function loadMarketplace(query = "") {
-  const trimmed = String(query).trim();
-  const params = new URLSearchParams();
-  if (trimmed) params.set("q", trimmed);
+async function loadMarketplace(query) {
+  const searchInput = document.getElementById("marketplace-search");
+  if (query != null && searchInput) searchInput.value = query;
+  const params = marketplaceQueryParams();
   const qs = params.toString();
-  const data = await fetchJson(`/api/marketplace${qs ? `?${qs}` : ""}`);
+  const data = await fetchJson(`${apiPath("marketplace")}${qs ? `?${qs}` : ""}`);
   if (data.catalog_available === false) {
     throw new Error(
       `Marketplace catalog not found (${data.catalog_dir ?? "unknown"}). Run dashboard from the costgate repo or set COSTGATE_MARKETPLACE_DIR.`
@@ -388,13 +613,14 @@ async function loadMarketplace(query = "") {
     project_root: data.project_root ?? null,
     path_candidates: data.path_candidates ?? [],
   };
+  renderCategoryTabs(data.categories ?? [], marketplaceCategory);
   renderMarketplaceResults(data.templates ?? []);
 }
 
 function setupWizard() {
   const searchInput = document.getElementById("marketplace-search");
   const searchBtn = document.getElementById("marketplace-search-btn");
-  const runSearch = () => loadMarketplace(searchInput.value.trim()).catch((e) => alert(e.message));
+  const runSearch = () => loadMarketplace().catch((e) => alert(e.message));
   searchBtn.onclick = runSearch;
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -402,6 +628,11 @@ function setupWizard() {
       runSearch();
     }
   });
+
+  document.getElementById("marketplace-sort")?.addEventListener("change", runSearch);
+  for (const id of ["filter-gate-only", "filter-official-only", "filter-hide-secrets"]) {
+    document.getElementById(id)?.addEventListener("change", runSearch);
+  }
 
   document.getElementById("wizard-back").onclick = closeWizard;
   document.getElementById("wizard-confirm").onclick = async () => {
@@ -415,7 +646,7 @@ function setupWizard() {
       env[input.dataset.envName] = input.value;
     });
     try {
-      const result = await fetchJson("/api/mcps", {
+      const result = await fetchJson(apiPath("mcps"), {
         method: "POST",
         body: JSON.stringify({ template: selectedTemplate.id, env }),
       });
@@ -428,7 +659,7 @@ function setupWizard() {
       alert(msg);
       closeWizard();
       await reload();
-      await loadMarketplace(searchInput.value.trim());
+      await loadMarketplace();
     } catch (e) {
       alert(e.message);
     }
@@ -463,27 +694,39 @@ function setupTokenBar(health) {
   });
 }
 
-async function reload() {
-  const [overview, tools, mcps, recs] = await Promise.all([
-    fetchJson("/api/overview"),
-    fetchJson("/api/tools"),
-    fetchJson("/api/mcps"),
-    fetchJson("/api/recommendations"),
-  ]);
-  renderOverview(overview);
-  renderTools(tools);
-  renderMcps(mcps);
-  renderRecommendations(recs);
+async function reload(retryGlobal = true) {
+  try {
+    const [overview, tools, mcps, recs] = await Promise.all([
+      fetchJson(apiPath("overview")),
+      fetchJson(apiPath("tools")),
+      fetchJson(apiPath("mcps")),
+      fetchJson(apiPath("recommendations")),
+    ]);
+    renderOverview(overview);
+    renderTools(tools);
+    renderMcps(mcps);
+    renderRecommendations(recs);
+  } catch (e) {
+    if (retryGlobal && activeWorkspaceId && isWorkspaceApiError(e.message)) {
+      clearWorkspaceSelection();
+      const select = document.getElementById("workspace-select");
+      if (select) select.value = "";
+      return reload(false);
+    }
+    throw e;
+  }
 }
 
 async function main() {
   setupTabs();
   setupWizard();
+  setupWorkspaces();
   try {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
     document.getElementById("health-status").textContent =
       `health: ${health.status} · ${health.version} · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
+    await loadWorkspaces();
     await reload();
     await loadMarketplace();
   } catch (err) {

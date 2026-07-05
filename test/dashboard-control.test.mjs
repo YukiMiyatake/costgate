@@ -92,7 +92,7 @@ async function testHttpPatch() {
 
   try {
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert(health.version === "phase27", "phase27 health");
+    assert(health.version === "phase29", "phase29 health");
     assert(health.read_only === false, "not read-only");
 
     const patch = await fetch(`${base}/api/tools/create_issue`, {

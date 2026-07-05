@@ -1,0 +1,34 @@
+{
+  "id": "sqlite",
+  "name": "SQLite MCP",
+  "description": "Query and inspect SQLite databases via @modelcontextprotocol/server-sqlite. Gate-backed via backends.json.",
+  "category": "database",
+  "category_label": "Database",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+  "tags": ["sqlite", "database", "sql", "local"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "sqlite",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "${DB_PATH}"],
+    "env": {}
+  },
+  "required_env": [
+    {
+      "name": "DB_PATH",
+      "description": "Absolute path to the SQLite database file",
+      "secret": false
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 6,
+    "before_tokens": 520,
+    "after_tokens": 280,
+    "source": "mcp-reduction-survey — sqlite tool count estimate"
+  }
+}

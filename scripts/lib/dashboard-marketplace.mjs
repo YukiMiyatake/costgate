@@ -19,6 +19,23 @@ export function marketplaceDir() {
   return process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace");
 }
 
+export const MARKETPLACE_CATEGORIES = [
+  { id: "devtools", label: "DevTools & VCS" },
+  { id: "filesystem", label: "Filesystem" },
+  { id: "browser", label: "Browser & E2E" },
+  { id: "database", label: "Database" },
+  { id: "search", label: "Search & Fetch" },
+  { id: "saas", label: "SaaS & Team" },
+  { id: "cloud", label: "Cloud & Infra" },
+  { id: "ai", label: "AI & Memory" },
+];
+
+const POPULARITY_RANK = { high: 3, medium: 2, low: 1 };
+
+function categoryLabel(id, template) {
+  return template.category_label ?? MARKETPLACE_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+}
+
 function readJson(path) {
   if (!existsSync(path)) return null;
   try {
@@ -55,12 +72,14 @@ function matchesQuery(template, q) {
 }
 
 /** Public fields for API listing (no secret defaults). */
-export function publicTemplate(template) {
+export function publicTemplate(template, { installed = false } = {}) {
+  const category = template.category ?? "other";
   return {
     id: template.id,
     name: template.name,
     description: template.description,
-    category: template.category,
+    category,
+    category_label: categoryLabel(category, template),
     tags: template.tags ?? [],
     tier_catalog: template.tier_catalog ?? null,
     install_target: template.install_target ?? "backend",
@@ -68,14 +87,133 @@ export function publicTemplate(template) {
     required_env: template.required_env ?? [],
     compare_estimate: estimateCompare(template),
     builtin_hint: template.builtin_hint ?? null,
+    official: template.official ?? false,
+    gate_ready: template.gate_ready ?? template.install_target === "backend",
+    popularity: template.popularity ?? "medium",
+    docs_url: template.docs_url ?? null,
+    requires_secrets: (template.required_env ?? []).some((e) => e.secret),
+    installed,
   };
 }
 
-export function searchMarketplace(query = "", dir = marketplaceDir()) {
-  const q = String(query).trim();
-  return loadMarketplaceCatalog(dir)
-    .filter((t) => matchesQuery(t, q))
-    .map(publicTemplate);
+export function parseMarketplaceOptions(input = {}) {
+  if (typeof input === "string") {
+    return { q: input.trim() };
+  }
+  const truthy = (v) => v === "1" || v === "true" || v === true;
+  const get = (key) => {
+    if (input instanceof URLSearchParams) return input.get(key) ?? "";
+    return input[key] ?? "";
+  };
+  return {
+    q: String(get("q")).trim(),
+    category: String(get("category")).trim(),
+    sort: String(get("sort") || "name").trim(),
+    gate_only: truthy(get("gate_only")),
+    official_only: truthy(get("official_only")),
+    hide_secrets: truthy(get("hide_secrets")),
+  };
+}
+
+function sortTemplates(items, sort) {
+  const list = [...items];
+  if (sort === "popularity") {
+    list.sort(
+      (a, b) =>
+        (POPULARITY_RANK[b.popularity] ?? 0) - (POPULARITY_RANK[a.popularity] ?? 0) ||
+        a.name.localeCompare(b.name)
+    );
+    return list;
+  }
+  if (sort === "reduction") {
+    list.sort(
+      (a, b) =>
+        (b.compare_estimate?.reduction_pct ?? 0) - (a.compare_estimate?.reduction_pct ?? 0) ||
+        a.name.localeCompare(b.name)
+    );
+    return list;
+  }
+  return list.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function buildCategorySummary(templates) {
+  const counts = {};
+  for (const t of templates) {
+    const cat = t.category ?? "other";
+    counts[cat] = (counts[cat] ?? 0) + 1;
+  }
+  return MARKETPLACE_CATEGORIES.filter((c) => (counts[c.id] ?? 0) > 0).map((c) => ({
+    id: c.id,
+    label: c.label,
+    count: counts[c.id] ?? 0,
+  }));
+}
+
+export function searchMarketplace(options = "", dir = marketplaceDir(), context = {}) {
+  const opts = parseMarketplaceOptions(options);
+  const installedKeys = context.installedKeys ?? new Set();
+  let items = loadMarketplaceCatalog(dir)
+    .filter((t) => matchesQuery(t, opts.q))
+    .filter((t) => !opts.category || t.category === opts.category)
+    .filter((t) => !opts.gate_only || (t.gate_ready ?? t.install_target === "backend"))
+    .filter((t) => !opts.official_only || t.official === true)
+    .filter((t) => !opts.hide_secrets || !(t.required_env ?? []).some((e) => e.secret))
+    .map((t) => {
+      const installed =
+        t.backend_key != null ? installedKeys.has(t.backend_key) : false;
+      return publicTemplate(t, { installed });
+    });
+  return sortTemplates(items, opts.sort);
+}
+
+/**
+ * Suggest directories for Filesystem MCP ALLOWED_PATH.
+ * Uses project root, git root, and optional COSTGATE_WORKSPACE_ROOTS.
+ */
+export function suggestAllowedPaths(options = {}) {
+  const projectRoot = resolve(resolveProjectRoot(options));
+  const candidates = [];
+  const seen = new Set();
+
+  const add = (rawPath, reason, label) => {
+    if (!rawPath) return;
+    let abs;
+    try {
+      abs = resolve(String(rawPath));
+    } catch {
+      return;
+    }
+    if (!existsSync(abs)) return;
+    try {
+      if (!statSync(abs).isDirectory()) return;
+    } catch {
+      return;
+    }
+    if (seen.has(abs)) return;
+    seen.add(abs);
+    candidates.push({ path: abs, reason, label });
+  };
+
+  add(projectRoot, "project_root", "Project root");
+
+  let dir = projectRoot;
+  while (true) {
+    if (existsSync(join(dir, ".git"))) {
+      add(dir, "git_root", "Git repository root");
+      break;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  const extraRoots = process.env.COSTGATE_WORKSPACE_ROOTS ?? "";
+  for (const raw of extraRoots.split(",")) {
+    const trimmed = raw.trim();
+    if (trimmed) add(trimmed, "workspace_root", "Workspace folder");
+  }
+
+  return { project_root: projectRoot, candidates };
 }
 
 /**
