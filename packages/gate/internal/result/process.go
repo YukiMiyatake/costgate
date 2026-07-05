@@ -16,5 +16,5 @@ func Process(tool string, rawArgs json.RawMessage, result *mcp.CallToolResult) *
 	path := codemode.PathFromArgs(rawArgs)
 	out, _ := codemode.MaybeTransform(tool, path, result)
 	out, _ = compress.MaybeCompress(tool, out)
-	return out
+	return maybeDedupe(tool, rawArgs, out)
 }

@@ -46,14 +46,37 @@ func MaybeCompress(tool string, result *mcp.CallToolResult) (*mcp.CallToolResult
 		return result, stats
 	}
 
-	before := textChars(result)
-	stats.BeforeChars = before
-	if before <= MaxChars() {
-		stats.AfterChars = before
+	originalBefore := textChars(result)
+	stats.BeforeChars = originalBefore
+	if originalBefore <= MaxChars() {
+		stats.AfterChars = originalBefore
 		return result, stats
 	}
 
 	out := cloneResult(result)
+	for i, item := range out.Content {
+		text, ok := item.(*mcp.TextContent)
+		if !ok {
+			continue
+		}
+		if summarized, applied := maybeSummarizeJSON(text.Text); applied {
+			out.Content[i] = &mcp.TextContent{Text: summarized}
+		}
+	}
+
+	before := textChars(out)
+	if before <= MaxChars() {
+		stats.AfterChars = before
+		stats.Applied = stats.AfterChars < originalBefore
+		if stats.Applied {
+			log.Printf(
+				"[costgate-gate] compress tool=%s chars %d→%d (json summary)",
+				tool, originalBefore, stats.AfterChars,
+			)
+		}
+		return out, stats
+	}
+
 	remaining := before - MaxChars()
 	for i, item := range out.Content {
 		text, ok := item.(*mcp.TextContent)
@@ -66,11 +89,11 @@ func MaybeCompress(tool string, result *mcp.CallToolResult) (*mcp.CallToolResult
 	}
 
 	stats.AfterChars = textChars(out)
-	stats.Applied = stats.AfterChars < stats.BeforeChars
+	stats.Applied = stats.AfterChars < originalBefore
 	if stats.Applied {
 		log.Printf(
 			"[costgate-gate] compress tool=%s chars %d→%d (max=%d)",
-			tool, stats.BeforeChars, stats.AfterChars, MaxChars(),
+			tool, originalBefore, stats.AfterChars, MaxChars(),
 		)
 	}
 	return out, stats

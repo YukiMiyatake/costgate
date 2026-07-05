@@ -170,6 +170,46 @@
       ]
     },
     {
+      "id": "compress_json_summary",
+      "name": "Compress summarizes large JSON payload",
+      "modes": ["filter_compress"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "package-lock.json" }
+          },
+          "assert_text_contains": "[costgate: json summary"
+        }
+      ]
+    },
+    {
+      "id": "dedupe_repeat_read",
+      "name": "Dedupe cache hits on repeated file read",
+      "modes": ["filter_compress"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "README.md" }
+          }
+        },
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "README.md" }
+          },
+          "assert_text_contains": "[costgate: dedupe cache hit]"
+        }
+      ]
+    },
+    {
       "id": "compress_truncates_lockfile",
       "name": "Compress truncates large JSON-like payload",
       "modes": ["filter_compress"],
@@ -181,7 +221,7 @@
             "name": "get_file_contents",
             "arguments": { "owner": "o", "repo": "r", "path": "package-lock.json" }
           },
-          "assert_text_contains": "[costgate: truncated"
+          "assert_text_contains": "[costgate: json summary"
         }
       ]
     }
