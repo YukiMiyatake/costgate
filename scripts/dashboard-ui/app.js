@@ -480,13 +480,20 @@ function recKindBadge(kind) {
   return badge(labels[kind] ?? kind, ok);
 }
 
-function openAddMcpTab(templateId) {
+async function openAddMcpTab(templateId) {
   const tab = document.querySelector('#tabs button[data-tab="add-mcp"]');
   if (tab) tab.click();
   const searchInput = document.getElementById("marketplace-search");
-  if (searchInput && templateId) {
-    searchInput.value = templateId;
-    loadMarketplace(templateId).catch((e) => alert(e.message));
+  if (searchInput && templateId) searchInput.value = templateId;
+  try {
+    const data = await loadMarketplace(templateId);
+    if (!templateId) return;
+    const match = (data.templates ?? []).find(
+      (t) => t.id === templateId || t.name.toLowerCase() === templateId.toLowerCase()
+    );
+    if (match) openWizard(match);
+  } catch (e) {
+    alert(e.message);
   }
 }
 
@@ -654,12 +661,25 @@ function marketplaceQueryParams() {
 
 let marketplaceCategory = "";
 
+function setMarketplaceBrowseVisible(visible) {
+  const browse = document.getElementById("marketplace-browse");
+  if (browse) {
+    browse.classList.toggle("hidden", !visible);
+    return;
+  }
+  document.getElementById("marketplace-results")?.classList.toggle("hidden", !visible);
+}
+
 function renderMarketplaceResults(templates) {
   const grid = document.getElementById("marketplace-results");
   const form = document.getElementById("wizard-form");
+  const wizardOpen = selectedTemplate != null && !form.classList.contains("hidden");
   grid.innerHTML = "";
-  form.classList.add("hidden");
-  selectedTemplate = null;
+  if (!wizardOpen) {
+    form.classList.add("hidden");
+    selectedTemplate = null;
+    setMarketplaceBrowseVisible(true);
+  }
 
   if (!templates.length) {
     grid.innerHTML = '<p class="note">No templates match your filters.</p>';
@@ -667,23 +687,31 @@ function renderMarketplaceResults(templates) {
   }
 
   for (const t of templates) {
-    const card = document.createElement("button");
-    card.type = "button";
+    const card = document.createElement("div");
     card.className = `marketplace-card${t.installed ? " installed" : ""}`;
+    card.setAttribute("role", "button");
+    card.tabIndex = 0;
     card.innerHTML = `
       <div class="marketplace-card-title">${t.name}</div>
       ${renderMarketplaceBadges(t)}
       <div class="marketplace-card-meta">${t.category_label ?? t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
       <div class="marketplace-card-desc">${t.description}</div>
       <div class="marketplace-card-est">${renderCompareEstimate(t.compare_estimate)}</div>`;
-    card.onclick = () => openWizard(t);
+    const open = () => openWizard(t);
+    card.addEventListener("click", open);
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        open();
+      }
+    });
     grid.appendChild(card);
   }
 }
 
 function openWizard(template) {
   selectedTemplate = template;
-  document.getElementById("marketplace-results").classList.add("hidden");
+  setMarketplaceBrowseVisible(false);
   const form = document.getElementById("wizard-form");
   form.classList.remove("hidden");
   document.getElementById("wizard-title").textContent = template.name;
@@ -728,7 +756,7 @@ function openWizard(template) {
 function closeWizard() {
   selectedTemplate = null;
   document.getElementById("wizard-form").classList.add("hidden");
-  document.getElementById("marketplace-results").classList.remove("hidden");
+  setMarketplaceBrowseVisible(true);
 }
 
 async function loadMarketplace(query) {
@@ -748,6 +776,7 @@ async function loadMarketplace(query) {
   };
   renderCategoryTabs(data.categories ?? [], marketplaceCategory);
   renderMarketplaceResults(data.templates ?? []);
+  return data;
 }
 
 function setupWizard() {
