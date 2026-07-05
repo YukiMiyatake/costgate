@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@costgate/schema": "0.1.0",
-    "@modelcontextprotocol/sdk": "^1.12.1"
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "js-tiktoken": "^1.0.20"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

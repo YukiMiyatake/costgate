@@ -8,10 +8,7 @@ export function defaultLogDir() {
   );
 }
 
-export function bytesToTokens(bytes) {
-  if (!bytes || bytes <= 0) return 0;
-  return Math.max(1, Math.ceil(bytes / 4));
-}
+export { bytesToTokens, countTokens } from "./tokens.mjs";
 
 /**
  * Parse Probe JSONL into global + per-session token breakdown.

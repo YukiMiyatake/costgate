@@ -13,6 +13,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { Logger } from "./logger.js";
 import { byteLength, summarizeTools } from "./metrics.js";
+import { countTokens } from "./tokens.js";
 
 export interface ProxyOptions {
   backendName: string;
@@ -47,10 +48,12 @@ export async function startProxy(options: ProxyOptions): Promise<Server> {
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const requestBytes = byteLength(JSON.stringify(request.params));
+      const reqJson = JSON.stringify(request.params);
+      const requestBytes = byteLength(reqJson);
       const started = Date.now();
       const result = await client.callTool(request.params);
-      const responseBytes = byteLength(JSON.stringify(result));
+      const resJson = JSON.stringify(result);
+      const responseBytes = byteLength(resJson);
       const durationMs = Date.now() - started;
 
       logger.log({
@@ -59,7 +62,7 @@ export async function startProxy(options: ProxyOptions): Promise<Server> {
         tool: request.params.name,
         request_bytes: requestBytes,
         response_bytes: responseBytes,
-        estimated_tokens: Math.ceil((requestBytes + responseBytes) / 4),
+        estimated_tokens: countTokens(reqJson) + countTokens(resJson),
         duration_ms: durationMs,
       });
 

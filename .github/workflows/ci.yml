@@ -34,12 +34,16 @@ jobs:
         working-directory: packages/gate
         run: go test ./...
 
+      - name: Token counter tests
+        run: npm run test:tokens
+
       - name: Script syntax check
         run: |
           node --check scripts/feat-workflow.mjs
           node --check scripts/compare-report.mjs
           node --check scripts/lib/mcp-client.mjs
           node --check scripts/lib/parse-probe-logs.mjs
+          node --check scripts/lib/tokens.mjs
           node --check scripts/session-report.mjs
           node --check scripts/cloud-upload.mjs
           node --check scripts/cursor-mcp.mjs
