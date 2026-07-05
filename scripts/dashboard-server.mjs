@@ -20,6 +20,7 @@ import {
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
 import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
+import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
 import {
   listWorkspaces,
@@ -115,8 +116,9 @@ function resolveMarketplaceDir(controlPaths, dataOptions) {
 }
 
 function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
+  const global = defaultPaths();
   return {
-    ...defaultPaths(),
+    ...global,
     ...dataOptions,
     ...controlPaths,
     projectRoot: workspaceCtx.projectRoot,
@@ -126,19 +128,23 @@ function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
     usagePath: workspaceCtx.usagePath,
     logDir: workspaceCtx.logDir,
     gateLogDir: workspaceCtx.gateLogDir,
-    mcpPath: workspaceCtx.mcpPath ?? controlPaths.mcpPath ?? defaultPaths().mcpPath,
+    mcpPath: workspaceCtx.mcpPath ?? controlPaths.mcpPath ?? global.mcpPath,
     workspace_id: workspaceCtx.id,
     workspace_path: workspaceCtx.projectRoot,
+    scoped: true,
+    globalPaths: global,
   };
 }
 
 function marketplacePayload(url, paths, marketplaceDirPath) {
   const pathHints = suggestAllowedPaths({ projectRoot: paths.projectRoot });
   const opts = parseMarketplaceOptions(url.searchParams);
-  const configPath = paths.configPath ?? paths.backendsPath;
-  const installedKeys = new Set(
-    Object.keys(loadBackendsJson(configPath).backends ?? {})
+  const globalPaths = paths.globalPaths ?? defaultPaths();
+  const effective = resolveEffectiveConfig(
+    { ...paths, scoped: Boolean(paths.scoped ?? paths.workspace_id) },
+    globalPaths
   );
+  const installedKeys = new Set(Object.keys(effective.backends ?? {}));
   const allPublic = searchMarketplace("", marketplaceDirPath, { installedKeys });
   const templates = searchMarketplace(url.searchParams, marketplaceDirPath, { installedKeys });
   return {
