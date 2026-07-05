@@ -30,9 +30,10 @@ See [docs/structure.md](./docs/structure.md) for why Probe and Gate share one re
 
 ## Quick start (Probe)
 
+### Option A — npx (published)
+
 ```bash
-npm install
-npm run build:probe
+npx @costgate/probe@latest
 ```
 
 Add to Cursor `~/.cursor/mcp.json`:
@@ -41,9 +42,10 @@ Add to Cursor `~/.cursor/mcp.json`:
 {
   "mcpServers": {
     "costgate-probe": {
-      "command": "node",
-      "args": ["/path/to/costgate/packages/probe/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@costgate/probe"],
       "env": {
+        "COSTGATE_CONFIG": "~/.costgate/backends.json",
         "COSTGATE_PROBE_LOG_DIR": "~/.costgate/logs"
       }
     }
@@ -51,7 +53,12 @@ Add to Cursor `~/.cursor/mcp.json`:
 }
 ```
 
-Or after npm publish: `npx @costgate/probe`
+### Option B — from source
+
+```bash
+npm install
+npm run build:probe
+```
 
 See [examples/cursor/](./examples/cursor/) for full configuration.
 

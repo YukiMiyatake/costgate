@@ -39,7 +39,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **12. Code Mode** | ✅ Done | Source outline transform for file read tools |
 | **13. Accuracy eval** | ✅ Done | Task harness — filter/compress/code-mode regression |
 | **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
-| **15. Probe npm publish** | 📋 Planned | `npx @costgate/probe` public distribution |
+| **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
 
 **costgate-cloud（別 repo）:** Phase 16+ — dashboard, auto-upload, Stripe / Team policies
 
@@ -180,13 +180,13 @@ Phase 16+ cloud         … Pro/Team 本番化（別 repo）
 - **compare:** `npm run compare -- --mock` — mock MCP で before/after（トークン不要）
 - **拡張:** 新 backend は `tiers/<name>.json` を追加
 
-### Phase 15 — Probe npm publish 📋
+### Phase 15 — Probe npm publish ✅
 
 **目的:** Gate と同様、Probe も **`npx @costgate/probe`** で導入可能に。
 
-- **CI:** npm publish workflow（tag または manual）
-- **ドキュメント:** README Quick start を publish 版に更新
-- **工数:** 小 — Phase 12 と並行可能
+- **CI:** `.github/workflows/npm-publish.yml` — tag `v*` で `@costgate/schema` → `@costgate/probe` を publish
+- **Secrets:** repo に `NPM_TOKEN`（npm automation token）を設定
+- **Quick start:** README の `npx @costgate/probe` 例
 
 ### Phase 16+ — costgate-cloud（別 repo）📋
 

@@ -40,7 +40,9 @@ git tag v0.4.0
 git push origin v0.4.0
 ```
 
-3. GitHub Actions (`release.yml`) runs **goreleaser** and publishes assets + checksums
+3. GitHub Actions runs:
+   - **`release.yml`** — goreleaser → Gate binaries
+   - **`npm-publish.yml`** — `@costgate/schema` + `@costgate/probe` to npm (requires `NPM_TOKEN`)
 
 Local dry-run (requires [goreleaser](https://goreleaser.com/) installed):
 
@@ -49,6 +51,16 @@ npm run release:check    # goreleaser check
 goreleaser release --snapshot --clean
 # dist/ にバイナリ（GitHub には upload しない）
 ```
+
+## npm (Probe)
+
+Same tag `v*` publishes `@costgate/probe` and `@costgate/schema` to npm.
+
+```bash
+npx @costgate/probe@latest
+```
+
+Set repository secret **`NPM_TOKEN`** (npm automation token with publish scope).
 
 ## Cursor setup
 

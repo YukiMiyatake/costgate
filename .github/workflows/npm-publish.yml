@@ -1,0 +1,65 @@
+name: npm Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "npm version (e.g. 0.5.0) — workflow_dispatch only"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set package versions
+        run: |
+          npm version ${{ steps.ver.outputs.version }} --no-git-tag-version -w @costgate/schema
+          npm version ${{ steps.ver.outputs.version }} --no-git-tag-version -w @costgate/probe
+
+      - name: Align probe schema dependency
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/probe/package.json';
+            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+            j.dependencies['@costgate/schema'] = '${{ steps.ver.outputs.version }}';
+            fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+          "
+
+      - run: npm ci
+
+      - name: Build publishable packages
+        run: npm run build -w @costgate/schema && npm run build -w @costgate/probe
+
+      - name: Publish @costgate/schema
+        run: npm publish -w @costgate/schema --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @costgate/probe
+        run: npm publish -w @costgate/probe --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
