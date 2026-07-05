@@ -237,7 +237,163 @@ function renderOverview(data) {
   note.textContent = noteText;
 }
 
+let toolsData = null;
+let toolsTierFilter = "all";
+
+function isToolMeasured(tool) {
+  return tool.estimated_list_tokens != null;
+}
+
+function toolMatchesTierFilter(tool) {
+  if (toolsTierFilter === "all") return true;
+  if (toolsTierFilter === "hidden") return tool.tier === "hidden";
+  if (toolsTierFilter === "visible") return tool.tier !== "hidden";
+  return true;
+}
+
+function filterTools(tools) {
+  const q = document.getElementById("tools-search")?.value.trim().toLowerCase() ?? "";
+  const backend = document.getElementById("tools-backend-filter")?.value ?? "";
+  const measured = document.getElementById("tools-measured-filter")?.value ?? "";
+  const recOnly = document.getElementById("tools-rec-only")?.checked ?? false;
+  const forcedOnly = document.getElementById("tools-forced-only")?.checked ?? false;
+
+  return (tools ?? []).filter((t) => {
+    if (q) {
+      const hay = `${t.name} ${t.backend ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (backend && (t.backend ?? "") !== backend) return false;
+    if (!toolMatchesTierFilter(t)) return false;
+    if (recOnly && !t.recommendation) return false;
+    if (forcedOnly && !t.forced_tier) return false;
+    if (measured === "measured" && !isToolMeasured(t)) return false;
+    if (measured === "unmeasured" && isToolMeasured(t)) return false;
+    return true;
+  });
+}
+
+function sortTools(tools) {
+  const sortKey = document.getElementById("tools-sort")?.value ?? "call_count";
+  const sorted = [...tools];
+  sorted.sort((a, b) => {
+    if (sortKey === "name") return a.name.localeCompare(b.name);
+    if (sortKey === "call_count") {
+      return b.call_count - a.call_count || a.name.localeCompare(b.name);
+    }
+    if (sortKey === "last_used") {
+      const aTs = a.last_used ? Date.parse(a.last_used) : 0;
+      const bTs = b.last_used ? Date.parse(b.last_used) : 0;
+      return bTs - aTs || a.name.localeCompare(b.name);
+    }
+    if (sortKey === "list_tokens") {
+      const aTok = a.estimated_list_tokens ?? -1;
+      const bTok = b.estimated_list_tokens ?? -1;
+      return bTok - aTok || a.name.localeCompare(b.name);
+    }
+    return 0;
+  });
+  return sorted;
+}
+
+function renderToolsTierTabs() {
+  const container = document.getElementById("tools-tier-tabs");
+  if (!container) return;
+  container.innerHTML = "";
+  for (const tier of [
+    { id: "all", label: "All" },
+    { id: "visible", label: "Visible" },
+    { id: "hidden", label: "Hidden" },
+  ]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `category-tab${toolsTierFilter === tier.id ? " active" : ""}`;
+    btn.textContent = tier.label;
+    btn.onclick = () => {
+      toolsTierFilter = tier.id;
+      renderToolsTierTabs();
+      renderToolsTable();
+    };
+    container.appendChild(btn);
+  }
+}
+
+function populateToolsBackendFilter(tools) {
+  const select = document.getElementById("tools-backend-filter");
+  if (!select) return;
+  const prev = select.value;
+  const backends = [...new Set((tools ?? []).map((t) => t.backend).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">All backends</option>';
+  for (const b of backends) {
+    const opt = document.createElement("option");
+    opt.value = b;
+    opt.textContent = b;
+    select.appendChild(opt);
+  }
+  if (prev && backends.includes(prev)) select.value = prev;
+}
+
+function renderToolRow(t) {
+  const tr = document.createElement("tr");
+  const flag = t.recommendation ? badge(t.recommendation) : document.createTextNode("—");
+  const tierLabel = t.forced_tier ? `${t.tier ?? "—"}*` : (t.tier ?? "—");
+  const hideBtn = document.createElement("button");
+  hideBtn.type = "button";
+  hideBtn.className = t.tier === "hidden" ? "btn-sm btn-enable" : "btn-sm btn-disable";
+  hideBtn.textContent = t.tier === "hidden" ? "Unhide" : "Hide";
+  hideBtn.onclick = async () => {
+    try {
+      await fetchJson(apiPath(`tools/${encodeURIComponent(t.name)}`), {
+        method: "PATCH",
+        body: JSON.stringify({
+          force_tier: t.tier === "hidden" ? "default" : "hidden",
+        }),
+      });
+      await reload();
+      alert("Saved. Restart Gate (Cursor MCP reload) to apply tool overrides.");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+  const listData = isToolMeasured(t) ? badge("measured", true) : badge("no list data");
+  tr.innerHTML = `
+    <td>${t.name}</td>
+    <td>${t.backend ?? "—"}</td>
+    <td>${tierLabel}</td>
+    <td></td>
+    <td>${fmt(t.call_count)}</td>
+    <td>${fmtDate(t.last_used)}</td>
+    <td>${t.estimated_list_tokens != null ? `~${fmt(t.estimated_list_tokens)}` : "—"}</td>
+    <td></td>
+    <td></td>`;
+  tr.children[3].appendChild(listData);
+  tr.children[7].appendChild(flag);
+  tr.children[8].appendChild(hideBtn);
+  return tr;
+}
+
+function renderToolsTable() {
+  if (!toolsData) return;
+  const all = toolsData.tools ?? [];
+  const filtered = sortTools(filterTools(all));
+  const body = document.getElementById("tools-body");
+  const empty = document.getElementById("tools-empty");
+  const count = document.getElementById("tools-count");
+  body.innerHTML = "";
+  for (const t of filtered) {
+    body.appendChild(renderToolRow(t));
+  }
+  if (empty) empty.classList.toggle("hidden", filtered.length > 0);
+  if (count) {
+    count.textContent =
+      filtered.length === all.length
+        ? `${all.length} tool${all.length === 1 ? "" : "s"}`
+        : `${filtered.length} / ${all.length} tools`;
+  }
+}
+
 function renderTools(data) {
+  toolsData = data;
   const blind = document.getElementById("tools-blind");
   if (data.blind_spots?.length) {
     blind.classList.remove("hidden");
@@ -245,42 +401,19 @@ function renderTools(data) {
   } else {
     blind.classList.add("hidden");
   }
-  const body = document.getElementById("tools-body");
-  body.innerHTML = "";
-  for (const t of data.tools ?? []) {
-    const tr = document.createElement("tr");
-    const flag = t.recommendation ? badge(t.recommendation) : document.createTextNode("—");
-    const tierLabel = t.forced_tier ? `${t.tier}*` : (t.tier ?? "—");
-    const hideBtn = document.createElement("button");
-    hideBtn.type = "button";
-    hideBtn.className = "btn-sm";
-    hideBtn.textContent = t.tier === "hidden" ? "Unhide" : "Hide";
-    hideBtn.onclick = async () => {
-      try {
-        await fetchJson(apiPath(`tools/${encodeURIComponent(t.name)}`), {
-          method: "PATCH",
-          body: JSON.stringify({
-            force_tier: t.tier === "hidden" ? "default" : "hidden",
-          }),
-        });
-        await reload();
-        alert("Saved. Restart Gate (Cursor MCP reload) to apply tool overrides.");
-      } catch (e) {
-        alert(e.message);
-      }
-    };
-    tr.innerHTML = `
-      <td>${t.name}</td>
-      <td>${t.backend ?? "—"}</td>
-      <td>${tierLabel}</td>
-      <td>${fmt(t.call_count)}</td>
-      <td>${fmtDate(t.last_used)}</td>
-      <td>${t.estimated_list_tokens != null ? `~${fmt(t.estimated_list_tokens)}` : "—"}</td>
-      <td></td>
-      <td></td>`;
-    tr.children[6].appendChild(flag);
-    tr.children[7].appendChild(hideBtn);
-    body.appendChild(tr);
+  populateToolsBackendFilter(data.tools);
+  renderToolsTierTabs();
+  renderToolsTable();
+}
+
+function setupToolsControls() {
+  const rerender = () => renderToolsTable();
+  document.getElementById("tools-search")?.addEventListener("input", rerender);
+  document.getElementById("tools-backend-filter")?.addEventListener("change", rerender);
+  document.getElementById("tools-sort")?.addEventListener("change", rerender);
+  document.getElementById("tools-measured-filter")?.addEventListener("change", rerender);
+  for (const id of ["tools-rec-only", "tools-forced-only"]) {
+    document.getElementById(id)?.addEventListener("change", rerender);
   }
 }
 
@@ -719,6 +852,7 @@ async function reload(retryGlobal = true) {
 
 async function main() {
   setupTabs();
+  setupToolsControls();
   setupWizard();
   setupWorkspaces();
   try {
