@@ -18,6 +18,7 @@ const TESTS = [
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",
   "cursor-registry-hook.test.mjs",
+  "install-cursor-registry-hook.test.mjs",
   "cursor-prompt-intent-hook.test.mjs",
   "cursor-shield-mcp-hook.test.mjs",
   "cursor-shield-read-hook.test.mjs",
