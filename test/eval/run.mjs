@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 /**
- * Phase 13 — Accuracy eval harness (mock MCP, no GitHub token).
+ * Phase 17 — Eval v2 harness extensions.
  *
- *   npm run eval
- *   npm run eval -- --json
- *   npm run eval -- --mode filter,filter_full
+ *   npm run eval -- --out test/eval/history/run.json
+ *   npm run eval -- --diff test/eval/baseline.json
+ *   npm run eval:live   # GitHub token required
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { withMcpProcess, summarizeTools } from "../../scripts/lib/mcp-client.mjs";
-import { gateBin, mockGateEnv } from "../../scripts/lib/paths.mjs";
+import { gateBin, mockGateEnv, baseGateEnv } from "../../scripts/lib/paths.mjs";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const TASKS_PATH = join(ROOT, "test/eval/tasks.json");
+const DEFAULT_TASKS = join(ROOT, "test/eval/tasks.json");
 
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
+const liveMode = args.includes("--live");
+const tasksIdx = args.indexOf("--tasks");
+const tasksPath = tasksIdx >= 0 ? args[tasksIdx + 1] : DEFAULT_TASKS;
 const modeIdx = args.indexOf("--mode");
 const selectedModes =
   modeIdx >= 0
@@ -24,8 +27,23 @@ const selectedModes =
     : null;
 const outIdx = args.indexOf("--out");
 const outPath = outIdx >= 0 ? args[outIdx + 1] : null;
+const diffIdx = args.indexOf("--diff");
+const diffPath = diffIdx >= 0 ? args[diffIdx + 1] : null;
 
-const spec = JSON.parse(readFileSync(TASKS_PATH, "utf8"));
+const spec = JSON.parse(readFileSync(tasksPath, "utf8"));
+
+function gateEnv(clientName, modeSpec) {
+  if (liveMode) {
+    if (!process.env.GITHUB_TOKEN && !process.env.GH_TOKEN) {
+      throw new Error("eval:live requires GITHUB_TOKEN or GH_TOKEN");
+    }
+    return baseGateEnv(clientName, {
+      ...modeSpec.env,
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
+    });
+  }
+  return mockGateEnv(clientName, modeSpec.env);
+}
 
 function assertStep(step, context) {
   const errors = [];
@@ -73,7 +91,7 @@ function assertStep(step, context) {
 }
 
 async function runTask(modeKey, modeSpec, task) {
-  const env = mockGateEnv(`eval-${modeKey}-${task.id}`, modeSpec.env);
+  const env = gateEnv(`eval-${modeKey}-${task.id}`, modeSpec);
   const started = Date.now();
   const stepResults = [];
 
@@ -107,7 +125,7 @@ async function runTask(modeKey, modeSpec, task) {
           }
         }
       },
-      { label: `eval-${modeKey}-${task.id}`, startupMs: 4000 }
+      { label: `eval-${modeKey}-${task.id}`, startupMs: liveMode ? 15000 : 4000 }
     );
 
     return {
@@ -145,8 +163,10 @@ function buildReport(results) {
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
   return {
+    version: 2,
     generated_at: new Date().toISOString(),
-    backend: "mock",
+    backend: liveMode ? "github" : "mock",
+    tasks_file: tasksPath,
     summary: {
       total,
       passed,
@@ -155,6 +175,39 @@ function buildReport(results) {
     },
     modes: byMode,
     results,
+  };
+}
+
+function diffReports(prev, curr) {
+  const prevMap = new Map((prev.results ?? []).map((r) => [`${r.mode}:${r.task_id}`, r]));
+  const changes = [];
+  for (const r of curr.results ?? []) {
+    const key = `${r.mode}:${r.task_id}`;
+    const old = prevMap.get(key);
+    if (!old) {
+      changes.push({ type: "added", mode: r.mode, task_id: r.task_id, passed: r.passed });
+      continue;
+    }
+    if (old.passed !== r.passed) {
+      changes.push({
+        type: "status",
+        mode: r.mode,
+        task_id: r.task_id,
+        from: old.passed,
+        to: r.passed,
+      });
+    }
+    prevMap.delete(key);
+  }
+  for (const [key, old] of prevMap) {
+    const [mode, task_id] = key.split(":");
+    changes.push({ type: "removed", mode, task_id, was_passed: old.passed });
+  }
+  return {
+    baseline_at: prev.generated_at,
+    current_at: curr.generated_at,
+    pass_rate_delta: (curr.summary?.pass_rate_pct ?? 0) - (prev.summary?.pass_rate_pct ?? 0),
+    changes,
   };
 }
 
@@ -173,6 +226,27 @@ function printReport(report) {
     }
     console.log("");
   }
+}
+
+function printDiff(diff) {
+  console.log("# CostGate eval diff\n");
+  console.log(`Baseline: ${diff.baseline_at}`);
+  console.log(`Current:  ${diff.current_at}`);
+  console.log(`Pass rate delta: ${diff.pass_rate_delta >= 0 ? "+" : ""}${diff.pass_rate_delta}%\n`);
+  if (diff.changes.length === 0) {
+    console.log("No task status changes.\n");
+    return;
+  }
+  for (const c of diff.changes) {
+    if (c.type === "status") {
+      console.log(`- ${c.mode}/${c.task_id}: ${c.from ? "pass" : "fail"} → ${c.to ? "pass" : "fail"}`);
+    } else if (c.type === "added") {
+      console.log(`- ${c.mode}/${c.task_id}: added (${c.passed ? "pass" : "fail"})`);
+    } else {
+      console.log(`- ${c.mode}/${c.task_id}: removed (was ${c.was_passed ? "pass" : "fail"})`);
+    }
+  }
+  console.log("");
 }
 
 async function main() {
@@ -202,7 +276,20 @@ async function main() {
     console.error(`[eval] wrote ${outPath}`);
   }
 
-  if (jsonOut) {
+  if (diffPath) {
+    if (!existsSync(diffPath)) {
+      console.error(`[eval] diff baseline not found: ${diffPath}`);
+      process.exit(1);
+    }
+    const prev = JSON.parse(readFileSync(diffPath, "utf8"));
+    const diff = diffReports(prev, report);
+    if (jsonOut) {
+      console.log(JSON.stringify({ report, diff }, null, 2));
+    } else {
+      printReport(report);
+      printDiff(diff);
+    }
+  } else if (jsonOut) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     printReport(report);

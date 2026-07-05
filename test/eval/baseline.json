@@ -1,0 +1,616 @@
+{
+  "version": 2,
+  "generated_at": "2026-07-05T05:51:37.822Z",
+  "backend": "mock",
+  "tasks_file": "/app/test/eval/tasks.json",
+  "summary": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0,
+    "pass_rate_pct": 100
+  },
+  "modes": {
+    "transparent": {
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "tasks": [
+        {
+          "mode": "transparent",
+          "task_id": "transparent_full_list",
+          "task_name": "Transparent exposes all backend tools",
+          "passed": true,
+          "duration_ms": 4539,
+          "steps": [
+            {
+              "action": "list_tools",
+              "tool": null,
+              "passed": true,
+              "errors": [],
+              "token_estimate": 734
+            }
+          ]
+        },
+        {
+          "mode": "transparent",
+          "task_id": "echo_direct",
+          "task_name": "Direct echo call works in transparent mode",
+          "passed": true,
+          "duration_ms": 4010,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "echo",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    "filter": {
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "tasks": [
+        {
+          "mode": "filter",
+          "task_id": "filter_reduces_list",
+          "task_name": "Filter reduces tools/list size",
+          "passed": true,
+          "duration_ms": 4012,
+          "steps": [
+            {
+              "action": "list_tools",
+              "tool": null,
+              "passed": true,
+              "errors": [],
+              "token_estimate": 529
+            }
+          ]
+        },
+        {
+          "mode": "filter",
+          "task_id": "discover_fork",
+          "task_name": "discover_tools finds hidden fork tool",
+          "passed": true,
+          "duration_ms": 4007,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "discover_tools",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter",
+          "task_id": "invoke_echo",
+          "task_name": "invoke_tool delegates to backend echo",
+          "passed": true,
+          "duration_ms": 4013,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter",
+          "task_id": "search_issues_via_invoke",
+          "task_name": "invoke_tool searches issues by query",
+          "passed": true,
+          "duration_ms": 4007,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter",
+          "task_id": "chain_discover_invoke_issue",
+          "task_name": "discover_tools then invoke_tool for issue search",
+          "passed": true,
+          "duration_ms": 4014,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "discover_tools",
+              "passed": true,
+              "errors": []
+            },
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    "filter_compress": {
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "tasks": [
+        {
+          "mode": "filter_compress",
+          "task_id": "filter_reduces_list",
+          "task_name": "Filter reduces tools/list size",
+          "passed": true,
+          "duration_ms": 4014,
+          "steps": [
+            {
+              "action": "list_tools",
+              "tool": null,
+              "passed": true,
+              "errors": [],
+              "token_estimate": 529
+            }
+          ]
+        },
+        {
+          "mode": "filter_compress",
+          "task_id": "discover_fork",
+          "task_name": "discover_tools finds hidden fork tool",
+          "passed": true,
+          "duration_ms": 4010,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "discover_tools",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_compress",
+          "task_id": "invoke_echo",
+          "task_name": "invoke_tool delegates to backend echo",
+          "passed": true,
+          "duration_ms": 4012,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_compress",
+          "task_id": "compress_truncates_lockfile",
+          "task_name": "Compress truncates large JSON-like payload",
+          "passed": true,
+          "duration_ms": 4012,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    "filter_full": {
+      "passed": 7,
+      "failed": 0,
+      "total": 7,
+      "tasks": [
+        {
+          "mode": "filter_full",
+          "task_id": "filter_reduces_list",
+          "task_name": "Filter reduces tools/list size",
+          "passed": true,
+          "duration_ms": 4011,
+          "steps": [
+            {
+              "action": "list_tools",
+              "tool": null,
+              "passed": true,
+              "errors": [],
+              "token_estimate": 529
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "discover_fork",
+          "task_name": "discover_tools finds hidden fork tool",
+          "passed": true,
+          "duration_ms": 4010,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "discover_tools",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "invoke_echo",
+          "task_name": "invoke_tool delegates to backend echo",
+          "passed": true,
+          "duration_ms": 4011,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "code_mode_outline",
+          "task_name": "Code mode returns outline for large source file",
+          "passed": true,
+          "duration_ms": 4011,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "search_issues_via_invoke",
+          "task_name": "invoke_tool searches issues by query",
+          "passed": true,
+          "duration_ms": 4009,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "chain_discover_invoke_issue",
+          "task_name": "discover_tools then invoke_tool for issue search",
+          "passed": true,
+          "duration_ms": 4010,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "discover_tools",
+              "passed": true,
+              "errors": []
+            },
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        },
+        {
+          "mode": "filter_full",
+          "task_id": "path_read_main",
+          "task_name": "get_file_contents returns outline for main.go path",
+          "passed": true,
+          "duration_ms": 4009,
+          "steps": [
+            {
+              "action": "call",
+              "tool": "invoke_tool",
+              "passed": true,
+              "errors": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "results": [
+    {
+      "mode": "transparent",
+      "task_id": "transparent_full_list",
+      "task_name": "Transparent exposes all backend tools",
+      "passed": true,
+      "duration_ms": 4539,
+      "steps": [
+        {
+          "action": "list_tools",
+          "tool": null,
+          "passed": true,
+          "errors": [],
+          "token_estimate": 734
+        }
+      ]
+    },
+    {
+      "mode": "transparent",
+      "task_id": "echo_direct",
+      "task_name": "Direct echo call works in transparent mode",
+      "passed": true,
+      "duration_ms": 4010,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "echo",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter",
+      "task_id": "filter_reduces_list",
+      "task_name": "Filter reduces tools/list size",
+      "passed": true,
+      "duration_ms": 4012,
+      "steps": [
+        {
+          "action": "list_tools",
+          "tool": null,
+          "passed": true,
+          "errors": [],
+          "token_estimate": 529
+        }
+      ]
+    },
+    {
+      "mode": "filter",
+      "task_id": "discover_fork",
+      "task_name": "discover_tools finds hidden fork tool",
+      "passed": true,
+      "duration_ms": 4007,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter",
+      "task_id": "invoke_echo",
+      "task_name": "invoke_tool delegates to backend echo",
+      "passed": true,
+      "duration_ms": 4013,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter",
+      "task_id": "search_issues_via_invoke",
+      "task_name": "invoke_tool searches issues by query",
+      "passed": true,
+      "duration_ms": 4007,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter",
+      "task_id": "chain_discover_invoke_issue",
+      "task_name": "discover_tools then invoke_tool for issue search",
+      "passed": true,
+      "duration_ms": 4014,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "passed": true,
+          "errors": []
+        },
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_compress",
+      "task_id": "filter_reduces_list",
+      "task_name": "Filter reduces tools/list size",
+      "passed": true,
+      "duration_ms": 4014,
+      "steps": [
+        {
+          "action": "list_tools",
+          "tool": null,
+          "passed": true,
+          "errors": [],
+          "token_estimate": 529
+        }
+      ]
+    },
+    {
+      "mode": "filter_compress",
+      "task_id": "discover_fork",
+      "task_name": "discover_tools finds hidden fork tool",
+      "passed": true,
+      "duration_ms": 4010,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_compress",
+      "task_id": "invoke_echo",
+      "task_name": "invoke_tool delegates to backend echo",
+      "passed": true,
+      "duration_ms": 4012,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_compress",
+      "task_id": "compress_truncates_lockfile",
+      "task_name": "Compress truncates large JSON-like payload",
+      "passed": true,
+      "duration_ms": 4012,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "filter_reduces_list",
+      "task_name": "Filter reduces tools/list size",
+      "passed": true,
+      "duration_ms": 4011,
+      "steps": [
+        {
+          "action": "list_tools",
+          "tool": null,
+          "passed": true,
+          "errors": [],
+          "token_estimate": 529
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "discover_fork",
+      "task_name": "discover_tools finds hidden fork tool",
+      "passed": true,
+      "duration_ms": 4010,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "invoke_echo",
+      "task_name": "invoke_tool delegates to backend echo",
+      "passed": true,
+      "duration_ms": 4011,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "code_mode_outline",
+      "task_name": "Code mode returns outline for large source file",
+      "passed": true,
+      "duration_ms": 4011,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "search_issues_via_invoke",
+      "task_name": "invoke_tool searches issues by query",
+      "passed": true,
+      "duration_ms": 4009,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "chain_discover_invoke_issue",
+      "task_name": "discover_tools then invoke_tool for issue search",
+      "passed": true,
+      "duration_ms": 4010,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "passed": true,
+          "errors": []
+        },
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "mode": "filter_full",
+      "task_id": "path_read_main",
+      "task_name": "get_file_contents returns outline for main.go path",
+      "passed": true,
+      "duration_ms": 4009,
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "passed": true,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

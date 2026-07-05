@@ -178,7 +178,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 | Phase | Status | Deliverable |
 |-------|--------|-------------|
 | **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
-| **17. Eval v2** | 📋 Planned | GitHub optional job、eval 履歴 JSON |
+| **17. Eval v2** | ✅ Done | chain tasks, --out/--diff, optional live CI |
 | **18. DX & benchmark CI** | 📋 Planned | compress/session `--mock`、token 回帰 CI |
 | **19. Multi-MCP 実測** | 📋 Planned | filesystem / browser tier catalog + smoke |
 | **20. Result intelligence** | 📋 Planned | JSON 要約 compress、セッション dedupe |
@@ -199,14 +199,15 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 
 > CGO なし静的ビルド（WSL）のため tree-sitter ではなく stdlib / pure-Go scanner を採用。
 
-### Phase 17 — Eval v2 📋
+### Phase 17 — Eval v2 ✅
 
 **目的:** mock 100% pass を **本番に近い条件** で補強。
 
-- 固定タスク: issue 検索、path 特定、`discover_tools` → `invoke_tool` チェーン
-- GitHub token あり CI job（optional / nightly）
-- `npm run eval -- --out` で履歴 JSON、フェーズ間 diff
-- Test: 既存 `npm run eval` + optional live job
+- 固定タスク: `search_issues`、`discover_tools` → `invoke_tool` チェーン、path 特定
+- `npm run eval -- --out` 履歴 JSON（`version: 2`）
+- `npm run eval -- --diff test/eval/baseline.json` フェーズ間 diff
+- `npm run eval:live` + `.github/workflows/eval-live.yml`（`GITHUB_TOKEN` あり時のみ）
+- Test: `npm run eval`, optional `npm run eval:live`
 
 ### Phase 18 — DX & benchmark CI 📋
 

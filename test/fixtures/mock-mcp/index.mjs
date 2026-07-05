@@ -28,6 +28,19 @@ const TOOLS = [
     },
   },
   {
+    name: "search_issues",
+    description: "Search issues in a repository",
+    inputSchema: {
+      type: "object",
+      properties: {
+        owner: { type: "string" },
+        repo: { type: "string" },
+        query: { type: "string" },
+      },
+      required: ["owner", "repo", "query"],
+    },
+  },
+  {
     name: "search_code",
     description: "Search code in a repository",
     inputSchema: {
@@ -187,6 +200,29 @@ function handleCall(name, args) {
     const message = args?.message ?? "";
     return {
       content: [{ type: "text", text: `[mock-mcp echo] ${message}` }],
+    };
+  }
+  if (name === "search_issues") {
+    const query = args?.query ?? "";
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            total_count: 2,
+            items: [
+              { number: 42, title: `Issue matching ${query}`, state: "open" },
+              { number: 7, title: "Unrelated closed issue", state: "closed" },
+            ],
+          }),
+        },
+      ],
+    };
+  }
+  if (name === "search_code") {
+    const query = args?.query ?? "";
+    return {
+      content: [{ type: "text", text: `[mock-mcp search_code] results for: ${query}` }],
     };
   }
   if (name === "get_file_contents") {

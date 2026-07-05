@@ -1,0 +1,38 @@
+{
+  "modes": {
+    "filter": {
+      "label": "Gate filter (live GitHub)",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT": "pull request",
+        "COSTGATE_INTENT_DYNAMIC": "0"
+      }
+    }
+  },
+  "tasks": [
+    {
+      "id": "live_list_tools",
+      "name": "Live GitHub backend exposes filtered tools",
+      "modes": ["filter"],
+      "steps": [
+        {
+          "action": "list_tools",
+          "assert": { "min_count": 3, "max_count": 30, "includes": ["discover_tools", "invoke_tool"] }
+        }
+      ]
+    },
+    {
+      "id": "live_discover_pr",
+      "name": "discover_tools finds pull request tools",
+      "modes": ["filter"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "args": { "query": "pull request", "limit": 5 },
+          "assert_text_contains": "pull"
+        }
+      ]
+    }
+  ]
+}
