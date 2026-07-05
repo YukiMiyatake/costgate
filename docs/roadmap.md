@@ -38,7 +38,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **11. Gate releases** | ✅ Done | goreleaser + GitHub Releases + `install-gate.sh` |
 | **12. Code Mode** | ✅ Done | Source outline transform for file read tools |
 | **13. Accuracy eval** | ✅ Done | Task harness — filter/compress/code-mode regression |
-| **14. Multi-MCP catalog** | 📋 Planned | Tier rules beyond GitHub; multi-backend compare |
+| **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
 | **15. Probe npm publish** | 📋 Planned | `npx @costgate/probe` public distribution |
 
 **costgate-cloud（別 repo）:** Phase 16+ — dashboard, auto-upload, Stripe / Team policies
@@ -171,14 +171,14 @@ Phase 16+ cloud         … Pro/Team 本番化（別 repo）
 - **成果物:** `npm run eval` + JSON/markdown レポート
 - **CI:** integration 後に eval 実行（mock、トークン不要）
 
-### Phase 14 — Multi-MCP catalog 📋
+### Phase 14 — Multi-MCP catalog ✅
 
-**目的:** GitHub 以外の backend（browser, filesystem 等）向け Tier 分類。
+**目的:** GitHub 以外の backend 向け Tier 分類と CI 安全な compare。
 
-- **catalog:** backend ごとの Tier A/B/C 定義
-- **compare / session-report:** multi-backend 対応
-- **Gate:** 複数 backend 同時接続時の filter（将来）
-- **現状:** GitHub MCP のみ実測済み — 他 MCP は catalog + smoke から
+- **catalog:** `internal/catalog/tiers/{github,mock}.json` — Tier A/B/C overrides
+- **Gate:** usage classify の後に catalog rules を overlay
+- **compare:** `npm run compare -- --mock` — mock MCP で before/after（トークン不要）
+- **拡張:** 新 backend は `tiers/<name>.json` を追加
 
 ### Phase 15 — Probe npm publish 📋
 
