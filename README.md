@@ -81,9 +81,11 @@ Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github
 
 **Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. Set `COSTGATE_GATE_MODE=transparent` for pass-through baseline. See [packages/gate/README.md](./packages/gate/README.md).
 
-Compare reduction: `npm run compare` (Before/After `tools/list` token estimate).
+Compare reduction: `npm run compare` (definitions) · `npm run compress-report` (definitions + tool results).
 
 Session breakdown: `npm run session-report` (fixed + variable + overall % scenarios).
+
+Measured benchmarks: [docs/benchmarks.md](./docs/benchmarks.md)
 
 Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
 
@@ -100,6 +102,7 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 ## Documentation
 
 - [Development roadmap](./docs/roadmap.md)
+- [Benchmarks & verification](./docs/benchmarks.md)
 - [Repository structure](./docs/structure.md)
 - [Docker / Dev Container](./docs/docker.md)
 - [Architecture](./docs/architecture.md)
