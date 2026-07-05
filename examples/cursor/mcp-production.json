@@ -15,7 +15,9 @@
       "command": "/path/to/costgate/packages/gate/bin/costgate-gate",
       "env": {
         "COSTGATE_CONFIG": "/home/yuki/.costgate/backends.json",
-        "COSTGATE_CLIENT": "cursor"
+        "COSTGATE_CLIENT": "cursor",
+        "COSTGATE_COMPRESS": "1",
+        "COSTGATE_COMPRESS_MAX_CHARS": "12000"
       }
     }
   }

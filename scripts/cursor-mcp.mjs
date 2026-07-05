@@ -43,6 +43,8 @@ function gateServer() {
     env: {
       COSTGATE_CONFIG: BACKENDS,
       COSTGATE_CLIENT: "cursor",
+      COSTGATE_COMPRESS: "1",
+      COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
     },
   };
 }

@@ -16,6 +16,7 @@
     "test:gate:filter": "node test/gate-filter.mjs",
     "test:gate:compress": "cd packages/gate && go test ./internal/compress/...",
     "compare": "node scripts/compare-report.mjs",
+    "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",

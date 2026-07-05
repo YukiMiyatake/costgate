@@ -102,11 +102,14 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 ### Phase 9 — Response compression ✅
 
-- **`COSTGATE_COMPRESS=1`**: truncate oversized text in `tools/call` results (default OFF)
+- **`COSTGATE_COMPRESS=1`**: truncate oversized text in `tools/call` results
+- **`cursor:production`**: 本番 MCP で compress デフォルト ON
 - **`COSTGATE_COMPRESS_MAX_CHARS`**: total text budget (default 12,000)
 - Applies to exposed tools and `invoke_tool` backend calls
 - Head/tail preserve + `[costgate: truncated …]` marker
-- Test: `npm run test:gate:compress`
+- Test: `npm run test:gate:compress`, `npm run compress-report`
+
+**Measured (package-lock.json via get_file_contents):** ~19,161 → ~3,492 tokens (**81.8%**). See [benchmarks.md](./benchmarks.md).
 
 ---
 
@@ -135,14 +138,16 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 例: 1 ターン 20,000 tokens のうち GitHub 定義 ~4,000 → Gate で ~3,000 削減 → **全体 ~15%**。
 
-`npm run compare` は **定義レイヤのみ**。変動コスト込みは **Phase 7**。
+`npm run compare` は **定義レイヤのみ**。変動コスト込みは **Phase 7** / **Phase 9**（`compress-report`）。
+
+**フェーズ別の実測値・性能:** [benchmarks.md](./benchmarks.md)
 
 ### 削減対象の整理
 
 | 対象 | OSS 現状 | 今後 |
 |------|----------|------|
 | MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter | ✅ 動的 intent（Phase 8） |
-| MCP ツール実行結果 | ❌ | ✅ Response compression（Phase 9） |
+| MCP ツール実行結果 | ✅ compress（Phase 9） | Code Mode MCP（Later） |
 | ファイル読取の出力量 | ❌ | Code Mode MCP（Later） |
 | 会話・ユーザープロンプト・rules | ❌ | **未計画** |
 | Serena / 直結 MCP の定義 | ❌（意図的に対象外） | — |
@@ -179,5 +184,6 @@ npm run build:probe && npm run build:gate
 npm run test:gate
 npm run test:gate:filter
 npm run compare
+npm run compress-report
 npm run session-report
 ```
