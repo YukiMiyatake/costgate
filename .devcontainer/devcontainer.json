@@ -4,12 +4,9 @@
   "service": "dev",
   "workspaceFolder": "/app",
   "features": {
-    "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.22"
-    },
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "postCreateCommand": "npm install && npm run build",
+  "postCreateCommand": "npm install && npm run build && npm run build:gate",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -23,8 +20,9 @@
     }
   },
   "remoteEnv": {
-    "COSTGATE_PROBE_LOG_DIR": "/app/.costgate/logs",
-    "COSTGATE_CLIENT": "cursor"
+    "COSTGATE_PROBE_LOG_DIR": "/root/.costgate/logs",
+    "COSTGATE_CLIENT": "cursor",
+    "COSTGATE_HOST_ROOT": "/app"
   },
   "forwardPorts": []
 }

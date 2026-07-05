@@ -21,12 +21,19 @@ npm install
 npm run build
 ```
 
-### Option B — Docker (no host Node/Go required)
+### Option B — Docker（ホスト Node/Go 不要・推奨）
 
 ```bash
-npm run docker:build
-npm run docker:gate
+chmod +x docker.sh
+./docker.sh npm install
+./docker.sh npm run build
+./docker.sh npm run build:gate
+./docker.sh node scripts/cursor-mcp.mjs production
 ```
+
+または `npm run docker:setup`（ホストに npm がある場合）。
+
+更新: `npm run docker:update` — 詳細は [docs/docker.md](./docs/docker.md)
 
 ### Option C — Dev Container (Cursor / VS Code)
 

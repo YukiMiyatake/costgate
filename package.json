@@ -29,9 +29,12 @@
     "feat:ship": "node scripts/feat-workflow.mjs ship",
     "feat:sync": "node scripts/feat-workflow.mjs sync",
     "cloud:upload": "node scripts/cloud-upload.mjs",
-    "docker:build": "docker compose -f docker-compose.dev.yml run --rm dev npm run build",
-    "docker:gate": "docker compose -f docker-compose.dev.yml run --rm go go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate",
-    "docker:shell": "docker compose -f docker-compose.dev.yml run --rm dev bash",
+    "docker": "node scripts/docker-run.mjs",
+    "docker:setup": "node scripts/docker-run.mjs npm install && node scripts/docker-run.mjs npm run build && node scripts/docker-run.mjs npm run build:gate",
+    "docker:build": "node scripts/docker-run.mjs npm run build",
+    "docker:gate": "node scripts/docker-run.mjs npm run build:gate",
+    "docker:shell": "node scripts/docker-run.mjs bash",
+    "docker:update": "node scripts/cursor-update.mjs --docker",
     "docker:test": "docker compose -f docker-compose.test.yml --profile test run --rm test-runner"
   },
   "engines": {

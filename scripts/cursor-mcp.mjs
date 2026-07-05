@@ -13,12 +13,19 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const HOST_ROOT = process.env.COSTGATE_HOST_ROOT ?? ROOT;
 const MCP_PATH = process.env.CURSOR_MCP_PATH ?? join(homedir(), ".cursor/mcp.json");
-const BACKENDS = process.env.COSTGATE_CONFIG ?? join(homedir(), ".costgate/backends.json");
-const GATE_BIN =
+const BACKENDS_LOCAL =
+  process.env.COSTGATE_CONFIG ?? join(homedir(), ".costgate/backends.json");
+const BACKENDS_MCP = process.env.COSTGATE_HOST_CONFIG ?? BACKENDS_LOCAL;
+const GATE_BIN_LOCAL =
   process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
-const PROBE_JS = join(ROOT, "packages/probe/dist/index.js");
-const LOG_DIR = process.env.COSTGATE_PROBE_LOG_DIR ?? join(homedir(), ".costgate/logs");
+const GATE_BIN_MCP = join(HOST_ROOT, "packages/gate/bin/costgate-gate");
+const PROBE_JS_LOCAL = join(ROOT, "packages/probe/dist/index.js");
+const PROBE_JS_MCP = join(HOST_ROOT, "packages/probe/dist/index.js");
+const LOG_DIR_LOCAL =
+  process.env.COSTGATE_PROBE_LOG_DIR ?? join(homedir(), ".costgate/logs");
+const LOG_DIR_MCP = process.env.COSTGATE_HOST_PROBE_LOG_DIR ?? LOG_DIR_LOCAL;
 
 const mode = process.argv[2] ?? "status";
 
@@ -39,9 +46,9 @@ function saveMcp(config) {
 
 function gateServer() {
   return {
-    command: GATE_BIN,
+    command: GATE_BIN_MCP,
     env: {
-      COSTGATE_CONFIG: BACKENDS,
+      COSTGATE_CONFIG: BACKENDS_MCP,
       COSTGATE_CLIENT: "cursor",
       COSTGATE_COMPRESS: "1",
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
@@ -52,21 +59,21 @@ function gateServer() {
 function probeServer() {
   return {
     command: "node",
-    args: [PROBE_JS],
+    args: [PROBE_JS_MCP],
     env: {
-      COSTGATE_CONFIG: BACKENDS,
-      COSTGATE_PROBE_LOG_DIR: LOG_DIR,
+      COSTGATE_CONFIG: BACKENDS_MCP,
+      COSTGATE_PROBE_LOG_DIR: LOG_DIR_MCP,
       COSTGATE_CLIENT: "cursor",
     },
   };
 }
 
 function applyProduction(config) {
-  if (!existsSync(GATE_BIN)) {
-    throw new Error(`gate binary missing: ${GATE_BIN}\nRun: npm run build:gate`);
+  if (!existsSync(GATE_BIN_LOCAL)) {
+    throw new Error(`gate binary missing: ${GATE_BIN_LOCAL}\nRun: npm run build:gate`);
   }
-  if (!existsSync(BACKENDS)) {
-    throw new Error(`backends config missing: ${BACKENDS}\nCopy examples/backends.github.json`);
+  if (!existsSync(BACKENDS_LOCAL)) {
+    throw new Error(`backends config missing: ${BACKENDS_LOCAL}\nCopy examples/backends.github.json`);
   }
   config.mcpServers ??= {};
   delete config.mcpServers["costgate-probe"];
@@ -75,8 +82,8 @@ function applyProduction(config) {
 }
 
 function applyMeasurement(config) {
-  if (!existsSync(PROBE_JS)) {
-    throw new Error(`probe not built: ${PROBE_JS}\nRun: npm run build:probe`);
+  if (!existsSync(PROBE_JS_LOCAL)) {
+    throw new Error(`probe not built: ${PROBE_JS_LOCAL}\nRun: npm run build:probe`);
   }
   config.mcpServers ??= {};
   delete config.mcpServers["costgate-gate"];

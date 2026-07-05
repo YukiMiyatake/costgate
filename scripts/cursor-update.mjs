@@ -4,7 +4,8 @@
  *
  * Usage:
  *   npm run cursor:update
- *   npm run cursor:update -- --no-pull   # build only
+ *   npm run cursor:update -- --docker   # no host Node/Go (Docker only)
+ *   npm run cursor:update -- --no-pull
  */
 import { execSync } from "node:child_process";
 import { join } from "node:path";
@@ -13,6 +14,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
 const noPull = args.includes("--no-pull");
+const useDocker = args.includes("--docker");
 const GATE_BIN = join(ROOT, "packages/gate/bin/costgate-gate");
 
 function run(cmd, opts = {}) {
@@ -31,19 +33,30 @@ function gateVersion() {
   }
 }
 
+function docker(cmd) {
+  run(`node scripts/docker-run.mjs ${cmd}`);
+}
+
 function main() {
   if (!noPull) {
     run("git fetch origin main");
     run("git pull origin main");
   }
 
-  run("npm run build:gate");
-  run("npm run build:probe");
-  run("node scripts/cursor-mcp.mjs production");
+  if (useDocker) {
+    docker("npm run build");
+    docker("npm run build:gate");
+    docker("node scripts/cursor-mcp.mjs production");
+  } else {
+    run("npm run build:gate");
+    run("npm run build:probe");
+    run("node scripts/cursor-mcp.mjs production");
+  }
 
   console.log("\nCostGate updated.");
   console.log(`  Gate binary: ${GATE_BIN}`);
   console.log(`  Version:     ${gateVersion()}`);
+  console.log(`  Mode:        ${useDocker ? "docker" : "host"}`);
   console.log("\nRestart Cursor MCP (Reload Window) to use the new binary.");
 }
 

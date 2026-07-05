@@ -1,29 +1,41 @@
-# Development toolchain — does NOT run MCP for Cursor attach.
-# Use for build/test without installing Node/Go on the host.
+# Development toolchain — Node 22 + Go 1.25. No host Node/Go required.
 #
-#   docker compose -f docker-compose.dev.yml run --rm dev npm run build
-#   docker compose -f docker-compose.dev.yml run --rm go npm run build:gate
+# First time:
+#   ./docker.sh npm install
+#   ./docker.sh npm run build
+#   ./docker.sh npm run build:gate
+#
+# Or: npm run docker:setup
 
 services:
-  dev:
-    image: node:22-bookworm
+  toolchain:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
     working_dir: /app
     volumes:
       - .:/app
       - costgate_node_modules:/app/node_modules
+      - costgate_go_mod:/go/pkg/mod
+      - ${HOME}/.costgate:/root/.costgate
+      - ${HOME}/.cursor:/root/.cursor
     environment:
-      COSTGATE_PROBE_LOG_DIR: /app/.costgate/logs
+      COSTGATE_HOST_ROOT: ${PWD}
+      COSTGATE_HOST_CONFIG: ${HOME}/.costgate/backends.json
+      COSTGATE_HOST_PROBE_LOG_DIR: ${HOME}/.costgate/logs
+      GOMODCACHE: /go/pkg/mod
+      GOFLAGS: -buildvcs=false
+
+  # Legacy aliases (delegate to toolchain)
+  dev:
+    extends:
+      service: toolchain
     command: sleep infinity
 
   go:
-    image: golang:1.22-bookworm
-    working_dir: /app
-    volumes:
-      - .:/app
-      - costgate_go_build:/root/go/pkg/mod
-    environment:
-      GOMODCACHE: /root/go/pkg/mod
+    extends:
+      service: toolchain
 
 volumes:
   costgate_node_modules:
-  costgate_go_build:
+  costgate_go_mod:

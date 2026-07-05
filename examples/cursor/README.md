@@ -11,6 +11,16 @@ npm run cursor:production
 # Restart Cursor MCP
 ```
 
+Docker のみ（ホスト Node/Go 不要）:
+
+```bash
+./docker.sh npm run build:gate
+./docker.sh node scripts/cursor-mcp.mjs production
+# Reload Window
+```
+
+更新: `npm run docker:update` — [docs/docker.md](../../docs/docker.md)
+
 - **serena** — コード操作（常時直結）
 - **costgate-gate** — GitHub MCP（Tier フィルタ + `discover_tools`）
 - その他の MCP（aieph 等）は `cursor-mcp` が **保持** します
