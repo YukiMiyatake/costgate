@@ -42,9 +42,9 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
 | **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
 | **23. Dashboard read-only** | ✅ Done | Local Web UI — metrics, stale tools, recommendations |
-| **24. Dashboard control** | 📋 Planned | Tool overrides, mcp.json enable/disable |
-| **25. Gate event log** | 📋 Planned | Production stats without Probe |
-| **26. MCP add wizard** | 📋 Planned | Marketplace catalog, config scaffolding |
+| **24. Dashboard control** | ✅ Done | Tool overrides, mcp.json enable/disable |
+| **25. Gate event log** | ✅ Done | Production stats without Probe |
+| **26. MCP add wizard** | ✅ Done | Marketplace catalog, add wizard API/UI |
 | **27. Project recommend** | 📋 Planned | Repo-aware MCP suggestions |
 
 **costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照  
@@ -320,13 +320,15 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 - `@costgate/schema` に `gate_event` 型追加、[log-schema.md](./log-schema.md) 更新
 - Dashboard が Probe + Gate ログをマージ表示
 
-### Phase 26 — MCP add wizard 📋
+### Phase 26 — MCP add wizard ✅
 
 **目的:** テンプレートから MCP 設定を生成し、導入コストを即表示。
 
-- `catalog/marketplace/*.json` — 手動キュレーション
-- ウィザード → `backends.json` / `mcp.json` スニペット
-- 導入後 `compare` 相当で fixed cost 試算
+- `catalog/marketplace/*.json` — 手動キュレーション（github, filesystem, browser）
+- `GET /api/marketplace?q=` — カタログ検索
+- `POST /api/mcps` — `{ template, env }` で backends.json 追加（backup 付き）
+- ダッシュボード UI: 検索 → テンプレ選択 → env フォーム → コスト試算 → 追加
+- Test: `npm run test:dashboard:marketplace`
 - 将来: MCP Registry / Smithery API 検索（26b）
 
 ### Phase 27 — Project recommend 📋

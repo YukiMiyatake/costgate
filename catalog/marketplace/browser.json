@@ -1,0 +1,19 @@
+{
+  "id": "browser",
+  "name": "Cursor IDE Browser",
+  "description": "In-editor browser automation (navigate, snapshot, click). Built into Cursor — enable in Settings → MCP. Tier catalog applies when proxied.",
+  "category": "browser",
+  "tags": ["browser", "web", "automation", "playwright"],
+  "tier_catalog": "browser",
+  "install_target": "builtin",
+  "backend_key": null,
+  "backend_template": null,
+  "builtin_hint": "Enable cursor-ide-browser in Cursor Settings → MCP. No backends.json entry required.",
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 10,
+    "before_tokens": 1100,
+    "after_tokens": 520,
+    "source": "browser tier catalog — estimated from tool count"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "github",
+  "name": "GitHub MCP",
+  "description": "Issues, pull requests, code search, and repository operations via @modelcontextprotocol/server-github. Gate-backed via backends.json.",
+  "category": "devtools",
+  "tags": ["github", "git", "pr", "issues", "code-search"],
+  "tier_catalog": "github",
+  "install_target": "backend",
+  "backend_key": "github",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": {
+      "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+    }
+  },
+  "required_env": [
+    {
+      "name": "GITHUB_TOKEN",
+      "description": "GitHub personal access token (repo scope recommended)",
+      "secret": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 26,
+    "before_tokens": 3357,
+    "after_tokens": 1032,
+    "source": "benchmarks.md — npm run compare"
+  }
+}

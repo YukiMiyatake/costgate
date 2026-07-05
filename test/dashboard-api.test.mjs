@@ -96,10 +96,15 @@ async function testHttpApi() {
     const recs = await fetchJson(port, "/api/recommendations");
     assert(recs.items.length >= 1, "recommendations");
 
+    const marketplace = await fetchJson(port, "/api/marketplace");
+    assert(Array.isArray(marketplace.templates), "marketplace templates");
+    assert(marketplace.templates.length >= 3, "marketplace catalog");
+
     const html = await fetch(`http://127.0.0.1:${port}/`);
     assert(html.ok, "index html");
     const text = await html.text();
     assert(text.includes("CostGate Dashboard"), "html title");
+    assert(text.includes("Add MCP"), "wizard tab");
 
     console.error("[dashboard] HTTP API ok");
   } finally {

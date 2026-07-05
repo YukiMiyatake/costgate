@@ -1,0 +1,29 @@
+{
+  "id": "filesystem",
+  "name": "Filesystem MCP",
+  "description": "Read and write local files within allowed directories via @modelcontextprotocol/server-filesystem. Gate-backed via backends.json.",
+  "category": "devtools",
+  "tags": ["filesystem", "files", "local", "read", "write"],
+  "tier_catalog": "filesystem",
+  "install_target": "backend",
+  "backend_key": "filesystem",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "${ALLOWED_PATH}"],
+    "env": {}
+  },
+  "required_env": [
+    {
+      "name": "ALLOWED_PATH",
+      "description": "Absolute path the MCP may access (e.g. your project root)",
+      "secret": false
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 9,
+    "before_tokens": 720,
+    "after_tokens": 380,
+    "source": "filesystem mock smoke — tier filter"
+  }
+}
