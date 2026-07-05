@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
-	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
