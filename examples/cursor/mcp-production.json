@@ -1,13 +1,18 @@
 {
   "mcpServers": {
     "costgate-gate": {
-      "command": "costgate-gate",
+      "command": "node",
+      "args": ["/path/to/costgate/scripts/costgate-gate-launch.mjs"],
       "env": {
+        "COSTGATE_GATE_BIN": "costgate-gate",
         "COSTGATE_PROJECT_ROOT": "${workspaceFolder}",
         "COSTGATE_CONFIG": "${workspaceFolder}/.costgate/backends.json",
         "COSTGATE_TOOL_OVERRIDES": "${workspaceFolder}/.costgate/tool-overrides.json",
         "COSTGATE_USAGE_PATH": "${workspaceFolder}/.costgate/usage.json",
         "COSTGATE_GATE_LOG_DIR": "${workspaceFolder}/.costgate/logs",
+        "COSTGATE_DASHBOARD_SCRIPT": "/path/to/costgate/scripts/dashboard-server.mjs",
+        "COSTGATE_DASHBOARD_AUTO": "1",
+        "COSTGATE_DASHBOARD_AUTO_OPEN": "1",
         "COSTGATE_CLIENT": "cursor",
         "COSTGATE_COMPRESS": "1",
         "COSTGATE_COMPRESS_MAX_CHARS": "12000"

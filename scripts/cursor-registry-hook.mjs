@@ -7,7 +7,7 @@
  *   postToolUse Read  → cursor:file (Agent)
  *   beforeTabFileRead → cursor:file (Tab)
  *
- * Install: npm run registry:install-cursor-hook
+ * Install: npm run cursor:registry
  */
 import { touchRegistryPath } from "./lib/dashboard-workspaces.mjs";
 import { resolveWorkspaceRootFromPath } from "./lib/resolve-workspace-root.mjs";

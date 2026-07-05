@@ -54,6 +54,23 @@ npm run build:gate
 # → packages/gate/bin/costgate-gate
 ```
 
+## npm scripts
+
+一覧は `npm run help` で確認できます。
+
+| 用途 | コマンド |
+|------|----------|
+| ビルド | `npm run build` / `build:gate` |
+| Cursor 本番 | `cursor:production` / `cursor:measurement` |
+| Dashboard | `dashboard`（手動） / Gate 起動時は自動 |
+| Registry hook | `cursor:registry` |
+| レポート | `compare` / `compress-report` / `session-report` |
+| CI 同等テスト | `npm test` または `npm run test:ci` |
+| ローカル全テスト | `npm run test:local` |
+| PR 送付 | `npm run feat:ship -- -m "…"` |
+
+旧名エイリアス（互換）: `registry:install-cursor-hook` → `cursor:registry`、`test:dashboard:all` → `dashboard:test`
+
 ## Branch policy
 
 | Branch | Role |

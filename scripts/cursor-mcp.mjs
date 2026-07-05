@@ -46,13 +46,18 @@ function saveMcp(config) {
 
 function gateServer() {
   return {
-    command: GATE_BIN_MCP,
+    command: "node",
+    args: [join(HOST_ROOT, "scripts/costgate-gate-launch.mjs")],
     env: {
+      COSTGATE_GATE_BIN: GATE_BIN_MCP,
       COSTGATE_PROJECT_ROOT: "${workspaceFolder}",
       COSTGATE_CONFIG: "${workspaceFolder}/.costgate/backends.json",
       COSTGATE_TOOL_OVERRIDES: "${workspaceFolder}/.costgate/tool-overrides.json",
       COSTGATE_USAGE_PATH: "${workspaceFolder}/.costgate/usage.json",
       COSTGATE_GATE_LOG_DIR: "${workspaceFolder}/.costgate/logs",
+      COSTGATE_DASHBOARD_SCRIPT: join(HOST_ROOT, "scripts/dashboard-server.mjs"),
+      COSTGATE_DASHBOARD_AUTO: "1",
+      COSTGATE_DASHBOARD_AUTO_OPEN: "1",
       COSTGATE_CLIENT: "cursor",
       // Token reduction — filter + compress + code-mode (see docs/benchmarks.md)
       COSTGATE_GATE_MODE: "filter",
