@@ -18,8 +18,13 @@ function fixtureOptions(now) {
     join(FIX, "probe-sample.jsonl"),
     join(logDir, "probe-fixture.jsonl")
   );
+  copyFileSync(
+    join(FIX, "gate-sample.jsonl"),
+    join(logDir, "gate-fixture.jsonl")
+  );
   return {
     logDir,
+    gateLogDir: logDir,
     usagePath: join(FIX, "usage.json"),
     configPath: join(FIX, "backends.json"),
     mcpPath: join(FIX, "mcp.json"),
@@ -43,7 +48,8 @@ async function testBuildData() {
   const data = buildDashboardData(fixtureOptions(now));
 
   assert(data.overview.sessions === 2, "expected 2 sessions");
-  assert(data.overview.tool_count >= 3, "expected at least 3 tools");
+  assert(data.overview.tool_calls >= 4, "expected merged probe+gate tool_calls");
+  assert(data.overview.tool_count >= 4, "expected at least 4 tools");
   assert(data.mcps.blind_spots.includes("cursor-app-control"), "blind spot missing");
   assert(data.mcps.mode === "production", "expected production mode");
   assert(
@@ -53,6 +59,9 @@ async function testBuildData() {
 
   const fork = data.tools.tools.find((t) => t.name === "fork_repository");
   assert(fork?.recommendation === "stale_90d", "fork_repository should be stale_90d");
+
+  const listPR = data.tools.tools.find((t) => t.name === "list_pull_requests");
+  assert(listPR?.call_count === 1, "gate tool_call should merge list_pull_requests");
 
   console.error("[dashboard] buildDashboardData ok");
   return data;

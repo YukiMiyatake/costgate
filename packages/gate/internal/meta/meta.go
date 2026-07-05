@@ -7,6 +7,7 @@ import (
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/toolcall"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -139,9 +140,12 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.Client
 	if _, ok := cat.Get(args.Name); !ok {
 		return nil, fmt.Errorf("unknown tool %q", args.Name)
 	}
-	result, err := toolcall.Call(ctx, backend, args.Name, args.Arguments)
+	result, callMeta, err := toolcall.Call(ctx, backend, args.Name, args.Arguments)
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
+	}
+	if err == nil {
+		gatelog.LogToolCall(args.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
 	}
 	return result, err
 }

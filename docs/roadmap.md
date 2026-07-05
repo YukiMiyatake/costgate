@@ -312,7 +312,7 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 - `COSTGATE_DASHBOARD_TOKEN` で書き込み保護（未設定時は localhost のみ）
 - Test: `npm run test:dashboard:control`
 
-### Phase 25 — Gate event log 📋
+### Phase 25 — Gate event log ✅
 
 **目的:** Probe OFF 本番でもトークン・圧縮統計を追跡。
 

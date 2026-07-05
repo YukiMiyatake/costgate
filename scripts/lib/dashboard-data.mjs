@@ -19,8 +19,10 @@ const MS_PER_DAY = 86_400_000;
 
 export function defaultPaths() {
   const home = homedir();
+  const logDir = process.env.COSTGATE_PROBE_LOG_DIR ?? join(home, ".costgate", "logs");
   return {
-    logDir: process.env.COSTGATE_PROBE_LOG_DIR ?? join(home, ".costgate", "logs"),
+    logDir,
+    gateLogDir: process.env.COSTGATE_GATE_LOG_DIR ?? logDir,
     usagePath: process.env.COSTGATE_USAGE_PATH ?? join(home, ".costgate", "usage.json"),
     configPath: process.env.COSTGATE_CONFIG ?? join(home, ".costgate", "backends.json"),
     mcpPath: process.env.CURSOR_MCP_PATH ?? join(home, ".cursor", "mcp.json"),
@@ -68,9 +70,9 @@ function loadMcpServers(mcpPath) {
 }
 
 /**
- * Per-tool stats from Probe JSONL (list cost, calls, backend, last_used).
+ * Per-tool stats from Probe + Gate JSONL (list cost, calls, backend, last_used).
  */
-export function parseProbeToolStats(logDir, windowDays = null) {
+export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logDir) {
   const byTool = new Map();
   const byBackend = new Map();
   let cutoff = null;
@@ -78,11 +80,15 @@ export function parseProbeToolStats(logDir, windowDays = null) {
     cutoff = Date.now() - windowDays * MS_PER_DAY;
   }
 
-  if (!existsSync(logDir)) {
-    return { byTool, byBackend, listTokenSamples: [] };
-  }
-
   const listTokenSamples = [];
+  ingestProbeToolStats(logDir, cutoff, byTool, byBackend, listTokenSamples);
+  ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend);
+
+  return { byTool, byBackend, listTokenSamples };
+}
+
+function ingestProbeToolStats(logDir, cutoff, byTool, byBackend, listTokenSamples) {
+  if (!existsSync(logDir)) return;
 
   for (const file of readdirSync(logDir).filter(
     (f) => f.startsWith("probe-") && f.endsWith(".jsonl")
@@ -121,43 +127,76 @@ export function parseProbeToolStats(logDir, windowDays = null) {
       }
 
       if (row.type === "tool_call" && row.tool) {
-        const cur = byTool.get(row.tool) ?? {
-          name: row.tool,
-          backend: row.backend ?? null,
-          call_count: 0,
-          last_used: null,
-          estimated_list_tokens: 0,
-          list_samples: 0,
-        };
-        cur.call_count++;
-        if (row.backend) cur.backend = row.backend;
-        if (row.ts) {
-          const prev = cur.last_used ? Date.parse(cur.last_used) : 0;
-          const ts = Date.parse(row.ts);
-          if (!Number.isNaN(ts) && ts >= prev) cur.last_used = row.ts;
-        }
-        byTool.set(row.tool, cur);
-
-        const backend = row.backend ?? "unknown";
-        const bc = byBackend.get(backend) ?? {
-          backend,
-          call_count: 0,
-          tools: new Set(),
-          last_used: null,
-        };
-        bc.call_count++;
-        bc.tools.add(row.tool);
-        if (row.ts) {
-          const prev = bc.last_used ? Date.parse(bc.last_used) : 0;
-          const ts = Date.parse(row.ts);
-          if (!Number.isNaN(ts) && ts >= prev) bc.last_used = row.ts;
-        }
-        byBackend.set(backend, bc);
+        mergeToolCallRow(row, byTool, byBackend);
       }
     }
   }
+}
 
-  return { byTool, byBackend, listTokenSamples };
+function ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend) {
+  if (!existsSync(gateLogDir)) return;
+
+  for (const file of readdirSync(gateLogDir).filter(
+    (f) => f.startsWith("gate-") && f.endsWith(".jsonl")
+  )) {
+    for (const line of readFileSync(join(gateLogDir, file), "utf8").split("\n")) {
+      if (!line.trim()) continue;
+      let row;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (row.type !== "gate_event") continue;
+      if (cutoff && row.ts) {
+        const ts = Date.parse(row.ts);
+        if (!Number.isNaN(ts) && ts < cutoff) continue;
+      }
+
+      if (row.event === "tool_call" && row.tool) {
+        mergeToolCallRow(
+          { tool: row.tool, backend: row.backend ?? null, ts: row.ts },
+          byTool,
+          byBackend
+        );
+      }
+    }
+  }
+}
+
+function mergeToolCallRow(row, byTool, byBackend) {
+  const cur = byTool.get(row.tool) ?? {
+    name: row.tool,
+    backend: row.backend ?? null,
+    call_count: 0,
+    last_used: null,
+    estimated_list_tokens: 0,
+    list_samples: 0,
+  };
+  cur.call_count++;
+  if (row.backend) cur.backend = row.backend;
+  if (row.ts) {
+    const prev = cur.last_used ? Date.parse(cur.last_used) : 0;
+    const ts = Date.parse(row.ts);
+    if (!Number.isNaN(ts) && ts >= prev) cur.last_used = row.ts;
+  }
+  byTool.set(row.tool, cur);
+
+  const backend = row.backend ?? "unknown";
+  const bc = byBackend.get(backend) ?? {
+    backend,
+    call_count: 0,
+    tools: new Set(),
+    last_used: null,
+  };
+  bc.call_count++;
+  bc.tools.add(row.tool);
+  if (row.ts) {
+    const prev = bc.last_used ? Date.parse(bc.last_used) : 0;
+    const ts = Date.parse(row.ts);
+    if (!Number.isNaN(ts) && ts >= prev) bc.last_used = row.ts;
+  }
+  byBackend.set(backend, bc);
 }
 
 function primaryBackend(backends) {
@@ -354,7 +393,8 @@ export function buildDashboardData(options = {}) {
   const logs = parseProbeLogs(paths.logDir);
   const { byTool, byBackend, listTokenSamples } = parseProbeToolStats(
     paths.logDir,
-    windowDays
+    windowDays,
+    paths.gateLogDir
   );
   const usage = loadUsage(paths.usagePath);
   const backends = loadBackends(paths.configPath);
@@ -414,7 +454,7 @@ export function buildHealth(extra = {}) {
   const paths = defaultPaths();
   return {
     status: "ok",
-    version: "phase24",
+    version: "phase25",
     read_only: false,
     writes: {
       localhost_only: true,
@@ -423,6 +463,7 @@ export function buildHealth(extra = {}) {
     bind: "127.0.0.1",
     data_sources: {
       probe_logs: existsSync(paths.logDir),
+      gate_logs: existsSync(paths.gateLogDir),
       usage: existsSync(paths.usagePath),
       backends: existsSync(paths.configPath),
       mcp: existsSync(paths.mcpPath),

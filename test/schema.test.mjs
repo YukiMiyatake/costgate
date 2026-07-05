@@ -41,6 +41,31 @@ assertValid(
   "tools_list"
 );
 
+assertValid(
+  {
+    type: "gate_event",
+    event: "tools_list",
+    ts: new Date().toISOString(),
+    backend: "github",
+    tools_exposed: 8,
+    tokens_est: 1200,
+  },
+  "gate_event tools_list"
+);
+
+assertValid(
+  {
+    type: "gate_event",
+    event: "tool_call",
+    ts: new Date().toISOString(),
+    tool: "search_issues",
+    response_bytes: 4096,
+    compressed: true,
+    saved_bytes: 32000,
+  },
+  "gate_event tool_call"
+);
+
 assertInvalid(
   {
     type: "session_start",
