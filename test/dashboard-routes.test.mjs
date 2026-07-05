@@ -90,6 +90,7 @@ async function testGetRoutes() {
       "/api/recommendations",
       "/api/overrides",
       "/api/gate-settings",
+      "/api/mcp-trust",
       "/api/marketplace",
       "/api/marketplace?q=browser",
       "/api/marketplace?q=github",

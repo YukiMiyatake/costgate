@@ -139,6 +139,7 @@ export function workspaceScopedPaths(workspaceRoot, globalFallback = {}) {
     overridesPath: join(costgateDir, "tool-overrides.json"),
     disabledPath: join(costgateDir, "mcp-disabled.json"),
     gateSettingsPath: join(costgateDir, "gate-settings.json"),
+    trustPath: join(costgateDir, "mcp-trust.json"),
     usagePath: join(costgateDir, "usage.json"),
     logDir: join(costgateDir, "logs"),
     gateLogDir: join(costgateDir, "logs"),

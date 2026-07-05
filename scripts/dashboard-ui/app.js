@@ -210,6 +210,13 @@ function setupWorkspaces() {
   });
 }
 
+function trustBadge(trust, origin) {
+  const level = (trust ?? "—").toLowerCase();
+  const label = origin && origin !== "default" && origin !== "config" ? `${trust} (${origin})` : (trust ?? "—");
+  const ok = level === "trusted" || level === "standard";
+  return badge(label, ok, `trust-badge trust-${level}`);
+}
+
 function renderOverview(data) {
   const cards = document.getElementById("overview-cards");
   cards.innerHTML = "";
@@ -222,6 +229,7 @@ function renderOverview(data) {
     ["Tools tracked", fmt(data.tool_count)],
     ["Recommendations", fmt(data.recommendation_count)],
     ["Blind spots", fmt(data.blind_spot_count)],
+    ["Trust ≤ restricted", fmt(data.trust_restricted_count ?? 0)],
     ["Cursor mode", data.cursor_mode ?? "—"],
   ];
   if (data.prompt_intent?.keywords) {
@@ -575,6 +583,7 @@ function renderMcps(data) {
       <td>${s.name}</td>
       <td></td>
       <td></td>
+      <td></td>
       <td><code>${s.command ?? "—"}</code></td>
       <td></td>`;
     const roleCell = tr.children[1];
@@ -588,8 +597,9 @@ function renderMcps(data) {
         )
       );
     }
-    tr.children[2].appendChild(measured);
-    tr.children[4].appendChild(toggle);
+    tr.children[2].appendChild(trustBadge(s.trust, s.origin));
+    tr.children[3].appendChild(measured);
+    tr.children[5].appendChild(toggle);
     body.appendChild(tr);
   }
 }

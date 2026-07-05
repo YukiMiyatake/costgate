@@ -1,0 +1,211 @@
+#!/usr/bin/env node
+/**
+ * Phase 31a: MCP trust load/merge/resolve tests.
+ */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_MCP_TRUST,
+  loadMcpTrust,
+  resolveServerTrust,
+  enrichMcpsWithTrust,
+  buildMcpTrustApiPayload,
+  normalizeTrustConfig,
+} from "../scripts/lib/mcp-trust.mjs";
+import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
+import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const MARKETPLACE = join(ROOT, "catalog/marketplace");
+
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg);
+}
+
+function tempRoot() {
+  const dir = join(tmpdir(), `costgate-mcp-trust-${process.pid}-${Date.now()}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function testDefaults() {
+  const cfg = normalizeTrustConfig();
+  assert(cfg.defaults.direct_mcp === "restricted", "default direct_mcp");
+  assert(cfg.servers["costgate-gate"]?.trust === "trusted", "builtin gate trust");
+  console.error("[mcp-trust] defaults ok");
+}
+
+function testProjectMerge() {
+  const base = tempRoot();
+  const globalDir = join(base, "global");
+  const projectRoot = join(base, "project");
+  const projectDir = join(projectRoot, ".costgate");
+  mkdirSync(globalDir, { recursive: true });
+  mkdirSync(projectDir, { recursive: true });
+
+  writeFileSync(
+    join(globalDir, "mcp-trust.json"),
+    `${JSON.stringify({
+      version: 1,
+      servers: { github: { trust: "standard" } },
+    })}\n`
+  );
+  writeFileSync(
+    join(projectDir, "mcp-trust.json"),
+    `${JSON.stringify({
+      version: 1,
+      servers: { github: { trust: "restricted" }, filesystem: { trust: "standard" } },
+    })}\n`
+  );
+
+  const loaded = loadMcpTrust({
+    globalPath: join(globalDir, "mcp-trust.json"),
+    projectPath: join(projectDir, "mcp-trust.json"),
+    projectRoot,
+  });
+  assert(loaded.config_merge === true, "merge flag");
+  assert(loaded.config.servers.github.trust === "restricted", "project overrides global");
+  assert(loaded.config.servers.filesystem.trust === "standard", "project-only server");
+  assert(loaded.origins.servers.github === "project", "github origin");
+  console.error("[mcp-trust] project merge ok");
+}
+
+function testResolveOrder() {
+  const trust = loadMcpTrust({ globalPath: join(tempRoot(), "missing.json") });
+
+  const gate = resolveServerTrust("costgate-gate", {
+    trust,
+    meta: { name: "costgate-gate", role: "gate", enabled: true },
+  });
+  assert(gate.trust === "trusted" && gate.resolved_from === "servers", "builtin gate");
+
+  const direct = resolveServerTrust("cursor-app-control", {
+    trust,
+    meta: { role: "direct", source: "mcp.json", enabled: true },
+    marketplaceCatalog: [],
+  });
+  assert(direct.trust === "restricted" && direct.resolved_from === "direct_mcp", "direct default");
+
+  const official = resolveServerTrust("github", {
+    trust,
+    meta: { role: "backend", enabled: true },
+    marketplaceCatalog: [{ id: "github", backend_key: "github", official: true }],
+  });
+  assert(official.trust === "standard" && official.resolved_from === "marketplace_official", "official");
+
+  const disabled = resolveServerTrust("stale-mcp", {
+    trust,
+    meta: { enabled: false },
+  });
+  assert(disabled.trust === "disabled", "disabled wins");
+  console.error("[mcp-trust] resolve order ok");
+}
+
+function testEnrichMcps() {
+  const servers = [
+    { name: "costgate-gate", role: "gate", enabled: true },
+    { name: "cursor-app-control", role: "direct", source: "mcp.json", enabled: true },
+    { name: "github", role: "backend", enabled: true },
+  ];
+  const { servers: enriched, trust_summary } = enrichMcpsWithTrust(servers, {
+    marketplaceDir: MARKETPLACE,
+  });
+  assert(enriched.find((s) => s.name === "costgate-gate")?.trust === "trusted", "gate enriched");
+  assert(enriched.find((s) => s.name === "cursor-app-control")?.trust === "restricted", "direct enriched");
+  assert(enriched.find((s) => s.name === "github")?.trust === "standard", "github official");
+  assert(trust_summary.restricted_or_below >= 1, "restricted count");
+  console.error("[mcp-trust] enrich ok");
+}
+
+function testBuildDashboardDataTrust() {
+  const base = tempRoot();
+  mkdirSync(join(base, "logs"), { recursive: true });
+  writeFileSync(join(base, "backends.json"), '{"backends":{"github":{"command":"gh"}}}\n');
+  writeFileSync(
+    join(base, "mcp.json"),
+    '{"mcpServers":{"costgate-gate":{"command":"gate"},"cursor-app-control":{"command":"cac"}}}\n'
+  );
+  writeFileSync(join(base, "usage.json"), '{"tools":{}}\n');
+
+  const data = buildDashboardData({
+    logDir: join(base, "logs"),
+    gateLogDir: join(base, "logs"),
+    usagePath: join(base, "usage.json"),
+    configPath: join(base, "backends.json"),
+    mcpPath: join(base, "mcp.json"),
+    marketplaceDir: MARKETPLACE,
+  });
+
+  const gate = data.mcps.servers.find((s) => s.name === "costgate-gate");
+  const blind = data.mcps.servers.find((s) => s.name === "cursor-app-control");
+  assert(gate?.trust === "trusted", "dashboard gate trust");
+  assert(blind?.trust === "restricted", "dashboard blind trust");
+  assert(data.overview.trust_restricted_count >= 1, "overview trust count");
+  assert(data.mcps.trust_summary?.restricted_or_below >= 1, "mcps trust summary");
+  console.error("[mcp-trust] buildDashboardData ok");
+}
+
+async function testHttpApi() {
+  const base = tempRoot();
+  mkdirSync(join(base, "logs"), { recursive: true });
+  writeFileSync(join(base, "backends.json"), '{"backends":{}}\n');
+  writeFileSync(join(base, "mcp.json"), '{"mcpServers":{"costgate-gate":{"command":"gate"}}}\n');
+  writeFileSync(
+    join(base, "mcp-trust.json"),
+    `${JSON.stringify({
+      version: 1,
+      servers: { "costgate-gate": { trust: "trusted", source: "config" } },
+    })}\n`
+  );
+
+  const server = createDashboardServer({
+    dataOptions: {
+      logDir: join(base, "logs"),
+      usagePath: join(base, "usage.json"),
+      configPath: join(base, "backends.json"),
+      mcpPath: join(base, "mcp.json"),
+      trustPath: join(base, "mcp-trust.json"),
+      marketplaceDir: MARKETPLACE,
+    },
+  });
+  await new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", (err) => (err ? reject(err) : resolve()));
+  });
+  const port = server.address().port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    const trust = await fetch(`${baseUrl}/api/mcp-trust`).then((r) => r.json());
+    assert(trust.read_only === true, "read_only flag");
+    assert(trust.levels?.includes("restricted"), "levels list");
+    assert(trust.servers["costgate-gate"]?.trust === "trusted", "GET mcp-trust");
+
+    const mcps = await fetch(`${baseUrl}/api/mcps`).then((r) => r.json());
+    const gate = mcps.servers?.find((s) => s.name === "costgate-gate");
+    assert(gate?.trust === "trusted", "mcps embed trust");
+    assert(mcps.trust_summary != null, "mcps trust_summary");
+
+    const payload = buildMcpTrustApiPayload({ globalPath: join(base, "mcp-trust.json") });
+    assert(payload.defaults.gate_backend === DEFAULT_MCP_TRUST.defaults.gate_backend, "api defaults");
+    console.error("[mcp-trust] HTTP API ok");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function main() {
+  testDefaults();
+  testProjectMerge();
+  testResolveOrder();
+  testEnrichMcps();
+  testBuildDashboardDataTrust();
+  await testHttpApi();
+  console.error("[mcp-trust] all passed");
+}
+
+main().catch((e) => {
+  console.error("[mcp-trust] fatal:", e);
+  process.exit(1);
+});
