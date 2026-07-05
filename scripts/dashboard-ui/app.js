@@ -108,8 +108,16 @@ async function loadWorkspaces() {
       opt.value = w.id;
       opt.dataset.path = w.path;
       const pin = w.pinned ? "📌 " : "";
-      opt.textContent = `${pin}${w.label}${w.has_config ? "" : " (new)"}`;
+      const src = w.source_label ? ` · ${w.source_label}` : "";
+      opt.textContent = `${pin}${w.label}${src}${w.has_config ? "" : " (new)"}`;
       select.appendChild(opt);
+    }
+
+    const help = document.getElementById("workspace-help");
+    if (help) {
+      help.textContent =
+        data.help ??
+        "Projects appear when Gate runs, Cursor opens a folder, or you Pin a path.";
     }
 
     let selectedId = isExplicitWorkspaceChoice() ? activeWorkspaceId : null;
@@ -151,6 +159,7 @@ async function loadWorkspaces() {
 function setupWorkspaces() {
   const select = document.getElementById("workspace-select");
   const pinBtn = document.getElementById("workspace-pin-btn");
+  const refreshBtn = document.getElementById("workspace-refresh-btn");
   if (!select) return;
   select.addEventListener("change", async () => {
     const opt = select.selectedOptions[0];
@@ -159,6 +168,15 @@ function setupWorkspaces() {
       explicit: true,
     });
     try {
+      await reload();
+      await loadMarketplace();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  refreshBtn?.addEventListener("click", async () => {
+    try {
+      await loadWorkspaces();
       await reload();
       await loadMarketplace();
     } catch (e) {

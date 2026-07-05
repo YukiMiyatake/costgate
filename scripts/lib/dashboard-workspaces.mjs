@@ -12,6 +12,19 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
 
+/** How a workspace entered the Activity Registry. */
+export const REGISTRY_SOURCES = {
+  gate: { id: "gate", label: "Gate" },
+  "cursor:workspace": { id: "cursor:workspace", label: "Cursor folder" },
+  "cursor:file": { id: "cursor:file", label: "Cursor file" },
+  pin: { id: "pin", label: "Pinned" },
+  dashboard: { id: "dashboard", label: "Dashboard" },
+};
+
+export function registrySourceLabel(source) {
+  return REGISTRY_SOURCES[source]?.label ?? source ?? "Unknown";
+}
+
 export function registryPath() {
   return (
     process.env.COSTGATE_WORKSPACE_REGISTRY ??
@@ -76,27 +89,43 @@ function entryFromPath(absPath, extra = {}) {
     last_seen: extra.last_seen ?? new Date().toISOString(),
     has_config: hasWorkspaceConfig(path),
     pinned: Boolean(extra.pinned),
+    source: extra.source ?? null,
   };
 }
 
-export function touchRegistryPath(absPath, path = registryPath()) {
+/**
+ * Record or update a workspace in the registry.
+ * @param {string} absPath
+ * @param {{ registryPath?: string, source?: string, pinned?: boolean }} [options]
+ */
+export function touchRegistryPath(absPath, options = {}) {
+  const regPath = options.registryPath ?? registryPath();
   const abs = resolve(absPath);
-  const reg = loadRegistry(path);
+  const reg = loadRegistry(regPath);
   const now = new Date().toISOString();
+  const source = options.source ?? null;
   let found = false;
   for (const w of reg.workspaces) {
     if (resolve(w.path) === abs) {
       w.last_seen = now;
       w.label = basename(abs);
       w.has_config = hasWorkspaceConfig(abs);
+      if (options.pinned) w.pinned = true;
+      if (source) w.source = source;
       found = true;
       break;
     }
   }
   if (!found) {
-    reg.workspaces.push(entryFromPath(abs, { last_seen: now }));
+    reg.workspaces.push(
+      entryFromPath(abs, {
+        last_seen: now,
+        pinned: options.pinned,
+        source,
+      })
+    );
   }
-  saveRegistry(reg, path);
+  saveRegistry(reg, regPath);
   return reg;
 }
 
@@ -105,21 +134,7 @@ export function pinWorkspace(absPath, path = registryPath()) {
   if (!existsSync(abs)) {
     throw new Error(`workspace path not found: ${abs}`);
   }
-  const reg = loadRegistry(path);
-  let found = false;
-  for (const w of reg.workspaces) {
-    if (resolve(w.path) === abs) {
-      w.pinned = true;
-      w.last_seen = new Date().toISOString();
-      w.has_config = hasWorkspaceConfig(abs);
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    reg.workspaces.push(entryFromPath(abs, { pinned: true }));
-  }
-  saveRegistry(reg, path);
+  touchRegistryPath(abs, { registryPath: path, source: "pin", pinned: true });
   return listWorkspaces({ registryPath: path, includeCurrent: false });
 }
 
@@ -148,11 +163,12 @@ export function listWorkspaces(options = {}) {
   const seen = new Set();
   const items = [];
 
-  const add = (entry) => {
+  const add = (entry, ephemeralSource = null) => {
     const path = resolve(entry.path);
     if (!existsSync(path)) return;
     if (seen.has(path)) return;
     seen.add(path);
+    const source = ephemeralSource ?? entry.source ?? null;
     items.push({
       id: encodeWorkspaceId(path),
       path,
@@ -160,6 +176,8 @@ export function listWorkspaces(options = {}) {
       last_seen: entry.last_seen ?? null,
       has_config: entry.has_config ?? hasWorkspaceConfig(path),
       pinned: Boolean(entry.pinned),
+      source,
+      source_label: source ? registrySourceLabel(source) : null,
     });
   };
 
@@ -170,7 +188,10 @@ export function listWorkspaces(options = {}) {
   if (options.includeCurrent !== false) {
     const current = resolveProjectRoot(options);
     if (current && existsSync(current)) {
-      add(entryFromPath(current));
+      const inReg = reg.workspaces.some((w) => resolve(w.path) === resolve(current));
+      if (!inReg) {
+        add(entryFromPath(current), "dashboard");
+      }
     }
   }
 
@@ -186,6 +207,8 @@ export function listWorkspaces(options = {}) {
     registry_path: regPath,
     workspaces: items,
     active_id: options.activeId ?? null,
+    help:
+      "Projects appear when Gate runs, Cursor opens a folder (hook), Agent/Tab reads a file, or you Pin a path.",
   };
 }
 

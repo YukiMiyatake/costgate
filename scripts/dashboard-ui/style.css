@@ -231,6 +231,12 @@ footer {
   color: var(--text);
 }
 
+.workspace-help {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  max-width: 52rem;
+}
+
 .workspace-bar {
   display: flex;
   flex-wrap: wrap;

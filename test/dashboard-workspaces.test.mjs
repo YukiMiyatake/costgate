@@ -13,7 +13,7 @@ import {
   listWorkspaces,
   workspaceScopedPaths,
   registryPath,
-  loadRegistry,
+  touchRegistryPath,
 } from "../scripts/lib/dashboard-workspaces.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 
@@ -59,7 +59,21 @@ function testPinAndList() {
   const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
   assert(list.workspaces.length === 1, "pinned workspace");
   assert(list.workspaces[0].pinned === true, "pinned flag");
+  assert(list.workspaces[0].source === "pin", "pin source");
   console.error("[workspaces] pin/list ok");
+}
+
+function testRegistrySource() {
+  const base = tempRoot();
+  const regPath = join(base, "registry.json");
+  const ws = join(base, "app");
+  setupWorkspace(ws);
+  touchRegistryPath(ws, { registryPath: regPath, source: "gate" });
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces[0].source === "gate", "gate source");
+  assert(list.workspaces[0].source_label === "Gate", "gate label");
+  assert(list.help?.includes("Gate"), "help text");
+  console.error("[workspaces] registry source ok");
 }
 
 function testSkipMissingRegistryPaths() {
@@ -146,6 +160,7 @@ async function main() {
   testEncodeDecode();
   testScopedPaths();
   testPinAndList();
+  testRegistrySource();
   testSkipMissingRegistryPaths();
   await testHttpScopedApi();
   console.error("[workspaces] all passed");
