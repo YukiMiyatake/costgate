@@ -36,17 +36,17 @@ jobs:
 
       - name: Set package versions
         run: |
-          npm version ${{ steps.ver.outputs.version }} --no-git-tag-version -w @costgate/schema
-          npm version ${{ steps.ver.outputs.version }} --no-git-tag-version -w @costgate/probe
-
-      - name: Align probe schema dependency
-        run: |
           node -e "
             const fs = require('fs');
-            const p = 'packages/probe/package.json';
-            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-            j.dependencies['@costgate/schema'] = '${{ steps.ver.outputs.version }}';
-            fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+            const ver = '${{ steps.ver.outputs.version }}';
+            for (const pkg of ['packages/schema/package.json', 'packages/probe/package.json']) {
+              const j = JSON.parse(fs.readFileSync(pkg, 'utf8'));
+              j.version = ver;
+              fs.writeFileSync(pkg, JSON.stringify(j, null, 2) + '\n');
+            }
+            const probe = JSON.parse(fs.readFileSync('packages/probe/package.json', 'utf8'));
+            probe.dependencies['@costgate/schema'] = ver;
+            fs.writeFileSync('packages/probe/package.json', JSON.stringify(probe, null, 2) + '\n');
           "
 
       - run: npm ci
