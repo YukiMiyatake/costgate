@@ -1,0 +1,16 @@
+{
+  "backend": "browser",
+  "description": "Tier overrides for cursor-ide-browser MCP",
+  "overrides": {
+    "browser_navigate": "A",
+    "browser_snapshot": "A",
+    "browser_click": "B",
+    "browser_type": "B",
+    "browser_fill": "B",
+    "browser_scroll": "B",
+    "browser_tabs": "A",
+    "browser_take_screenshot": "C",
+    "browser_lock": "C",
+    "browser_unlock": "C"
+  }
+}
