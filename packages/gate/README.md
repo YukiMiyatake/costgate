@@ -37,6 +37,17 @@ See [docs/releases.md](../../docs/releases.md).
 - **Code mode** (production ON): `COSTGATE_CODE_MODE=1` — source files → signature outline
 - **Usage**: `~/.costgate/usage.json` (+ optional import from Probe JSONL logs)
 
+### Tier catalog (Phase 14)
+
+Backend-specific Tier overrides live in `internal/catalog/tiers/*.json` (embedded at build time).
+
+| File | Backend |
+|------|---------|
+| `tiers/github.json` | GitHub MCP |
+| `tiers/mock.json` | Integration mock MCP |
+
+Usage-based `Classify()` runs first; catalog rules overlay explicit A/B/C for known tools.
+
 ### Environment
 
 | Variable | Default | Description |

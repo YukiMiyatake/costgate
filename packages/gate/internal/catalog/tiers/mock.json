@@ -1,0 +1,15 @@
+{
+  "backend": "mock",
+  "description": "Tier overrides for integration mock MCP",
+  "overrides": {
+    "get_file_contents": "A",
+    "search_code": "A",
+    "list_issues": "A",
+    "merge_pull_request": "B",
+    "create_pull_request": "B",
+    "list_pull_requests": "B",
+    "fork_repository": "C",
+    "delete_issue": "C",
+    "echo": "C"
+  }
+}

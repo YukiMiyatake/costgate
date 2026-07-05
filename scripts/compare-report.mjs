@@ -7,11 +7,12 @@
  *   npm run compare -- --intent "pull request"
  *   npm run compare -- --json
  *   npm run compare -- --via-probe
+ *   npm run compare -- --mock
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { withMcpProcess, summarizeTools, pctReduction } from "./lib/mcp-client.mjs";
-import { baseGateEnv, gateBin, probeJs } from "./lib/paths.mjs";
+import { baseGateEnv, gateBin, probeJs, mockGateEnv } from "./lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 const PROBE_JS = probeJs();
@@ -19,11 +20,14 @@ const PROBE_JS = probeJs();
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
 const viaProbe = args.includes("--via-probe");
+const useMock = args.includes("--mock");
 const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
 
-const baseEnv = baseGateEnv("compare-report");
+const baseEnv = useMock
+  ? mockGateEnv("compare-report")
+  : baseGateEnv("compare-report");
 
 async function measureGateTransparent() {
   return withMcpProcess(
@@ -126,6 +130,9 @@ function printReport(before, after, beforeLabel) {
   }
 
   console.log("\nCostGate Before/After — tools/list token estimate\n");
+  if (useMock) {
+    console.log("Backend: mock MCP (catalog tier rules applied)\n");
+  }
   console.log(`Before (${beforeLabel})`);
   console.log(`  tools:          ${before.tool_count}`);
   console.log(`  schema bytes:   ${before.total_schema_bytes.toLocaleString()}`);

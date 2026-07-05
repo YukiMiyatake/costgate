@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
@@ -68,6 +69,12 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 	}
 
 	tiers := filter.Classify(cat.Tools, store)
+	if rules, err := catalog.LoadTierRules(backendName); err != nil {
+		return fmt.Errorf("load tier catalog: %w", err)
+	} else if rules != nil {
+		tiers = rules.Apply(tiers)
+		log.Printf("[costgate-gate] tier catalog: %s (%d overrides)", backendName, len(rules.Overrides))
+	}
 	server := newServer()
 	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords())
 	rt.logStartup()

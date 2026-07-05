@@ -1,0 +1,17 @@
+{
+  "backend": "github",
+  "description": "Tier overrides for @modelcontextprotocol/server-github (26 tools)",
+  "overrides": {
+    "get_file_contents": "A",
+    "search_code": "A",
+    "list_issues": "A",
+    "create_issue": "A",
+    "merge_pull_request": "B",
+    "create_pull_request": "B",
+    "list_pull_requests": "B",
+    "update_issue": "B",
+    "fork_repository": "C",
+    "delete_issue": "C",
+    "create_repository": "C"
+  }
+}
