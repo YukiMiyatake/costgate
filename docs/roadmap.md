@@ -37,7 +37,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **10. tiktoken** | ✅ Done | `cl100k_base` token counts in Probe + reports |
 | **11. Gate releases** | ✅ Done | goreleaser + GitHub Releases + `install-gate.sh` |
 | **12. Code Mode** | ✅ Done | Source outline transform for file read tools |
-| **13. Accuracy eval** | 📋 Planned | Task harness — filter/compress quality regression |
+| **13. Accuracy eval** | ✅ Done | Task harness — filter/compress/code-mode regression |
 | **14. Multi-MCP catalog** | 📋 Planned | Tier rules beyond GitHub; multi-backend compare |
 | **15. Probe npm publish** | 📋 Planned | `npx @costgate/probe` public distribution |
 
@@ -162,15 +162,14 @@ Phase 16+ cloud         … Pro/Team 本番化（別 repo）
 - **`cursor:production`**: code-mode ON by default (with compress)
 - Test: `npm run test:gate:codemode`, `npm run compress-report -- --code-mode`
 
-### Phase 13 — Accuracy eval 📋
+### Phase 13 — Accuracy eval ✅
 
 **目的:** filter / compress / Code Mode が **タスク成功率** に与える影響を定量。
 
-- **固定タスクセット:** 例）PR 作成、ファイル特定、issue 検索
-- **比較:** Gate transparent vs filter vs compress vs Code Mode
-- **成果物:** `npm run eval`（または `test/eval/`）+ レポート JSON/markdown
-- **開始:** Phase 12 前でも compress/filter 単体 eval 可能
-- **価値:** 「削減しても使える」証明 → Pro セールス材料
+- **固定タスクセット:** mock MCP 上で discover / invoke / outline / compress
+- **比較:** transparent vs filter vs compress vs Code Mode
+- **成果物:** `npm run eval` + JSON/markdown レポート
+- **CI:** integration 後に eval 実行（mock、トークン不要）
 
 ### Phase 14 — Multi-MCP catalog 📋
 

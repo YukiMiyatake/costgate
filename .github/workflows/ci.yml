@@ -49,6 +49,9 @@ jobs:
       - name: Integration tests (mock MCP)
         run: npm run test:integration
 
+      - name: Accuracy eval (mock MCP)
+        run: npm run eval
+
       - name: Script syntax check
         run: |
           node --check scripts/feat-workflow.mjs
@@ -63,4 +66,5 @@ jobs:
           node --check scripts/docker-run.mjs
           node --check scripts/lib/paths.mjs
           node --check test/run.mjs
+          node --check test/eval/run.mjs
           node --check test/fixtures/mock-mcp/index.mjs

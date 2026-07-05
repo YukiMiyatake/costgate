@@ -191,15 +191,25 @@ function handleCall(name, args) {
   }
   if (name === "get_file_contents") {
     const path = args?.path ?? "unknown";
+    if (path.endsWith(".json") || path.endsWith(".lock")) {
+      const payload = JSON.stringify({ dependencies: { mock: "x".repeat(20000) } });
+      return {
+        content: [{ type: "text", text: payload }],
+      };
+    }
     const body = [
       "package main",
       "",
-      "func main() {}",
+      "import \"fmt\"",
       "",
-      "// ".repeat(800),
+      "func hello() {",
+      "  fmt.Println(\"hi\")",
+      "}",
+      "",
+      "// ".repeat(1200),
     ].join("\n");
     return {
-      content: [{ type: "text", text: `[mock file: ${path}]\n${body}` }],
+      content: [{ type: "text", text: body }],
     };
   }
   return {
