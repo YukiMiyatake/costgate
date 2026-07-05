@@ -291,6 +291,32 @@ footer {
   color: #fff;
 }
 
+.btn-enable {
+  background: rgba(61, 214, 140, 0.18);
+  border-color: #3dd68c;
+  color: #3dd68c;
+  font-weight: 600;
+}
+
+.btn-enable:hover {
+  background: rgba(61, 214, 140, 0.32);
+  border-color: #3dd68c;
+  color: #3dd68c;
+}
+
+.btn-disable {
+  background: rgba(232, 93, 93, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.btn-disable:hover {
+  background: rgba(232, 93, 93, 0.28);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .wizard-toolbar {
   display: flex;
   gap: 0.75rem;
@@ -507,5 +533,29 @@ footer {
     --border: #d8dee8;
     --text: #1a2332;
     --muted: #5c6b80;
+  }
+
+  .btn-enable {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: #16a34a;
+    color: #15803d;
+  }
+
+  .btn-enable:hover {
+    background: rgba(22, 163, 74, 0.22);
+    border-color: #16a34a;
+    color: #14532d;
+  }
+
+  .btn-disable {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: #dc2626;
+    color: #b91c1c;
+  }
+
+  .btn-disable:hover {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: #dc2626;
+    color: #991b1b;
   }
 }

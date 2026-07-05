@@ -296,7 +296,7 @@ function renderMcps(data) {
         : badge("blind spot");
     const toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = "btn-sm";
+    toggle.className = s.enabled === false ? "btn-sm btn-enable" : "btn-sm btn-disable";
     toggle.textContent = s.enabled === false ? "Enable" : "Disable";
     toggle.onclick = async () => {
       const enable = s.enabled === false;
