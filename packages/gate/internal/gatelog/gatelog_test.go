@@ -1,0 +1,96 @@
+package gatelog
+
+import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestLoggerWritesGateEvents(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("COSTGATE_GATE_LOG", "1")
+	t.Setenv("COSTGATE_GATE_LOG_DIR", dir)
+
+	l := New()
+	l.logToolsList("github", 8, 1200)
+	l.logToolCall("search_issues", 4096, true, 32000)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 log file, got %d", len(entries))
+	}
+	if !strings.HasPrefix(entries[0].Name(), "gate-") {
+		t.Fatalf("unexpected file name %q", entries[0].Name())
+	}
+
+	path := filepath.Join(dir, entries[0].Name())
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	var lines []map[string]any
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		var row map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &row); err != nil {
+			t.Fatal(err)
+		}
+		lines = append(lines, row)
+	}
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d", len(lines))
+	}
+
+	list := lines[0]
+	if list["type"] != "gate_event" || list["event"] != "tools_list" {
+		t.Fatalf("unexpected tools_list row: %#v", list)
+	}
+	if list["backend"] != "github" || int(list["tools_exposed"].(float64)) != 8 {
+		t.Fatalf("unexpected tools_list fields: %#v", list)
+	}
+
+	call := lines[1]
+	if call["event"] != "tool_call" || call["tool"] != "search_issues" {
+		t.Fatalf("unexpected tool_call row: %#v", call)
+	}
+	if call["compressed"] != true {
+		t.Fatalf("expected compressed=true, got %#v", call["compressed"])
+	}
+}
+
+func TestLoggerDisabled(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("COSTGATE_GATE_LOG", "0")
+	t.Setenv("COSTGATE_GATE_LOG_DIR", dir)
+
+	l := New()
+	l.logToolCall("search_issues", 100, false, 0)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected no files when disabled, got %d", len(entries))
+	}
+}
+
+func TestBytesToTokens(t *testing.T) {
+	if got := BytesToTokens(0); got != 0 {
+		t.Fatalf("expected 0, got %d", got)
+	}
+	if got := BytesToTokens(4); got != 1 {
+		t.Fatalf("expected 1, got %d", got)
+	}
+	if got := BytesToTokens(5); got != 2 {
+		t.Fatalf("expected 2, got %d", got)
+	}
+}

@@ -12,13 +12,38 @@ export type LogEventType =
   | "session_end"
   | "tools_list"
   | "tool_call"
-  | "tool_result";
+  | "tool_result"
+  | "gate_event";
+
+export type GateEventKind = "tools_list" | "tool_call";
 
 export interface BaseLogEvent {
   type: LogEventType;
   ts: string;
-  session_id: string;
+  session_id?: string;
 }
+
+export interface GateEventBase extends BaseLogEvent {
+  type: "gate_event";
+  event: GateEventKind;
+}
+
+export interface GateEventToolsList extends GateEventBase {
+  event: "tools_list";
+  backend: string;
+  tools_exposed: number;
+  tokens_est: number;
+}
+
+export interface GateEventToolCall extends GateEventBase {
+  event: "tool_call";
+  tool: string;
+  response_bytes: number;
+  compressed: boolean;
+  saved_bytes?: number;
+}
+
+export type GateEvent = GateEventToolsList | GateEventToolCall;
 
 export interface ValidationResult {
   valid: boolean;

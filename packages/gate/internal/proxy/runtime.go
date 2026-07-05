@@ -8,6 +8,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/codemode"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/intent"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
@@ -16,13 +17,14 @@ import (
 
 // filterRuntime manages dynamic tools/list exposure for filter mode.
 type filterRuntime struct {
-	server  *mcp.Server
-	cat     *catalog.Catalog
-	tiers   map[string]filter.Tier
-	backend *mcp.ClientSession
-	store   *usage.Store
-	static  string
-	live    map[string]bool
+	server      *mcp.Server
+	cat         *catalog.Catalog
+	tiers       map[string]filter.Tier
+	backend     *mcp.ClientSession
+	store       *usage.Store
+	static      string
+	backendName string
+	live        map[string]bool
 }
 
 func newFilterRuntime(
@@ -32,15 +34,17 @@ func newFilterRuntime(
 	backend *mcp.ClientSession,
 	store *usage.Store,
 	staticIntent string,
+	backendName string,
 ) *filterRuntime {
 	r := &filterRuntime{
-		server:  server,
-		cat:     cat,
-		tiers:   tiers,
-		backend: backend,
-		store:   store,
-		static:  staticIntent,
-		live:    map[string]bool{},
+		server:      server,
+		cat:         cat,
+		tiers:       tiers,
+		backend:     backend,
+		store:       store,
+		static:      staticIntent,
+		backendName: backendName,
+		live:        map[string]bool{},
 	}
 	meta.Register(server, cat, tiers, backend, r.record, func(name string) bool {
 		return r.live[name]
@@ -98,6 +102,8 @@ func (r *filterRuntime) syncTools() {
 		r.addTool(tool)
 		r.live[name] = true
 	}
+
+	gatelog.LogToolsList(r.backendName, len(desired), gatelog.EstimateListTokens(exposed))
 }
 
 func (r *filterRuntime) addTool(tool *mcp.Tool) {

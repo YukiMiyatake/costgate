@@ -8,7 +8,9 @@
     { "$ref": "#/$defs/sessionEnd" },
     { "$ref": "#/$defs/toolsList" },
     { "$ref": "#/$defs/toolCall" },
-    { "$ref": "#/$defs/toolResult" }
+    { "$ref": "#/$defs/toolResult" },
+    { "$ref": "#/$defs/gateEventToolsList" },
+    { "$ref": "#/$defs/gateEventToolCall" }
   ],
   "$defs": {
     "base": {
@@ -104,6 +106,46 @@
             "duration_ms": { "type": "integer", "minimum": 0 }
           },
           "required": ["backend", "tool", "response_bytes"]
+        }
+      ]
+    },
+    "gateEventBase": {
+      "type": "object",
+      "required": ["type", "event", "ts"],
+      "properties": {
+        "type": { "const": "gate_event" },
+        "event": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "gateEventToolsList": {
+      "allOf": [
+        { "$ref": "#/$defs/gateEventBase" },
+        {
+          "type": "object",
+          "properties": {
+            "event": { "const": "tools_list" },
+            "backend": { "type": "string" },
+            "tools_exposed": { "type": "integer", "minimum": 0 },
+            "tokens_est": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["backend", "tools_exposed", "tokens_est"]
+        }
+      ]
+    },
+    "gateEventToolCall": {
+      "allOf": [
+        { "$ref": "#/$defs/gateEventBase" },
+        {
+          "type": "object",
+          "properties": {
+            "event": { "const": "tool_call" },
+            "tool": { "type": "string" },
+            "response_bytes": { "type": "integer", "minimum": 0 },
+            "compressed": { "type": "boolean" },
+            "saved_bytes": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["tool", "response_bytes", "compressed"]
         }
       ]
     }

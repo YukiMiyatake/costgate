@@ -13,8 +13,9 @@ Shared between Probe, Gate, and costgate-cloud. One JSON object per line.
 | `tools_list` | `tools/list` response observed |
 | `tool_call` | Tool invocation |
 | `tool_result` | Tool response |
+| `gate_event` | Gate production event (`event`: `tools_list` \| `tool_call`; no `session_id`) |
 
-## Common fields
+## Common fields (Probe)
 
 ```jsonc
 {
@@ -47,9 +48,38 @@ Shared between Probe, Gate, and costgate-cloud. One JSON object per line.
 }
 ```
 
+## gate_event (Gate production)
+
+Gate writes `gate-YYYY-MM-DD.jsonl` when Probe is off. No `session_id`.
+
+```jsonc
+// tools/list exposure snapshot
+{
+  "type": "gate_event",
+  "event": "tools_list",
+  "ts": "2026-07-04T08:00:00.000Z",
+  "backend": "github",
+  "tools_exposed": 8,
+  "tokens_est": 1200
+}
+
+// tool invocation (includes compression stats when applicable)
+{
+  "type": "gate_event",
+  "event": "tool_call",
+  "ts": "2026-07-04T08:00:05.000Z",
+  "tool": "search_issues",
+  "response_bytes": 4096,
+  "compressed": true,
+  "saved_bytes": 32000
+}
+```
+
 ## Environment variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COSTGATE_PROBE_LOG_DIR` | `~/.costgate/logs` | Log output directory |
+| `COSTGATE_PROBE_LOG_DIR` | `~/.costgate/logs` | Probe log output directory |
+| `COSTGATE_GATE_LOG` | `1` | Gate event log ON/OFF |
+| `COSTGATE_GATE_LOG_DIR` | `~/.costgate/logs` | Gate log output directory |
 | `COSTGATE_CLIENT` | `unknown` | Client identifier override |

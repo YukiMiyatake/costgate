@@ -8,6 +8,7 @@ import (
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/overrides"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
@@ -44,8 +45,9 @@ func runTransparent(ctx context.Context, backend *mcp.ClientSession, backendName
 		return err
 	}
 	server := newServer()
-	registerBackendTools(server, cat.Tools, backend, nil)
+	registerBackendTools(server, cat.Tools, backend, backendName, nil)
 	log.Printf("[costgate-gate] transparent mode: %d tools from %s", len(cat.Tools), backendName)
+	gatelog.LogToolsList(backendName, len(cat.Tools), gatelog.EstimateListTokens(cat.Tools))
 	return serve(ctx, server)
 }
 
@@ -82,7 +84,7 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 		log.Printf("[costgate-gate] tool overrides: %d entries", len(ov.Tools))
 	}
 	server := newServer()
-	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords())
+	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords(), backendName)
 	rt.logStartup()
 	return serve(ctx, server)
 }
@@ -94,7 +96,7 @@ func newServer() *mcp.Server {
 	}, nil)
 }
 
-func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.ClientSession, onCall func(string)) {
+func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.ClientSession, backendName string, onCall func(string)) {
 	for _, tool := range tools {
 		tool := tool
 		if tool.InputSchema == nil {
