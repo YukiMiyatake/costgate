@@ -9,6 +9,9 @@ costgate/
 │   ├── probe/           @costgate/probe    — measurement MCP (npm publish)
 │   └── gate/            costgate-gate      — gateway MCP (Go binary, goreleaser)
 ├── docs/
+│   ├── dashboard.md     … MCP Dashboard（利用者向け）
+│   └── dev/             … 開発者向け仕様
+│       └── dashboard.md
 ├── examples/
 ├── scripts/
 └── package.json         npm workspaces root (private)

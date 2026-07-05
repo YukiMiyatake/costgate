@@ -8,6 +8,7 @@ Implementation phases for CostGate OSS. Business plans (Free / Pro / Team) are i
 |-----------|---------|-------------|
 | **Probe** (`@costgate/probe`) | Measure token usage, JSONL logs | Development / baseline only |
 | **Gate** (`costgate-gate`) | Filter `tools/list`, delegate calls | Production (daily Cursor) |
+| **Dashboard** (`npm run dashboard`) | MCP / tool stats, recommendations, control | Local Web UI (Phase 23+) |
 | **Serena** | Code intelligence | Direct in Cursor — never via Probe/Gate |
 | **costgate-cloud** | Reports, billing, team features | Private repo (future) |
 
@@ -41,24 +42,32 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
 | **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
 | **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
+| **23. Dashboard read-only** | 📋 Planned | Local Web UI — metrics, stale tools, recommendations |
+| **24. Dashboard control** | 📋 Planned | Tool overrides, mcp.json enable/disable |
+| **25. Gate event log** | 📋 Planned | Production stats without Probe |
+| **26. MCP add wizard** | 📋 Planned | Marketplace catalog, config scaffolding |
+| **27. Project recommend** | 📋 Planned | Repo-aware MCP suggestions |
 
-**costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照
+**costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照  
+**Dashboard 仕様:** [dashboard.md](./dashboard.md)（利用者） / [dev/dashboard.md](./dev/dashboard.md)（開発者）
 
 ---
 
 ## Development priority（2026-07）
 
-**方針: OSS 本体（削減の質・範囲・信頼性）を優先。costgate-cloud（Dashboard / Billing / Team）は Phase 1–15 完了後も当面後回し。**
+**方針: OSS 本体（削減 + 可視化）を優先。costgate-cloud（ホスト型 Dashboard / Billing / Team）は OSS Dashboard 基盤の後。**
 
 | 優先 | 領域 | 理由 |
 |------|------|------|
 | **1** | Gate / Probe / eval / catalog（本 repo） | 全ユーザーが直接得るトークン削減 |
-| **2** | 配布・DX（npm publish、WSL、benchmark CI） | 導入摩擦と回帰防止 |
-| **3** | costgate-cloud（別 repo） | OSS が安定してから Pro/Team 化 |
+| **2** | **OSS Dashboard**（Phase 23–27） | CLI 計測の UX 化・MCP ライフサイクル |
+| **3** | 配布・DX（npm publish、WSL、benchmark CI） | 導入摩擦と回帰防止 |
+| **4** | costgate-cloud（別 repo） | OSS Dashboard 完了後に Pro/Team 化 |
 
 ```
-Phase 16–22  OSS 強化（本 repo）     ← 現在の主戦場
-Phase 30+    costgate-cloud         ← 後回し（MVP は Phase 6 済み）
+Phase 16–22  OSS 強化              ✅ 完了
+Phase 23–27  OSS Dashboard        ← 次の主戦場
+Phase 30+    costgate-cloud       ← 後回し（MVP は Phase 6 済み）
 ```
 
 ---
@@ -157,9 +166,13 @@ Phase 30+    costgate-cloud         ← 後回し（MVP は Phase 6 済み）
 
 ---
 
-## OSS Phase 16–22 完了
+## OSS Phase 16–22 完了 → Phase 23–27 Dashboard
 
-Phase 16–22 の OSS ロードマップは **2026-07-05 時点で完了**。次の開発は **Phase 30+ costgate-cloud**（後回し）またはメンテ・バグ修正。
+Phase 16–22 の OSS ロードマップは **2026-07-05 時点で完了**。  
+次の開発は **Phase 23–27 MCP Dashboard**（本 repo）。costgate-cloud は **Phase 30+**（後回し）。
+
+- 利用者向け: [dashboard.md](./dashboard.md)
+- 開発者向け: [dev/dashboard.md](./dev/dashboard.md)
 
 ## Upcoming phases (16+) — archived
 
@@ -176,6 +189,8 @@ Phase 19  Multi-MCP 実測          … filesystem / browser catalog
 Phase 20  Result intelligence    … JSON-aware compress、dedupe
 Phase 21  Release & 配布         … npm v0.5.0、Gate installer 改善
 Phase 22  Smart intent           … Probe JSONL intent
+Phase 23  Dashboard read-only    … ローカル Web UI
+Phase 24–27 Dashboard 拡張       … 制御・本番 log・追加・リコメンド
         ↘ Phase 30+ cloud       … 後回し
 ```
 
@@ -262,13 +277,73 @@ Phase 22  Smart intent           … Probe JSONL intent
 
 ---
 
+## Upcoming — OSS Dashboard (23–27)
+
+ローカル Web ダッシュボードで MCP / ツールの可視化・推奨・制御・追加を行う。  
+CLI（`session-report`, `compare`）の延長として実装し、クラウド Dashboard（Phase 30）の基盤とする。
+
+| Phase | Status | Deliverable |
+|-------|--------|-------------|
+| **23. Dashboard read-only** | 📋 Planned | `npm run dashboard`, overview / tools / mcps / recommendations API |
+| **24. Dashboard control** | 📋 Planned | `tool-overrides.json`, mcp.json PATCH + backup |
+| **25. Gate event log** | 📋 Planned | `gate-*.jsonl`, 本番統計、schema 拡張 |
+| **26. MCP add wizard** | 📋 Planned | `catalog/marketplace/`, 追加ウィザード |
+| **27. Project recommend** | 📋 Planned | リポジトリ解析による MCP 提案 |
+
+### Phase 23 — Dashboard read-only 📋
+
+**目的:** 計測データを **localhost Web UI** で一覧。書き込みなし。
+
+- `npm run dashboard` → `http://127.0.0.1:8787`（既定は外部バインド不可）
+- データ: Probe JSONL, `usage.json`, `backends.json`, `mcp.json`, tier catalog
+- 画面: Overview, Tools, MCPs, Recommendations（削除候補）
+- API: `GET /api/overview`, `/api/tools`, `/api/mcps`, `/api/recommendations`
+- 計測圏外 MCP（Serena 等）に blind spot バッジ
+- Test: API スナップショット + fixture logs
+
+### Phase 24 — Dashboard control 📋
+
+**目的:** ダッシュボードから Gate ツール / MCP サーバーの ON・OFF。
+
+- `~/.costgate/tool-overrides.json` — ツール強制 hide（Gate のみ再起動）
+- `mcp.json` enable/disable — `cursor-mcp.mjs` 同様の backup + diff プレビュー
+- Cursor 再起動が必要な操作は UI で明示
+- セキュリティ: localhost + 書き込みトークン
+
+### Phase 25 — Gate event log 📋
+
+**目的:** Probe OFF 本番でもトークン・圧縮統計を追跡。
+
+- Gate が `gate-*.jsonl` を出力（`tools_list`, `tool_call`, compress 効果）
+- `@costgate/schema` に `gate_event` 型追加、[log-schema.md](./log-schema.md) 更新
+- Dashboard が Probe + Gate ログをマージ表示
+
+### Phase 26 — MCP add wizard 📋
+
+**目的:** テンプレートから MCP 設定を生成し、導入コストを即表示。
+
+- `catalog/marketplace/*.json` — 手動キュレーション
+- ウィザード → `backends.json` / `mcp.json` スニペット
+- 導入後 `compare` 相当で fixed cost 試算
+- 将来: MCP Registry / Smithery API 検索（26b）
+
+### Phase 27 — Project recommend 📋
+
+**目的:** ワークスペース構成から MCP 追加・削除を提案。
+
+- シグナル: `package.json`, `go.mod`, `.cursor/rules`, 既存 `mcp.json`
+- `recommend_add` / 既存 Phase 23 削除推奨との統合 UI
+- 外部 API 不要（ローカル解析のみ）
+
+---
+
 ## Deferred — costgate-cloud
 
 **ステータス: 後回し。** OSS Phase 16–22 が一段落してから [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) で再開。
 
 | Phase | 内容 | 前提 |
 |-------|------|------|
-| **30 Dashboard** | session / eval / benchmark の Web UI | OSS eval JSON 形式安定 |
+| **30 Dashboard** | ホスト型 Web UI（履歴・チーム）— OSS Phase 23–25 を拡張 | OSS Dashboard + eval JSON 安定 |
 | **31 Auto-upload** | セッション終了後 metrics 自動送信 | Probe `session_end` フック |
 | **32 Billing** | Stripe Pro/Team | Dashboard MVP |
 | **33 Team policies** | 許可 MCP / ツール制限 | Billing + Gate env テンプレ |
@@ -357,17 +432,18 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 | Multi-MCP | ✅ github + mock + filesystem catalog | Phase 19 |
 | 会話・rules | ❌ 未計画 | Out of scope |
 | Serena / 直結 MCP | ❌ 意図的対象外 | — |
+| MCP 可視化・制御 | 📋 Phase 23–27 | ローカル Dashboard（OSS） |
 | 可視化・課金（cloud） | MVP のみ | **Phase 30+ 後回し** |
 
 ### Pro / Team プランとの関係
 
 | Plan | 現状 | 次の一手（優先順） |
 |------|------|-------------------|
-| **Free (OSS)** | Gate 削減 + Probe + CLI + eval（Phase 16–22 完了） | メンテ・バグ修正 |
-| **Pro** | cloud MVP（手動 upload） | Phase 30+ Dashboard（後回し） |
+| **Free (OSS)** | Gate 削減 + Probe + CLI + eval（Phase 16–22 完了） | **Phase 23–27 Dashboard** |
+| **Pro** | cloud MVP（手動 upload） | Phase 30+ ホスト Dashboard（OSS 23–25 拡張） |
 | **Team** | — | Phase 32–33（後回し） |
 
-Pro/Team の新機能開発は **OSS Phase 22 まで凍結**。既存 `cloud:upload` / Reporter はメンテのみ。
+Pro/Team の新機能開発は **OSS Phase 27 まで凍結**（Dashboard は OSS で先行）。既存 `cloud:upload` / Reporter はメンテのみ。
 
 ---
 
@@ -402,4 +478,5 @@ npm run compare
 npm run compress-report
 npm run eval
 npm run test:integration
+npm run dashboard          # Phase 23+
 ```

@@ -52,6 +52,12 @@ Cursor ─────────────┼── costgate-probe ───
 - Usage store at `~/.costgate/usage.json` (imports Probe JSONL when present)
 - Serena stays outside Gate
 
+## Dashboard (Phase 23+)
+
+- Local Web UI: `npm run dashboard` → `http://127.0.0.1:8787`
+- Reads Probe/Gate logs, usage store, `mcp.json` — see [dashboard.md](./dashboard.md)
+- Developer spec: [dev/dashboard.md](./dev/dashboard.md)
+
 ## Cloud (private — costgate-cloud repo)
 
 - Optional metrics upload (opt-in)
