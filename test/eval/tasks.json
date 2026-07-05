@@ -1,0 +1,133 @@
+{
+  "modes": {
+    "transparent": {
+      "label": "Gate transparent",
+      "env": {
+        "COSTGATE_GATE_MODE": "transparent"
+      }
+    },
+    "filter": {
+      "label": "Gate filter",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT": "pull request",
+        "COSTGATE_INTENT_DYNAMIC": "0"
+      }
+    },
+    "filter_compress": {
+      "label": "Gate filter + compress",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT": "pull request",
+        "COSTGATE_INTENT_DYNAMIC": "0",
+        "COSTGATE_COMPRESS": "1"
+      }
+    },
+    "filter_full": {
+      "label": "Gate filter + compress + code-mode",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT": "pull request",
+        "COSTGATE_INTENT_DYNAMIC": "0",
+        "COSTGATE_COMPRESS": "1",
+        "COSTGATE_CODE_MODE": "1"
+      }
+    }
+  },
+  "tasks": [
+    {
+      "id": "transparent_full_list",
+      "name": "Transparent exposes all backend tools",
+      "modes": ["transparent"],
+      "steps": [
+        {
+          "action": "list_tools",
+          "assert": { "min_count": 15, "max_count": 15 }
+        }
+      ]
+    },
+    {
+      "id": "filter_reduces_list",
+      "name": "Filter reduces tools/list size",
+      "modes": ["filter", "filter_compress", "filter_full"],
+      "steps": [
+        {
+          "action": "list_tools",
+          "assert": { "min_count": 3, "max_count": 12, "includes": ["discover_tools", "invoke_tool"] }
+        }
+      ]
+    },
+    {
+      "id": "discover_fork",
+      "name": "discover_tools finds hidden fork tool",
+      "modes": ["filter", "filter_compress", "filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "args": { "query": "fork", "limit": 3 },
+          "assert_text_contains": "fork"
+        }
+      ]
+    },
+    {
+      "id": "invoke_echo",
+      "name": "invoke_tool delegates to backend echo",
+      "modes": ["filter", "filter_compress", "filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": { "name": "echo", "arguments": { "message": "eval" } },
+          "assert_text_contains": "eval"
+        }
+      ]
+    },
+    {
+      "id": "echo_direct",
+      "name": "Direct echo call works in transparent mode",
+      "modes": ["transparent"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "echo",
+          "args": { "message": "direct" },
+          "assert_text_contains": "direct"
+        }
+      ]
+    },
+    {
+      "id": "code_mode_outline",
+      "name": "Code mode returns outline for large source file",
+      "modes": ["filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "main.go" }
+          },
+          "assert_text_contains": "[costgate code-mode: outline]",
+          "assert_text_excludes": "fmt.Println"
+        }
+      ]
+    },
+    {
+      "id": "compress_truncates_lockfile",
+      "name": "Compress truncates large JSON-like payload",
+      "modes": ["filter_compress"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "package-lock.json" }
+          },
+          "assert_text_contains": "[costgate: truncated"
+        }
+      ]
+    }
+  ]
+}
