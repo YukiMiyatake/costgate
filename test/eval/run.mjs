@@ -107,6 +107,21 @@ async function runTask(modeKey, modeSpec, task) {
     );
     writeFileSync(logPath, lines.join("\n") + "\n");
   }
+  if (task.seed_prompt_intent && env.COSTGATE_PROMPT_INTENT_DIR) {
+    mkdirSync(env.COSTGATE_PROMPT_INTENT_DIR, { recursive: true });
+    const record = {
+      keywords: task.seed_prompt_intent.keywords ?? "",
+      ts: Date.now(),
+      conversation_id: "eval-seed",
+      generation_id: "eval-gen",
+      templates: task.seed_prompt_intent.templates ?? [],
+      sources: ["eval"],
+    };
+    writeFileSync(
+      join(env.COSTGATE_PROMPT_INTENT_DIR, "latest.json"),
+      `${JSON.stringify(record, null, 2)}\n`
+    );
+  }
   const started = Date.now();
   const stepResults = [];
 

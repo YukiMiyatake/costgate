@@ -222,6 +222,14 @@ function renderOverview(data) {
     ["Blind spots", fmt(data.blind_spot_count)],
     ["Cursor mode", data.cursor_mode ?? "—"],
   ];
+  if (data.prompt_intent?.keywords) {
+    const pi = data.prompt_intent;
+    const label = pi.stale ? "Prompt intent (stale)" : "Prompt intent";
+    const value = pi.keywords;
+    items.push([label, value]);
+  } else {
+    items.push(["Prompt intent", "—"]);
+  }
   for (const [label, value] of items) {
     const card = document.createElement("div");
     card.className = "card";
@@ -239,6 +247,13 @@ function renderOverview(data) {
   if (data.config_merge) {
     noteText +=
       " プロジェクト表示では Global の backends / overrides / disabled を継承し、同名キーはプロジェクト設定が優先されます。";
+  }
+  if (data.prompt_intent?.keywords) {
+    const pi = data.prompt_intent;
+    const templates = (pi.templates ?? []).join(", ") || "—";
+    const sources = (pi.sources ?? []).join(", ") || "—";
+    const age = pi.age_sec != null ? `${pi.age_sec}s ago` : "";
+    noteText += ` Prompt intent: templates=[${templates}] sources=[${sources}]${age ? ` ${age}` : ""}.`;
   }
   note.textContent = noteText;
 }

@@ -40,6 +40,15 @@
         "COSTGATE_INTENT_DYNAMIC": "1",
         "COSTGATE_INTENT_PROBE": "1"
       }
+    },
+    "filter_prompt_intent": {
+      "label": "Gate filter + prompt intent",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT_DYNAMIC": "1",
+        "COSTGATE_INTENT_PROBE": "0",
+        "COSTGATE_INTENT_PROMPT": "1"
+      }
     }
   },
   "tasks": [
@@ -188,6 +197,20 @@
           "tool": "discover_tools",
           "args": { "query": "merge", "limit": 5 },
           "assert_text_contains": "merge_pull_request"
+        }
+      ]
+    },
+    {
+      "id": "prompt_intent_exposes_pr_tools",
+      "name": "Prompt intent hook keywords expose PR tools in tools/list",
+      "modes": ["filter_prompt_intent"],
+      "seed_prompt_intent": { "keywords": "github pull merge issue" },
+      "steps": [
+        {
+          "action": "list_tools",
+          "assert": {
+            "includes": ["discover_tools", "invoke_tool", "create_pull_request"]
+          }
         }
       ]
     },

@@ -72,6 +72,9 @@ function main() {
   console.error(`[cursor:hooks] registry: ${REGISTRY_SCRIPT}`);
   console.error(`[cursor:hooks] prompt-intent: ${PROMPT_SCRIPT}`);
   console.error("[cursor:hooks] Restart Cursor after install.");
+  console.error(
+    "[cursor:hooks] Transcript tail (opt-in): COSTGATE_PROMPT_INTENT_TRANSCRIPT=1 on the hook process."
+  );
 }
 
 main();
