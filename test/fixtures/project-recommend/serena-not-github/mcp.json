@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "/path/to/costgate-gate"
+    },
+    "serena": {
+      "command": "/home/user/.local/bin/uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide"
+      ]
+    }
+  }
+}
