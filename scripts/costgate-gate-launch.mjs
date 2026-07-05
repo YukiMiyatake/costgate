@@ -10,6 +10,7 @@
  */
 import { spawn } from "node:child_process";
 import { ensureDashboard } from "./lib/dashboard-launcher.mjs";
+import { applyGateSettingsToEnv } from "./lib/gate-settings.mjs";
 import { gateBin } from "./lib/paths.mjs";
 
 function logDashboard(result) {
@@ -36,9 +37,10 @@ ensureDashboard({ env: process.env })
   });
 
 const bin = process.env.COSTGATE_GATE_BIN ?? gateBin();
+const { env: gateEnv } = applyGateSettingsToEnv(process.env);
 const child = spawn(bin, [], {
   stdio: "inherit",
-  env: process.env,
+  env: gateEnv,
 });
 
 child.on("error", (err) => {

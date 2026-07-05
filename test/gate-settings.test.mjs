@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+/**
+ * Gate settings — load/save/env merge tests.
+ */
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  DEFAULT_GATE_SETTINGS,
+  loadGateSettings,
+  patchGateSettings,
+  gateSettingsToEnv,
+  applyGateSettingsToEnv,
+} from "../scripts/lib/gate-settings.mjs";
+
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg);
+}
+
+function tempRoot() {
+  const base = join(tmpdir(), `costgate-gate-settings-${process.pid}-${Date.now()}`);
+  mkdirSync(base, { recursive: true });
+  return base;
+}
+
+function testDefaults() {
+  const loaded = loadGateSettings({ projectRoot: "/nonexistent", scoped: true });
+  assert(loaded.settings.gate_mode === "filter", "default mode");
+  assert(loaded.settings.compress === true, "default compress");
+  console.error("[gate-settings] defaults ok");
+}
+
+function testProjectOverride() {
+  const root = tempRoot();
+  patchGateSettings({ compress: false, static_intent: "github pull" }, {
+    projectRoot: root,
+    scoped: true,
+  });
+  const loaded = loadGateSettings({ projectRoot: root, scoped: true });
+  assert(loaded.settings.compress === false, "project compress");
+  assert(loaded.settings.static_intent === "github pull", "static intent");
+  assert(loaded.origins.compress === "project", "origin project");
+  console.error("[gate-settings] project override ok");
+}
+
+function testEnvMapping() {
+  const env = gateSettingsToEnv({ ...DEFAULT_GATE_SETTINGS, compress: false, gate_mode: "transparent" });
+  assert(env.COSTGATE_COMPRESS === "0", "compress env");
+  assert(env.COSTGATE_GATE_MODE === "transparent", "mode env");
+  console.error("[gate-settings] env mapping ok");
+}
+
+function testApplyToEnv() {
+  const root = tempRoot();
+  patchGateSettings({ code_mode: false }, { projectRoot: root, scoped: true });
+  const { env, meta } = applyGateSettingsToEnv({
+    ...process.env,
+    COSTGATE_PROJECT_ROOT: root,
+  });
+  assert(env.COSTGATE_CODE_MODE === "0", "launcher merge");
+  assert(meta.settings.code_mode === false, "meta settings");
+  console.error("[gate-settings] apply env ok");
+}
+
+async function testHttpApi() {
+  const root = tempRoot();
+  const { writeFileSync } = await import("node:fs");
+  writeFileSync(join(root, "backends.json"), '{"backends":{}}\n');
+  writeFileSync(join(root, "mcp.json"), '{"mcpServers":{}}\n');
+  const { createDashboardServer } = await import("../scripts/dashboard-server.mjs");
+  mkdirSync(join(root, "logs"), { recursive: true });
+  const server = createDashboardServer({
+    dataOptions: {
+      logDir: join(root, "logs"),
+      usagePath: join(root, "usage.json"),
+      configPath: join(root, "backends.json"),
+      mcpPath: join(root, "mcp.json"),
+      gateSettingsPath: join(root, "gate-settings.json"),
+      windowDays: 30,
+    },
+  });
+  await new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", (err) => (err ? reject(err) : resolve()));
+  });
+  const port = server.address().port;
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const get = await fetch(`${base}/api/gate-settings`).then((r) => r.json());
+    assert(get.settings.gate_mode === "filter", "GET settings");
+    assert(get.defs?.length >= 5, "GET defs");
+
+    const patch = await fetch(`${base}/api/gate-settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: { intent_probe: false } }),
+    });
+    assert(patch.ok, `PATCH ${patch.status}`);
+    const body = await patch.json();
+    assert(body.settings.intent_probe === false, "patched");
+
+    const again = await fetch(`${base}/api/gate-settings`).then((r) => r.json());
+    assert(again.settings.intent_probe === false, "persisted");
+    console.error("[gate-settings] HTTP API ok");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function main() {
+  testDefaults();
+  testProjectOverride();
+  testEnvMapping();
+  testApplyToEnv();
+  await testHttpApi();
+  console.error("[gate-settings] all passed");
+}
+
+main().catch((e) => {
+  console.error("[gate-settings] fatal:", e);
+  process.exit(1);
+});

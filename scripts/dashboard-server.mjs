@@ -19,6 +19,10 @@ import {
   previewMcpDisable,
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
+import {
+  buildGateSettingsApiPayload,
+  patchGateSettings,
+} from "./lib/gate-settings.mjs";
 import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
@@ -125,6 +129,7 @@ function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
     configPath: workspaceCtx.configPath,
     overridesPath: workspaceCtx.overridesPath,
     disabledPath: workspaceCtx.disabledPath,
+    gateSettingsPath: workspaceCtx.gateSettingsPath,
     usagePath: workspaceCtx.usagePath,
     logDir: workspaceCtx.logDir,
     gateLogDir: workspaceCtx.gateLogDir,
@@ -169,6 +174,14 @@ function marketplacePayload(url, paths, marketplaceDirPath) {
   };
 }
 
+function gateSettingsOpts(paths) {
+  const scoped = Boolean(paths.scoped ?? paths.workspace_id);
+  return {
+    projectRoot: paths.projectRoot ?? paths.workspace_path,
+    scoped,
+  };
+}
+
 async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   const { dataOptions, controlPaths, marketplaceDirPath } = ctx;
 
@@ -192,7 +205,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   }
 
   const wsMatch = pathname.match(
-    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace))?$/
+    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings))?$/
   );
   if (!wsMatch) return false;
 
@@ -237,6 +250,8 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       });
     } else if (section === "marketplace") {
       json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
+    } else if (section === "gate-settings") {
+      json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
     } else {
       apiNotFound(res, pathname);
     }
@@ -258,6 +273,28 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       marketplaceDir: marketplaceDirPath,
     });
     json(res, 200, { ...result, workspace_id: wsId, workspace_path: paths.projectRoot });
+    return true;
+  }
+
+  const wsGatePatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/gate-settings$/);
+  if (method === "PATCH" && wsGatePatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    let workspaceCtx;
+    try {
+      workspaceCtx = resolveWorkspace(decodeURIComponent(wsGatePatch[1]), {
+        globalFallback: defaultPaths(),
+      });
+    } catch (e) {
+      json(res, 404, { error: e.message ?? String(e) });
+      return true;
+    }
+    const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
+    const body = await readBody(req);
+    const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
+    json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsGatePatch[1]), ...result });
     return true;
   }
 
@@ -357,6 +394,11 @@ function createDashboardServer(options = {}) {
             path: controlPaths.overridesPath ?? toolOverridesPath(),
             ...loadToolOverrides(controlPaths.overridesPath),
           });
+          return;
+        }
+        if (pathname === "/api/gate-settings") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
           return;
         }
         if (pathname === "/api/marketplace") {
@@ -459,6 +501,14 @@ function createDashboardServer(options = {}) {
             mcpPath: controlPaths.mcpPath,
             disabledPath: controlPaths.disabledPath,
           });
+          json(res, 200, { ok: true, ...result });
+          return;
+        }
+
+        if (pathname === "/api/gate-settings") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const body = await readBody(req);
+          const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
           json(res, 200, { ok: true, ...result });
           return;
         }
