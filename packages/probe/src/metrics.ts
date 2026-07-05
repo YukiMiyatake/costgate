@@ -1,3 +1,5 @@
+import { countTokens, bytesToTokens } from "./tokens.js";
+
 export function byteLength(value: string | Uint8Array): number {
   if (typeof value === "string") {
     return Buffer.byteLength(value, "utf8");
@@ -5,16 +7,14 @@ export function byteLength(value: string | Uint8Array): number {
   return value.byteLength;
 }
 
-/** Rough token estimate (≈4 chars per token). Replace with tiktoken later. */
+/** Token count via tiktoken cl100k_base. */
 export function estimateTokens(text: string): number {
-  if (text.length === 0) {
-    return 0;
-  }
-  return Math.max(1, Math.ceil(text.length / 4));
+  return countTokens(text);
 }
 
+/** Approximate tokens from bytes when text is unavailable. */
 export function estimateTokensFromBytes(bytes: number): number {
-  return Math.max(1, Math.ceil(bytes / 4));
+  return bytesToTokens(bytes);
 }
 
 export interface ToolSchemaStats {
@@ -37,15 +37,16 @@ export function summarizeTools(
     return {
       name: tool.name,
       schema_bytes,
-      estimated_tokens: estimateTokens(serialized),
+      estimated_tokens: countTokens(serialized),
     };
   });
 
   const total_schema_bytes = stats.reduce((sum, t) => sum + t.schema_bytes, 0);
+  const estimated_tokens = stats.reduce((sum, t) => sum + t.estimated_tokens, 0);
   return {
     tool_count: stats.length,
     total_schema_bytes,
-    estimated_tokens: estimateTokensFromBytes(total_schema_bytes),
+    estimated_tokens: estimated_tokens || bytesToTokens(total_schema_bytes),
     tools: stats,
   };
 }

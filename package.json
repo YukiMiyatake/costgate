@@ -15,6 +15,7 @@
     "test:gate": "node test/gate-measurement.mjs",
     "test:gate:filter": "node test/gate-filter.mjs",
     "test:gate:compress": "cd packages/gate && go test ./internal/compress/...",
+    "test:tokens": "node test/tokens.test.mjs",
     "compare": "node scripts/compare-report.mjs",
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",

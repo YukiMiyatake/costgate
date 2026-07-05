@@ -3,6 +3,7 @@
  */
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { countTokens, bytesToTokens } from "./tokens.mjs";
 
 export function createMcpClient(proc, { timeoutMs = 120000 } = {}) {
   let id = 0;
@@ -75,7 +76,7 @@ export async function withMcpProcess(command, args, env, fn, options = {}) {
   }
 }
 
-/** Rough token estimate (≈4 bytes per token), matches @costgate/probe metrics. */
+/** Token estimate via tiktoken cl100k_base (matches @costgate/probe). */
 export function summarizeTools(tools) {
   const stats = tools.map((tool) => {
     const serialized = JSON.stringify(tool);
@@ -83,14 +84,15 @@ export function summarizeTools(tools) {
     return {
       name: tool.name,
       schema_bytes,
-      estimated_tokens: Math.max(1, Math.ceil(schema_bytes / 4)),
+      estimated_tokens: countTokens(serialized),
     };
   });
   const total_schema_bytes = stats.reduce((s, t) => s + t.schema_bytes, 0);
+  const estimated_tokens = stats.reduce((s, t) => s + t.estimated_tokens, 0);
   return {
     tool_count: stats.length,
     total_schema_bytes,
-    estimated_tokens: Math.max(1, Math.ceil(total_schema_bytes / 4)),
+    estimated_tokens: estimated_tokens || bytesToTokens(total_schema_bytes),
     tools: stats,
   };
 }
@@ -112,6 +114,6 @@ export function summarizeCallResult(result) {
   return {
     response_bytes,
     text_chars,
-    estimated_tokens: Math.max(1, Math.ceil(response_bytes / 4)),
+    estimated_tokens: countTokens(serialized) || bytesToTokens(response_bytes),
   };
 }
