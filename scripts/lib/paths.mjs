@@ -24,6 +24,10 @@ export function mockMcpJs() {
   return join(ROOT, "test/fixtures/mock-mcp/index.mjs");
 }
 
+export function mockFilesystemMcpJs() {
+  return join(ROOT, "test/fixtures/mock-filesystem-mcp/index.mjs");
+}
+
 export function costgateConfig() {
   return process.env.COSTGATE_CONFIG ?? join(homedir(), ".costgate/backends.json");
 }
@@ -32,20 +36,20 @@ export function probeLogDir() {
   return process.env.COSTGATE_PROBE_LOG_DIR ?? join(homedir(), ".costgate/logs");
 }
 
-/** Write a backends.json pointing at mock-mcp (for CI / integration tests). */
-export function mockBackendsConfigPath() {
+/** Write backends.json for a named mock backend fixture. */
+export function mockBackendsConfigPath(backend = "mock", fixtureJs = mockMcpJs()) {
   const dir = join(ROOT, "test/fixtures/.generated");
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, "backends.mock.json");
+  const path = join(dir, `backends.${backend}.json`);
   writeFileSync(
     path,
     JSON.stringify(
       {
         backends: {
-          mock: {
+          [backend]: {
             always: true,
             command: process.execPath,
-            args: [mockMcpJs()],
+            args: [fixtureJs],
           },
         },
       },
@@ -67,10 +71,12 @@ export function mockTestPaths(prefix = "integration") {
 }
 
 /** Base env for Gate/Probe against mock MCP. */
-export function mockGateEnv(clientName, extra = {}) {
+export function mockGateEnv(clientName, extra = {}, backend = "mock") {
+  const fixtureJs =
+    backend === "filesystem" ? mockFilesystemMcpJs() : mockMcpJs();
   const paths = mockTestPaths(clientName);
   return baseGateEnv(clientName, {
-    COSTGATE_CONFIG: mockBackendsConfigPath(),
+    COSTGATE_CONFIG: mockBackendsConfigPath(backend, fixtureJs),
     COSTGATE_USAGE_PATH: paths.usage,
     COSTGATE_PROBE_LOG_DIR: paths.logs,
     ...extra,

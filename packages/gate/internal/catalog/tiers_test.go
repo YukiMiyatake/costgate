@@ -46,6 +46,35 @@ func TestApplyTierRules(t *testing.T) {
 	}
 }
 
+func TestLoadTierRulesFilesystem(t *testing.T) {
+	rules, err := LoadTierRules("filesystem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rules == nil {
+		t.Fatal("expected filesystem tier rules")
+	}
+	if rules.Overrides["read_file"] != "A" {
+		t.Fatalf("read_file tier=%q", rules.Overrides["read_file"])
+	}
+	if rules.Overrides["move_file"] != "C" {
+		t.Fatalf("move_file tier=%q", rules.Overrides["move_file"])
+	}
+}
+
+func TestLoadTierRulesBrowser(t *testing.T) {
+	rules, err := LoadTierRules("browser")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rules == nil {
+		t.Fatal("expected browser tier rules")
+	}
+	if rules.Overrides["browser_navigate"] != "A" {
+		t.Fatalf("browser_navigate tier=%q", rules.Overrides["browser_navigate"])
+	}
+}
+
 func TestLoadTierRulesUnknown(t *testing.T) {
 	rules, err := LoadTierRules("unknown-backend")
 	if err != nil {

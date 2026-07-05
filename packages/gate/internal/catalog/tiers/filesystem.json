@@ -1,0 +1,15 @@
+{
+  "backend": "filesystem",
+  "description": "Tier overrides for @modelcontextprotocol/server-filesystem",
+  "overrides": {
+    "read_file": "A",
+    "read_multiple_files": "A",
+    "list_directory": "A",
+    "search_files": "A",
+    "list_allowed_directories": "A",
+    "write_file": "B",
+    "create_directory": "B",
+    "move_file": "C",
+    "get_file_info": "C"
+  }
+}

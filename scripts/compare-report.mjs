@@ -8,6 +8,7 @@
  *   npm run compare -- --json
  *   npm run compare -- --via-probe
  *   npm run compare -- --mock
+ *   npm run compare -- --mock --backend filesystem
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -21,12 +22,15 @@ const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
 const viaProbe = args.includes("--via-probe");
 const useMock = args.includes("--mock");
+const backendIdx = args.indexOf("--backend");
+const mockBackend =
+  backendIdx >= 0 ? args[backendIdx + 1] ?? "mock" : "mock";
 const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
 
 const baseEnv = useMock
-  ? mockGateEnv("compare-report")
+  ? mockGateEnv("compare-report", {}, mockBackend)
   : baseGateEnv("compare-report");
 
 async function measureGateTransparent() {
@@ -131,7 +135,7 @@ function printReport(before, after, beforeLabel) {
 
   console.log("\nCostGate Before/After — tools/list token estimate\n");
   if (useMock) {
-    console.log("Backend: mock MCP (catalog tier rules applied)\n");
+    console.log(`Backend: mock MCP (${mockBackend}, catalog tier rules applied)\n`);
   }
   console.log(`Before (${beforeLabel})`);
   console.log(`  tools:          ${before.tool_count}`);
