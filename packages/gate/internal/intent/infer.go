@@ -23,7 +23,12 @@ func ProbeIntentEnabled() bool {
 	return env.Bool("COSTGATE_INTENT_PROBE", true)
 }
 
-// Resolve merges static COSTGATE_INTENT with probe log + usage keywords.
+// PromptIntentEnabled reports whether Cursor prompt-intent hook keywords augment intent.
+func PromptIntentEnabled() bool {
+	return env.Bool("COSTGATE_INTENT_PROMPT", true)
+}
+
+// Resolve merges static COSTGATE_INTENT with prompt hook + probe log + usage keywords.
 func Resolve(store *usage.Store, static string) string {
 	static = strings.TrimSpace(static)
 	if !DynamicEnabled() {
@@ -33,6 +38,12 @@ func Resolve(store *usage.Store, static string) string {
 	var parts []string
 	if static != "" {
 		parts = append(parts, static)
+	}
+
+	if PromptIntentEnabled() {
+		if prompt := usage.RecentPromptIntentKeywords("", 0); prompt != "" {
+			parts = append(parts, prompt)
+		}
 	}
 
 	if ProbeIntentEnabled() {

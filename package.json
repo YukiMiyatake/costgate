@@ -67,6 +67,7 @@
 
     "test:cursor:gate": "node test/cursor-gate-session.mjs",
     "test:cursor:registry": "node test/cursor-registry-hook.test.mjs",
+    "test:cursor:prompt-intent": "node test/prompt-intent.test.mjs && node test/cursor-prompt-intent-hook.test.mjs",
 
     "test:dashboard": "node test/dashboard-api.test.mjs",
     "test:dashboard:all": "npm run dashboard:test",
