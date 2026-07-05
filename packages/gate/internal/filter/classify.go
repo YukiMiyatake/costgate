@@ -138,19 +138,23 @@ func SelectExposed(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*m
 			if MatchIntent(intent, tool) {
 				exposed = append(exposed, tool)
 			}
+		case TierHidden:
+			// never in tools/list
 		}
 	}
 	return exposed
 }
 
-// CountTiers returns how many tools fall in each tier.
-func CountTiers(tiers map[string]Tier) (a, b, c int) {
+// CountTiers returns how many tools fall in each tier (hidden counted separately).
+func CountTiers(tiers map[string]Tier) (a, b, c, hidden int) {
 	for _, t := range tiers {
 		switch t {
 		case TierA:
 			a++
 		case TierB:
 			b++
+		case TierHidden:
+			hidden++
 		default:
 			c++
 		}

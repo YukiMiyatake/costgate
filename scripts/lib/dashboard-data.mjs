@@ -12,6 +12,7 @@ import {
   bytesToTokens,
 } from "./parse-probe-logs.mjs";
 import { repoRoot } from "./paths.mjs";
+import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
@@ -23,6 +24,9 @@ export function defaultPaths() {
     usagePath: process.env.COSTGATE_USAGE_PATH ?? join(home, ".costgate", "usage.json"),
     configPath: process.env.COSTGATE_CONFIG ?? join(home, ".costgate", "backends.json"),
     mcpPath: process.env.CURSOR_MCP_PATH ?? join(home, ".cursor", "mcp.json"),
+    overridesPath:
+      process.env.COSTGATE_TOOL_OVERRIDES ??
+      join(home, ".costgate", "tool-overrides.json"),
     tierDir: join(repoRoot(), "packages/gate/internal/catalog/tiers"),
   };
 }
@@ -183,7 +187,7 @@ function percentile(values, p) {
   return sorted[Math.max(0, idx)];
 }
 
-function mergeToolStats(probeByTool, usage, catalogs, defaultBackend, now) {
+function mergeToolStats(probeByTool, usage, catalogs, defaultBackend, now, overrides = {}) {
   const names = new Set([...probeByTool.keys(), ...Object.keys(usage)]);
   const tools = [];
 
@@ -198,11 +202,13 @@ function mergeToolStats(probeByTool, usage, catalogs, defaultBackend, now) {
       const lTs = lastUsed ? Date.parse(lastUsed) : 0;
       if (!Number.isNaN(uTs) && uTs >= lTs) lastUsed = u.last_used;
     }
-    const tier = tierForTool(name, backend, catalogs, defaultBackend);
+    const tier = overrides[name]?.force_tier ?? tierForTool(name, backend, catalogs, defaultBackend);
+    const forced = Boolean(overrides[name]?.force_tier);
     tools.push({
       name,
       backend,
       tier,
+      forced_tier: forced,
       call_count: callCount,
       last_used: lastUsed,
       estimated_list_tokens: probe?.estimated_list_tokens
@@ -271,7 +277,7 @@ function detectBlindSpots(mcpServers, backends) {
   return blind.sort();
 }
 
-function buildMcps(mcpServers, backends, byBackend, mode) {
+function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}) {
   const items = [];
   const seen = new Set();
 
@@ -286,8 +292,23 @@ function buildMcps(mcpServers, backends, byBackend, mode) {
       role: isGate ? "gate" : isProbe ? "probe" : "direct",
       measured,
       blind_spot: !measured,
+      enabled: true,
       command: cfg.command ?? null,
       backends: isGate || isProbe ? Object.keys(backends) : [],
+    });
+  }
+
+  for (const [name, cfg] of Object.entries(disabledStore)) {
+    if (seen.has(name)) continue;
+    items.push({
+      name,
+      source: "mcp-disabled.json",
+      role: "disabled",
+      measured: false,
+      blind_spot: true,
+      enabled: false,
+      command: cfg.command ?? null,
+      backends: [],
     });
   }
 
@@ -342,7 +363,9 @@ export function buildDashboardData(options = {}) {
   const defaultBackend = primaryBackend(backends);
 
   const g = logs.global;
-  const tools = mergeToolStats(byTool, usage, catalogs, defaultBackend, now);
+  const overrides = loadToolOverrides(paths.overridesPath).tools ?? {};
+  const disabledStore = loadMcpDisabled();
+  const tools = mergeToolStats(byTool, usage, catalogs, defaultBackend, now, overrides);
   const recommendations = scoreRecommendations(
     tools,
     listTokenSamples,
@@ -350,7 +373,7 @@ export function buildDashboardData(options = {}) {
     backends,
     now
   );
-  const mcps = buildMcps(mcpServers, backends, byBackend, detectCursorMode(mcpServers));
+  const mcps = buildMcps(mcpServers, backends, byBackend, detectCursorMode(mcpServers), disabledStore);
 
   return {
     generated_at: new Date(now).toISOString(),
@@ -387,18 +410,23 @@ export function buildDashboardData(options = {}) {
   };
 }
 
-export function buildHealth() {
+export function buildHealth(extra = {}) {
   const paths = defaultPaths();
   return {
     status: "ok",
-    version: "phase23",
-    read_only: true,
+    version: "phase24",
+    read_only: false,
+    writes: {
+      localhost_only: true,
+      token_required: extra.writeTokenRequired ?? false,
+    },
     bind: "127.0.0.1",
     data_sources: {
       probe_logs: existsSync(paths.logDir),
       usage: existsSync(paths.usagePath),
       backends: existsSync(paths.configPath),
       mcp: existsSync(paths.mcpPath),
+      overrides: existsSync(paths.overridesPath),
     },
   };
 }

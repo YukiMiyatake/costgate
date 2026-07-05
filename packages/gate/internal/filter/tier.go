@@ -7,6 +7,7 @@ const (
 	TierA Tier = iota // always exposed
 	TierB             // exposed when intent keywords match
 	TierC             // hidden; discover_tools / invoke_tool only
+	TierHidden        // force hidden; excluded from discover_tools matches
 )
 
 func (t Tier) String() string {
@@ -15,6 +16,8 @@ func (t Tier) String() string {
 		return "A"
 	case TierB:
 		return "B"
+	case TierHidden:
+		return "hidden"
 	default:
 		return "C"
 	}

@@ -71,7 +71,7 @@ async function testHttpApi() {
 
   try {
     const health = await fetchJson(port, "/api/health");
-    assert(health.read_only === true, "must be read-only");
+    assert(health.read_only === false, "phase24 allows writes on localhost");
     assert(health.status === "ok", "health ok");
 
     const overview = await fetchJson(port, "/api/overview");

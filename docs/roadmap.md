@@ -284,7 +284,7 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 | Phase | Status | Deliverable |
 |-------|--------|-------------|
 | **23. Dashboard read-only** | ✅ Done | `npm run dashboard`, overview / tools / mcps / recommendations API |
-| **24. Dashboard control** | 📋 Planned | `tool-overrides.json`, mcp.json PATCH + backup |
+| **24. Dashboard control** | ✅ Done | `tool-overrides.json`, mcp.json PATCH + backup |
 | **25. Gate event log** | 📋 Planned | `gate-*.jsonl`, 本番統計、schema 拡張 |
 | **26. MCP add wizard** | 📋 Planned | `catalog/marketplace/`, 追加ウィザード |
 | **27. Project recommend** | 📋 Planned | リポジトリ解析による MCP 提案 |
@@ -300,14 +300,17 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 - 計測圏外 MCP（Gate/Probe 外の直結サーバー等）に blind spot バッジ
 - Test: API スナップショット + fixture logs
 
-### Phase 24 — Dashboard control 📋
+### Phase 24 — Dashboard control ✅
 
 **目的:** ダッシュボードから Gate ツール / MCP サーバーの ON・OFF。
 
-- `~/.costgate/tool-overrides.json` — ツール強制 hide（Gate のみ再起動）
-- `mcp.json` enable/disable — `cursor-mcp.mjs` 同様の backup + diff プレビュー
-- Cursor 再起動が必要な操作は UI で明示
-- セキュリティ: localhost + 書き込みトークン
+- `~/.costgate/tool-overrides.json` — `force_tier: hidden` で Gate から完全非表示
+- Gate: `TierHidden` + `overrides` パッケージ
+- `PATCH /api/tools/:name` — ツール hide/unhide
+- `PATCH /api/mcps/:name` — mcp.json + `mcp-disabled.json` で退避・復元
+- `mcp.json.bak` 自動バックアップ
+- `COSTGATE_DASHBOARD_TOKEN` で書き込み保護（未設定時は localhost のみ）
+- Test: `npm run test:dashboard:control`
 
 ### Phase 25 — Gate event log 📋
 
@@ -431,7 +434,7 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 | Multi-MCP | ✅ github + mock + filesystem catalog | Phase 19 |
 | 会話・rules | ❌ 未計画 | Out of scope |
 | Gate/Probe 外の直結 MCP | ❌ 計測対象外 | Dashboard blind spot |
-| MCP 可視化・制御 | 📋 Phase 23–27 | ローカル Dashboard（OSS） |
+| MCP 可視化・制御 | ✅ Phase 23–24 | ローカル Dashboard（OSS） |
 | 可視化・課金（cloud） | MVP のみ | **Phase 30+ 後回し** |
 
 ### Pro / Team プランとの関係

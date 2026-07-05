@@ -19,9 +19,22 @@ function badge(text, ok = false) {
   return span;
 }
 
-async function fetchJson(path) {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+function dashHeaders() {
+  const token = sessionStorage.getItem("costgate_dashboard_token");
+  const h = { "Content-Type": "application/json" };
+  if (token) h["X-Costgate-Dashboard-Token"] = token;
+  return h;
+}
+
+async function fetchJson(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { ...dashHeaders(), ...options.headers },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? `${path}: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -67,15 +80,36 @@ function renderTools(data) {
   for (const t of data.tools ?? []) {
     const tr = document.createElement("tr");
     const flag = t.recommendation ? badge(t.recommendation) : document.createTextNode("—");
+    const tierLabel = t.forced_tier ? `${t.tier}*` : (t.tier ?? "—");
+    const hideBtn = document.createElement("button");
+    hideBtn.type = "button";
+    hideBtn.className = "btn-sm";
+    hideBtn.textContent = t.tier === "hidden" ? "Unhide" : "Hide";
+    hideBtn.onclick = async () => {
+      try {
+        await fetchJson(`/api/tools/${encodeURIComponent(t.name)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            force_tier: t.tier === "hidden" ? "default" : "hidden",
+          }),
+        });
+        await reload();
+        alert("Saved. Restart Gate (Cursor MCP reload) to apply tool overrides.");
+      } catch (e) {
+        alert(e.message);
+      }
+    };
     tr.innerHTML = `
       <td>${t.name}</td>
       <td>${t.backend ?? "—"}</td>
-      <td>${t.tier ?? "—"}</td>
+      <td>${tierLabel}</td>
       <td>${fmt(t.call_count)}</td>
       <td>${fmtDate(t.last_used)}</td>
       <td>${t.estimated_list_tokens != null ? `~${fmt(t.estimated_list_tokens)}` : "—"}</td>
+      <td></td>
       <td></td>`;
-    tr.lastElementChild.appendChild(flag);
+    tr.children[6].appendChild(flag);
+    tr.children[7].appendChild(hideBtn);
     body.appendChild(tr);
   }
 }
@@ -85,13 +119,37 @@ function renderMcps(data) {
   body.innerHTML = "";
   for (const s of data.servers ?? []) {
     const tr = document.createElement("tr");
-    const measured = s.measured ? badge("measured", true) : badge("blind spot");
+    const measured = s.enabled === false
+      ? badge("disabled")
+      : s.measured
+        ? badge("measured", true)
+        : badge("blind spot");
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "btn-sm";
+    toggle.textContent = s.enabled === false ? "Enable" : "Disable";
+    toggle.onclick = async () => {
+      const enable = s.enabled === false;
+      if (!enable && !confirm(`Disable MCP "${s.name}"? Cursor restart required.`)) return;
+      try {
+        await fetchJson(`/api/mcps/${encodeURIComponent(s.name)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: enable }),
+        });
+        await reload();
+        alert("mcp.json updated. Restart Cursor to apply.");
+      } catch (e) {
+        alert(e.message);
+      }
+    };
     tr.innerHTML = `
       <td>${s.name}</td>
       <td>${s.role}</td>
       <td></td>
-      <td><code>${s.command ?? "—"}</code></td>`;
+      <td><code>${s.command ?? "—"}</code></td>
+      <td></td>`;
     tr.children[2].appendChild(measured);
+    tr.children[4].appendChild(toggle);
     body.appendChild(tr);
   }
 }
@@ -128,22 +186,43 @@ function setupTabs() {
   });
 }
 
+function setupTokenBar(health) {
+  const bar = document.getElementById("token-bar");
+  const input = document.getElementById("dash-token");
+  const mode = document.getElementById("write-mode");
+  if (health.writes?.token_required) {
+    bar.classList.remove("hidden");
+    mode.textContent = "writes: token required";
+  } else {
+    mode.textContent = "writes: localhost";
+  }
+  input.value = sessionStorage.getItem("costgate_dashboard_token") ?? "";
+  input.addEventListener("change", () => {
+    sessionStorage.setItem("costgate_dashboard_token", input.value);
+  });
+}
+
+async function reload() {
+  const [overview, tools, mcps, recs] = await Promise.all([
+    fetchJson("/api/overview"),
+    fetchJson("/api/tools"),
+    fetchJson("/api/mcps"),
+    fetchJson("/api/recommendations"),
+  ]);
+  renderOverview(overview);
+  renderTools(tools);
+  renderMcps(mcps);
+  renderRecommendations(recs);
+}
+
 async function main() {
   setupTabs();
   try {
-    const [health, overview, tools, mcps, recs] = await Promise.all([
-      fetchJson("/api/health"),
-      fetchJson("/api/overview"),
-      fetchJson("/api/tools"),
-      fetchJson("/api/mcps"),
-      fetchJson("/api/recommendations"),
-    ]);
+    const health = await fetchJson("/api/health");
+    setupTokenBar(health);
     document.getElementById("health-status").textContent =
-      `health: ${health.status} · read-only · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
-    renderOverview(overview);
-    renderTools(tools);
-    renderMcps(mcps);
-    renderRecommendations(recs);
+      `health: ${health.status} · ${health.version} · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
+    await reload();
   } catch (err) {
     document.getElementById("health-status").textContent = `Error: ${err.message}`;
   }
