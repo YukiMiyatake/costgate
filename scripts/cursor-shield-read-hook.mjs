@@ -9,7 +9,16 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { isBinaryFile } from "./lib/shield-binary.mjs";
+import {
+  buildCacheMeta,
+  contentHash,
+  isCacheValid,
+  writeCacheMeta,
+} from "./lib/shield-cache.mjs";
 import { Mode, redactText, shieldEnabled, ShieldVault } from "./lib/shield-redact.mjs";
+import { redactModeForRead } from "./lib/shield-trust.mjs";
+import { sessionId } from "./lib/shield-vault.mjs";
 import { resolveWorkspaceRootFromPath } from "./lib/resolve-workspace-root.mjs";
 
 const SANITIZED_SEGMENT = ".costgate/sanitized";
@@ -87,6 +96,24 @@ export function writeShadowFile(originalPath, projectRoot, content, options = {}
   const shadow = shadowPathFor(originalPath, projectRoot);
   mkdirSync(join(shadow, ".."), { recursive: true });
   writeFileSync(shadow, content, "utf8");
+  if (options.cacheMeta) {
+    writeCacheMeta(shadow, options.cacheMeta);
+  }
+  return shadow;
+}
+
+export function tryReuseCachedShadow(absPath, projectRoot, stat, options = {}) {
+  const shadow = shadowPathFor(absPath, projectRoot);
+  const hash = options.contentHash ?? null;
+  if (
+    !isCacheValid(absPath, shadow, stat, {
+      mode: options.mode,
+      sessionId: options.sessionId,
+      contentHash: hash,
+    })
+  ) {
+    return null;
+  }
   return shadow;
 }
 
@@ -137,6 +164,18 @@ export function handleCursorShieldReadHook(payload, context = {}) {
     return { ok: true, skipped: true, event, reason: "no_project_root", permission: "allow" };
   }
 
+  if (isBinaryFile(absPath)) {
+    return { ok: true, skipped: true, event, reason: "binary_file", permission: "allow" };
+  }
+
+  const mode = redactModeForRead(context);
+  if (mode === Mode.Off) {
+    return { ok: true, skipped: true, event, reason: "trust_off", permission: "allow" };
+  }
+
+  const sid = context.vaultOptions?.sessionId ?? sessionId();
+  const vaultOptions = { ...context.vaultOptions, sessionId: sid };
+
   let content;
   try {
     content = readFileSync(absPath, "utf8");
@@ -144,9 +183,33 @@ export function handleCursorShieldReadHook(payload, context = {}) {
     return { ok: true, skipped: true, event, reason: "read_failed", permission: "allow" };
   }
 
-  const mode = context.mode ?? Mode.Aggressive;
-  const vaultOptions = context.vaultOptions ?? {};
-  const { redacted, changed } = sanitizeFileContent(content, { mode, vaultOptions });
+  if (isBinaryFile(absPath, content)) {
+    return { ok: true, skipped: true, event, reason: "binary_content", permission: "allow" };
+  }
+
+  const hash = contentHash(content);
+  const cachedShadow = tryReuseCachedShadow(absPath, projectRoot, stat, {
+    mode,
+    sessionId: sid,
+    contentHash: hash,
+  });
+  if (cachedShadow) {
+    const toolInput = extractReadToolInput(payload);
+    return {
+      ok: true,
+      event,
+      original_path: absPath,
+      shadow_path: cachedShadow,
+      redacted: true,
+      cache_hit: true,
+      permission: "allow",
+      updated_input: { ...toolInput, path: cachedShadow },
+      agent_message: `CostGate Shield: Read redirected to cached sanitized copy of ${basename(absPath)}.`,
+    };
+  }
+
+  const vault = context.vault ?? new ShieldVault(vaultOptions);
+  const { redacted, changed } = sanitizeFileContent(content, { mode, vault });
 
   if (!changed) {
     return {
@@ -159,7 +222,12 @@ export function handleCursorShieldReadHook(payload, context = {}) {
     };
   }
 
-  const shadowPath = writeShadowFile(absPath, projectRoot, redacted, context);
+  const cacheMeta = buildCacheMeta(absPath, stat, {
+    contentHash: hash,
+    mode,
+    sessionId: sid,
+  });
+  const shadowPath = writeShadowFile(absPath, projectRoot, redacted, { ...context, cacheMeta });
   const toolInput = extractReadToolInput(payload);
   const updatedInput = { ...toolInput, path: shadowPath };
 
@@ -169,6 +237,7 @@ export function handleCursorShieldReadHook(payload, context = {}) {
     original_path: absPath,
     shadow_path: shadowPath,
     redacted: true,
+    cache_hit: false,
     permission: "allow",
     updated_input: updatedInput,
     agent_message: `CostGate Shield: Read redirected to sanitized copy of ${basename(absPath)}.`,
