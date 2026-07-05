@@ -8,6 +8,7 @@ import { join } from "node:path";
 import {
   SHIELD_HOOK_ENV,
   SHIELD_MCP_SCRIPT,
+  SHIELD_PROMPT_SCRIPT,
   SHIELD_READ_SCRIPT,
   buildHookDefs,
   ensureHookEntry,
@@ -35,6 +36,14 @@ function testBuildHookDefs() {
   const keys = defs.map((d) => d.key);
   assert(keys.includes("preToolUse"), "preToolUse defined");
   assert(keys.includes("beforeMCPExecution"), "beforeMCPExecution defined");
+  assert(keys.filter((k) => k === "beforeSubmitPrompt").length === 2, "two beforeSubmitPrompt hooks");
+
+  const promptDefs = defs.filter((d) => d.key === "beforeSubmitPrompt");
+  const shieldPromptDef = promptDefs.find((d) => d.script.endsWith("cursor-shield-prompt-hook.mjs"));
+  assert(shieldPromptDef, "shield prompt def");
+  assert(shieldPromptDef.hook.failClosed === true, "prompt failClosed");
+  assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD === "1", "prompt shield env");
+  assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD_PROMPT === "1", "prompt env flag");
 
   const readDef = defs.find((d) => d.key === "preToolUse");
   assert(readDef.hook.matcher === "Read", "Read matcher");
@@ -121,7 +130,9 @@ function testInstallWritesFile() {
     const readHook = findHook(onDisk.hooks, "preToolUse", SHIELD_READ_SCRIPT);
     assert(readHook?.matcher === "Read", "Read matcher on disk");
     assert(readHook?.env?.COSTGATE_SHIELD === "1", "shield on disk");
-    assert(config.hooks.beforeSubmitPrompt?.length === 1, "prompt-intent preserved in return");
+    assert(config.hooks.beforeSubmitPrompt?.length === 2, "prompt-intent + shield-prompt");
+    const shieldPromptHook = findHook(onDisk.hooks, "beforeSubmitPrompt", SHIELD_PROMPT_SCRIPT);
+    assert(shieldPromptHook?.failClosed === true, "shield prompt failClosed on disk");
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
