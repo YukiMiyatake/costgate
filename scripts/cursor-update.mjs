@@ -28,6 +28,30 @@ function gateVersion() {
   }
 }
 
+function verifyGateOnHost() {
+  try {
+    execSync(`"${GATE_BIN}" --version`, { cwd: ROOT, stdio: "pipe" });
+  } catch {
+    console.error(
+      "[cursor:update] gate binary does not run on this machine (often glibc mismatch after Docker build)."
+    );
+    console.error("[cursor:update] rebuilding with CGO_ENABLED=0 for a portable binary...");
+    if (useDocker) {
+      docker([
+        "bash",
+        "-c",
+        "cd packages/gate && CGO_ENABLED=0 go build -o bin/costgate-gate ./cmd/costgate-gate",
+      ]);
+    } else {
+      run("cd packages/gate && CGO_ENABLED=0 go build -o bin/costgate-gate ./cmd/costgate-gate");
+    }
+    if (gateVersion() === "unknown") {
+      console.error("[cursor:update] still failing — try: ./scripts/install-gate.sh");
+      process.exit(1);
+    }
+  }
+}
+
 function docker(argv) {
   console.error(`[cursor:update] docker ${argv.join(" ")}`);
   const r = spawnSync("node", ["scripts/docker-run.mjs", ...argv], {
@@ -44,11 +68,14 @@ function main() {
     docker(["npm", "run", "build"]);
     docker(["npm", "run", "build:gate"]);
     docker(["node", "scripts/cursor-mcp.mjs", "production"]);
+    verifyGateOnHost();
   } else {
     run("npm run build:gate");
     run("npm run build:probe");
     run("node scripts/cursor-mcp.mjs production");
   }
+
+  verifyGateOnHost();
 
   console.log("\nCostGate rebuilt (local).");
   console.log(`  Gate binary: ${GATE_BIN}`);

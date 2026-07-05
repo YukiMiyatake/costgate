@@ -50,9 +50,13 @@ function gateServer() {
     env: {
       COSTGATE_CONFIG: BACKENDS_MCP,
       COSTGATE_CLIENT: "cursor",
+      // Token reduction — filter + compress + code-mode (see docs/benchmarks.md)
+      COSTGATE_GATE_MODE: "filter",
       COSTGATE_COMPRESS: "1",
       COSTGATE_CODE_MODE: process.env.COSTGATE_CODE_MODE ?? "1",
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
+      COSTGATE_CODE_MODE_MIN_CHARS: process.env.COSTGATE_CODE_MODE_MIN_CHARS ?? "2000",
+      COSTGATE_INTENT_DYNAMIC: "1",
     },
   };
 }
