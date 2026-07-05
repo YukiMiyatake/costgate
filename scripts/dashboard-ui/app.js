@@ -45,6 +45,8 @@ async function fetchJson(path, options = {}) {
   return res.json();
 }
 
+const WORKSPACE_EXPLICIT_KEY = "costgate_workspace_explicit";
+
 let activeWorkspaceId = sessionStorage.getItem("costgate_workspace_id") || null;
 let workspaceApiAvailable = true;
 
@@ -60,7 +62,12 @@ function isWorkspaceApiError(message) {
 function clearWorkspaceSelection() {
   activeWorkspaceId = null;
   sessionStorage.removeItem("costgate_workspace_id");
+  sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
   setActiveWorkspace(null, "Global (~/.costgate)");
+}
+
+function isExplicitWorkspaceChoice() {
+  return sessionStorage.getItem(WORKSPACE_EXPLICIT_KEY) === "1";
 }
 
 function apiPath(segment) {
@@ -70,12 +77,14 @@ function apiPath(segment) {
   return `/api/${segment}`;
 }
 
-function setActiveWorkspace(id, pathLabel) {
+function setActiveWorkspace(id, pathLabel, { explicit = false } = {}) {
   activeWorkspaceId = id || null;
   if (id) {
     sessionStorage.setItem("costgate_workspace_id", id);
+    if (explicit) sessionStorage.setItem(WORKSPACE_EXPLICIT_KEY, "1");
   } else {
     sessionStorage.removeItem("costgate_workspace_id");
+    if (explicit) sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
   }
   const note = document.getElementById("workspace-path");
   if (note) note.textContent = pathLabel ?? (id ? "" : "Global (~/.costgate)");
@@ -97,29 +106,30 @@ async function loadWorkspaces() {
     for (const w of data.workspaces ?? []) {
       const opt = document.createElement("option");
       opt.value = w.id;
+      opt.dataset.path = w.path;
       const pin = w.pinned ? "📌 " : "";
       opt.textContent = `${pin}${w.label}${w.has_config ? "" : " (new)"}`;
       select.appendChild(opt);
     }
 
-    let selectedId = activeWorkspaceId;
+    let selectedId = isExplicitWorkspaceChoice() ? activeWorkspaceId : null;
     if (selectedId && ![...select.options].some((o) => o.value === selectedId)) {
       selectedId = null;
-    }
-    if (!selectedId && data.workspaces?.length === 1) {
-      selectedId = data.workspaces[0].id;
+      sessionStorage.removeItem(WORKSPACE_EXPLICIT_KEY);
     }
     if (selectedId) {
       select.value = selectedId;
       activeWorkspaceId = selectedId;
-      sessionStorage.setItem("costgate_workspace_id", selectedId);
     } else {
       select.value = "";
-      clearWorkspaceSelection();
+      activeWorkspaceId = null;
+      sessionStorage.removeItem("costgate_workspace_id");
     }
     const current = data.workspaces?.find((w) => w.id === select.value);
     if (select.value) {
       setActiveWorkspace(select.value, current?.path);
+    } else {
+      setActiveWorkspace(null, "Global (~/.costgate)");
     }
     return data;
   } catch (e) {
@@ -144,7 +154,10 @@ function setupWorkspaces() {
   if (!select) return;
   select.addEventListener("change", async () => {
     const opt = select.selectedOptions[0];
-    setActiveWorkspace(select.value || null, opt?.textContent);
+    const id = select.value || null;
+    setActiveWorkspace(id, id ? opt?.dataset?.path ?? opt?.textContent : "Global (~/.costgate)", {
+      explicit: true,
+    });
     try {
       await reload();
       await loadMarketplace();
@@ -161,6 +174,9 @@ function setupWorkspaces() {
         body: JSON.stringify({ path: path.trim() }),
       });
       await loadWorkspaces();
+      if (select.value) {
+        sessionStorage.setItem(WORKSPACE_EXPLICIT_KEY, "1");
+      }
       await reload();
     } catch (e) {
       alert(e.message);
