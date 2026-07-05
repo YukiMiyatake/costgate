@@ -19,6 +19,7 @@
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
+    "cursor:update": "node scripts/cursor-update.mjs",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",
     "cursor:mcp": "node scripts/cursor-mcp.mjs",
     "test:cursor-gate": "node test/cursor-gate-session.mjs",

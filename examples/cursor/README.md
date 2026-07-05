@@ -33,6 +33,7 @@ npm run cursor:measurement
 |---------|--------|
 | `npm run cursor:production` | `costgate-gate` ON, `costgate-probe` OFF |
 | `npm run cursor:measurement` | `costgate-probe` ON, `costgate-gate` OFF |
+| `npm run cursor:update` | `main` pull + Gate/Probe ビルド + production 設定 |
 | `npm run cursor:mcp -- status` | 現在のモードを表示 |
 
 `~/.cursor/mcp.json` は切替前に `mcp.json.bak` へバックアップされます。
