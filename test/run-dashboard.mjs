@@ -18,6 +18,7 @@ const TESTS = [
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",
   "cursor-registry-hook.test.mjs",
+  "costgate-gate-launch.test.mjs",
 ];
 
 for (const file of TESTS) {

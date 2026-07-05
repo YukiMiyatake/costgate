@@ -4,13 +4,13 @@
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   renameSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
+import { readJson } from "./read-json.mjs";
 
 /** How a workspace entered the Activity Registry. */
 export const REGISTRY_SOURCES = {
@@ -30,15 +30,6 @@ export function registryPath() {
     process.env.COSTGATE_WORKSPACE_REGISTRY ??
     join(homedir(), ".costgate", "workspace-registry.json")
   );
-}
-
-function readJson(path) {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 export function loadRegistry(path = registryPath()) {

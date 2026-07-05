@@ -5,6 +5,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { readJson } from "./read-json.mjs";
 import {
   parseProbeLogs,
   mcpMeasurableTokens,
@@ -18,6 +19,7 @@ import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
+export const DASHBOARD_VERSION = "30";
 
 export function defaultPaths() {
   const home = homedir();
@@ -38,15 +40,6 @@ export function defaultPaths() {
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
   };
-}
-
-function readJson(path) {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 function loadTierCatalogs(tierDir) {
@@ -493,7 +486,7 @@ export function buildHealth(extra = {}) {
   const paths = defaultPaths();
   return {
     status: "ok",
-    version: "phase29",
+    version: DASHBOARD_VERSION,
     read_only: false,
     writes: {
       localhost_only: true,
