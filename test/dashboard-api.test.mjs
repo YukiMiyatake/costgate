@@ -101,6 +101,13 @@ async function testHttpApi() {
     const marketplace = await fetchJson(port, "/api/marketplace");
     assert(Array.isArray(marketplace.templates), "marketplace templates");
     assert(marketplace.templates.length >= 3, "marketplace catalog");
+    assert(marketplace.catalog_available === true, "marketplace catalog_available");
+
+    const marketplaceSearch = await fetchJson(port, "/api/marketplace?q=browser");
+    assert(marketplaceSearch.templates.some((t) => t.id === "browser"), "marketplace search");
+
+    const marketplaceSlash = await fetchJson(port, "/api/marketplace/");
+    assert(Array.isArray(marketplaceSlash.templates), "marketplace trailing slash");
 
     const html = await fetch(`http://127.0.0.1:${port}/`);
     assert(html.ok, "index html");

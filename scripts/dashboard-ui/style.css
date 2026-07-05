@@ -350,6 +350,37 @@ footer {
   color: var(--text);
 }
 
+.path-suggest {
+  margin-top: 0.5rem;
+}
+
+.path-suggest-title {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.path-suggest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.path-suggest-chip {
+  text-align: left;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.path-suggest-chip:hover {
+  border-color: var(--accent);
+}
+
 .wizard-estimate {
   font-size: 0.85rem;
   color: var(--accent);

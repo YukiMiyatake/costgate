@@ -19,7 +19,7 @@ import {
   previewMcpDisable,
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
-import { searchMarketplace, addMcpFromTemplate } from "./lib/dashboard-marketplace.mjs";
+import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths } from "./lib/dashboard-marketplace.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
@@ -88,13 +88,34 @@ function authorizeWrite(req) {
   return true;
 }
 
+/** /api/marketplace/ → /api/marketplace (trailing slash broke search with 404). */
+function normalizePathname(pathname) {
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.replace(/\/+$/, "") || "/";
+  }
+  return pathname;
+}
+
+function apiNotFound(res, pathname) {
+  json(res, 404, { error: "not_found", path: pathname });
+}
+
+function resolveMarketplaceDir(controlPaths, dataOptions) {
+  return (
+    controlPaths.marketplaceDir ??
+    dataOptions.marketplaceDir ??
+    defaultPaths().marketplaceDir
+  );
+}
+
 function createDashboardServer(options = {}) {
   const dataOptions = options.dataOptions ?? {};
   const controlPaths = options.controlPaths ?? {};
+  const marketplaceDirPath = resolveMarketplaceDir(controlPaths, dataOptions);
 
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
-    const { pathname } = url;
+    const pathname = normalizePathname(url.pathname);
     const method = req.method ?? "GET";
 
     try {
@@ -128,9 +149,16 @@ function createDashboardServer(options = {}) {
         }
         if (pathname === "/api/marketplace") {
           const q = url.searchParams.get("q") ?? "";
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const pathHints = suggestAllowedPaths({ projectRoot: paths.projectRoot });
+          const templates = searchMarketplace(q, marketplaceDirPath);
           json(res, 200, {
             query: q,
-            templates: searchMarketplace(q, controlPaths.marketplaceDir),
+            catalog_dir: marketplaceDirPath,
+            catalog_available: existsSync(marketplaceDirPath),
+            project_root: pathHints.project_root,
+            path_candidates: pathHints.candidates,
+            templates,
           });
           return;
         }
@@ -144,6 +172,10 @@ function createDashboardServer(options = {}) {
               mcpPath: controlPaths.mcpPath,
             })
           );
+          return;
+        }
+        if (pathname.startsWith("/api/")) {
+          apiNotFound(res, pathname);
           return;
         }
         serveStatic(pathname, res);
@@ -167,12 +199,17 @@ function createDashboardServer(options = {}) {
             ...defaultPaths(),
             ...dataOptions,
             ...controlPaths,
+            marketplaceDir: marketplaceDirPath,
           };
           const result = addMcpFromTemplate(template, body.env ?? {}, paths);
           json(res, 200, result);
           return;
         }
 
+        if (pathname.startsWith("/api/")) {
+          apiNotFound(res, pathname);
+          return;
+        }
         res.writeHead(404);
         res.end("Not found");
         return;
@@ -220,6 +257,10 @@ function createDashboardServer(options = {}) {
           return;
         }
 
+        if (pathname.startsWith("/api/")) {
+          apiNotFound(res, pathname);
+          return;
+        }
         res.writeHead(404);
         res.end("Not found");
         return;
@@ -261,4 +302,4 @@ if (isMain) {
   main();
 }
 
-export { createDashboardServer, HOST, PORT, UI_DIR, WRITE_TOKEN };
+export { createDashboardServer, HOST, PORT, UI_DIR, WRITE_TOKEN, normalizePathname };

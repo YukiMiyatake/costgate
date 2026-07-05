@@ -31,6 +31,8 @@ export function defaultPaths() {
       process.env.COSTGATE_TOOL_OVERRIDES ??
       join(home, ".costgate", "tool-overrides.json"),
     tierDir: join(repoRoot(), "packages/gate/internal/catalog/tiers"),
+    marketplaceDir:
+      process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
   };
 }
 
@@ -487,6 +489,7 @@ export function buildHealth(extra = {}) {
       backends: existsSync(paths.configPath),
       mcp: existsSync(paths.mcpPath),
       overrides: existsSync(paths.overridesPath),
+      marketplace: existsSync(paths.marketplaceDir),
     },
   };
 }

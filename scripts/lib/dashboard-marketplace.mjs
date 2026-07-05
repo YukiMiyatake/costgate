@@ -7,11 +7,13 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { repoRoot } from "./paths.mjs";
 import { cursorMcpPath, loadMcpJson } from "./dashboard-control.mjs";
+import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
 
 export function marketplaceDir() {
   return process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace");
@@ -74,6 +76,56 @@ export function searchMarketplace(query = "", dir = marketplaceDir()) {
   return loadMarketplaceCatalog(dir)
     .filter((t) => matchesQuery(t, q))
     .map(publicTemplate);
+}
+
+/**
+ * Suggest directories for Filesystem MCP ALLOWED_PATH.
+ * Uses project root, git root, and optional COSTGATE_WORKSPACE_ROOTS.
+ */
+export function suggestAllowedPaths(options = {}) {
+  const projectRoot = resolve(resolveProjectRoot(options));
+  const candidates = [];
+  const seen = new Set();
+
+  const add = (rawPath, reason, label) => {
+    if (!rawPath) return;
+    let abs;
+    try {
+      abs = resolve(String(rawPath));
+    } catch {
+      return;
+    }
+    if (!existsSync(abs)) return;
+    try {
+      if (!statSync(abs).isDirectory()) return;
+    } catch {
+      return;
+    }
+    if (seen.has(abs)) return;
+    seen.add(abs);
+    candidates.push({ path: abs, reason, label });
+  };
+
+  add(projectRoot, "project_root", "Project root");
+
+  let dir = projectRoot;
+  while (true) {
+    if (existsSync(join(dir, ".git"))) {
+      add(dir, "git_root", "Git repository root");
+      break;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  const extraRoots = process.env.COSTGATE_WORKSPACE_ROOTS ?? "";
+  for (const raw of extraRoots.split(",")) {
+    const trimmed = raw.trim();
+    if (trimmed) add(trimmed, "workspace_root", "Workspace folder");
+  }
+
+  return { project_root: projectRoot, candidates };
 }
 
 function pctReduction(before, after) {

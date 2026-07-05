@@ -3,13 +3,14 @@
  * Phase 26: marketplace catalog + MCP add wizard tests.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import {
   searchMarketplace,
   addMcpFromTemplate,
   loadMarketplaceCatalog,
+  suggestAllowedPaths,
 } from "../scripts/lib/dashboard-marketplace.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 
@@ -54,6 +55,14 @@ function testSearch() {
   assert(pub.compare_estimate?.before_tokens > 0, "compare estimate present");
 
   console.error("[marketplace] search ok");
+}
+
+function testPathSuggestions() {
+  const hints = suggestAllowedPaths({ projectRoot: ROOT });
+  assert(hints.project_root === resolve(ROOT), "project_root resolved");
+  assert(hints.candidates.length >= 1, "at least one candidate");
+  assert(hints.candidates.some((c) => c.path === resolve(ROOT)), "repo root as candidate");
+  console.error("[marketplace] path suggestions ok");
 }
 
 function testAddGithubBackend() {
@@ -158,6 +167,12 @@ async function testHttpMarketplaceAndPost() {
     const list = await fetch(`${base}/api/marketplace?q=github`).then((r) => r.json());
     assert(list.templates?.length >= 1, "marketplace GET");
     assert(list.query === "github", "query echoed");
+    assert(list.catalog_available === true, "catalog_available");
+
+    const slash = await fetch(`${base}/api/marketplace/`).then((r) => r.json());
+    assert(slash.templates?.length >= 1, "marketplace trailing slash");
+    assert(Array.isArray(slash.path_candidates), "path_candidates array");
+    assert(slash.path_candidates.length >= 1, "path_candidates non-empty");
 
     const post = await fetch(`${base}/api/mcps`, {
       method: "POST",
@@ -185,6 +200,7 @@ async function testHttpMarketplaceAndPost() {
 async function main() {
   testCatalogLoad();
   testSearch();
+  testPathSuggestions();
   testAddGithubBackend();
   testAddFilesystemBackend();
   testAddBuiltinBrowser();

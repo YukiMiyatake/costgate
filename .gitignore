@@ -9,6 +9,7 @@ coverage/
 *.tsbuildinfo
 .costgate/
 test/fixtures/.generated/
+test/fixtures/dashboard/.generated-logs/
 
 # Go
 packages/gate/bin/

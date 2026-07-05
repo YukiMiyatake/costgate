@@ -16,8 +16,9 @@
   "required_env": [
     {
       "name": "ALLOWED_PATH",
-      "description": "Absolute path the MCP may access (e.g. your project root)",
-      "secret": false
+      "description": "MCP が読み書きできるディレクトリ（絶対パス）。通常はプロジェクトルート",
+      "secret": false,
+      "path_suggestions": true
     }
   ],
   "compare_estimate": {
