@@ -102,9 +102,11 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 
 | Plan | Scope |
 |------|-------|
-| **Free (OSS)** | Probe + Gate core |
-| **Pro** | Automated cloud reports ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
-| **Team / Enterprise** | Team dashboard, policies, custom proposals, support |
+| **Free (OSS)** | Probe + Gate core → Phase 12–15 |
+| **Pro** | Cloud reports & dashboard → Phase 16–17 ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
+| **Team / Enterprise** | Billing, policies, org dashboard → Phase 18–19 |
+
+See [docs/roadmap.md](./docs/roadmap.md) for phase details.
 
 ## Documentation
 

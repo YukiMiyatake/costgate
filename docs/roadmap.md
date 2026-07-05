@@ -36,6 +36,14 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **9. Response compression** | ✅ Done | Gate truncates oversized tool result text |
 | **10. tiktoken** | ✅ Done | `cl100k_base` token counts in Probe + reports |
 | **11. Gate releases** | ✅ Done | goreleaser + GitHub Releases + `install-gate.sh` |
+| **12. Code Mode** | 📋 Planned | Symbol/structure-aware file output in Gate |
+| **13. Accuracy eval** | 📋 Planned | Task harness — filter/compress quality regression |
+| **14. Multi-MCP catalog** | 📋 Planned | Tier rules beyond GitHub; multi-backend compare |
+| **15. Probe npm publish** | 📋 Planned | `npx @costgate/probe` public distribution |
+
+**costgate-cloud（別 repo）:** Phase 16+ — dashboard, auto-upload, Stripe / Team policies
+
+---
 
 ### Phase 1 — Probe MVP ✅
 
@@ -131,6 +139,74 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 ---
 
+## Upcoming phases (12+)
+
+Phase 1–11 で **計測 → 削減 → 配布** の OSS コアは完成。  
+Phase 12 以降は **削減の質・信頼性・適用範囲・配布** を広げ、costgate-cloud で **可視化・課金** を進める。
+
+### 優先順（推奨）
+
+```
+Phase 12 Code Mode      … 削減の質（truncate の先）
+Phase 13 Accuracy eval  … 削減の副作用を定量
+Phase 14 Multi-MCP      … GitHub 以外への拡張
+Phase 15 Probe npm      … 計測の一般配布（小さく並行可）
+Phase 16+ cloud         … Pro/Team 本番化（別 repo）
+```
+
+### Phase 12 — Code Mode 📋
+
+**目的:** ファイル読取結果を **意味を保ちつつ圧縮**（Phase 9 の truncate より高品質）。
+
+- **Gate 内蔵:** `COSTGATE_CODE_MODE=1`（compress と併用可）
+- **出力:** シンボル一覧・関連抜粋・構造サマリ（全文返却を避ける）
+- **実装:** Go + tree-sitter（または段階的に言語別 MVP）
+- **対象:** `get_file_contents` 等の大きな text 結果
+- **検証:** `compress-report` 拡張 + Code Mode ON/OFF 比較
+- **依存:** Phase 9 compress（フォールバックとして残す）
+
+### Phase 13 — Accuracy eval 📋
+
+**目的:** filter / compress / Code Mode が **タスク成功率** に与える影響を定量。
+
+- **固定タスクセット:** 例）PR 作成、ファイル特定、issue 検索
+- **比較:** Gate transparent vs filter vs compress vs Code Mode
+- **成果物:** `npm run eval`（または `test/eval/`）+ レポート JSON/markdown
+- **開始:** Phase 12 前でも compress/filter 単体 eval 可能
+- **価値:** 「削減しても使える」証明 → Pro セールス材料
+
+### Phase 14 — Multi-MCP catalog 📋
+
+**目的:** GitHub 以外の backend（browser, filesystem 等）向け Tier 分類。
+
+- **catalog:** backend ごとの Tier A/B/C 定義
+- **compare / session-report:** multi-backend 対応
+- **Gate:** 複数 backend 同時接続時の filter（将来）
+- **現状:** GitHub MCP のみ実測済み — 他 MCP は catalog + smoke から
+
+### Phase 15 — Probe npm publish 📋
+
+**目的:** Gate と同様、Probe も **`npx @costgate/probe`** で導入可能に。
+
+- **CI:** npm publish workflow（tag または manual）
+- **ドキュメント:** README Quick start を publish 版に更新
+- **工数:** 小 — Phase 12 と並行可能
+
+### Phase 16+ — costgate-cloud（別 repo）📋
+
+**目的:** Pro / Team プランの本番化。OSS 本体とは独立して進める。
+
+| 項目 | 内容 |
+|------|------|
+| **16 Dashboard** | session-report の Web UI、履歴グラフ |
+| **17 Auto-upload** | セッション終了後の metrics 自動送信 |
+| **18 Billing** | Stripe、Pro/Team プラン |
+| **19 Team policies** | 許可 MCP / ツール制限、組織ダッシュボード |
+
+Repo: [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) — Phase 6 MVP（Reporter + API + `cloud:upload`）済み。
+
+---
+
 ## Token impact (measured & estimated)
 
 CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）** が中心。請求全体への効果はセッション構成に依存する。
@@ -164,34 +240,42 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 | 対象 | OSS 現状 | 今後 |
 |------|----------|------|
-| MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter | ✅ 動的 intent（Phase 8） |
-| MCP ツール実行結果 | ✅ compress（Phase 9） | Code Mode MCP（Later） |
-| ファイル読取の出力量 | ❌ | Code Mode MCP（Later） |
+| MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter + dynamic intent | Phase 14 multi-MCP |
+| MCP ツール実行結果（truncate） | ✅ compress（Phase 9） | Phase 12 Code Mode で置き換え |
+| ファイル読取の出力量 | ❌ truncate のみ | **Phase 12 Code Mode** |
+| 削減の品質保証 | ❌ | **Phase 13 accuracy eval** |
 | 会話・ユーザープロンプト・rules | ❌ | **未計画** |
 | Serena / 直結 MCP の定義 | ❌（意図的に対象外） | — |
 
 ### Pro / Team プランとの関係
 
-| Plan | 主な価値 |
-|------|----------|
-| **Free (OSS)** | 定義削減（Gate）+ 計測（Probe） |
-| **Pro** | レポート・クラウド履歴・**Phase 7 的な全体 % 表示** |
-| **Team** | ダッシュボード・ポリシー |
+| Plan | 現状（Phase 1–11） | Phase 12+ で追加 |
+|------|-------------------|------------------|
+| **Free (OSS)** | Gate 削減 + Probe 計測 + CLI レポート | Code Mode、eval、multi-MCP |
+| **Pro** | cloud MVP（手動 upload + markdown） | Phase 16–17 ダッシュボード・自動レポート |
+| **Team** | — | Phase 18–19 課金・ポリシー・組織管理 |
 
-Pro/Team は **可視化・レポート** が中心。会話トークンそのものを削る機能はロードマップに含めていない。
+Pro/Team は **可視化・レポート・チーム管理** が中心。会話トークンそのものを削る機能はロードマップに含めていない。
 
 ---
 
-## Later (not scheduled)
+## Out of scope
 
 | Item | Notes |
 |------|-------|
-| Dynamic intent per turn | ✅ Phase 8 — usage heuristics + live tools/list refresh |
-| Response compression | ✅ Phase 9 — truncate large tool result text in Gate |
-| Code Mode MCP | Token-optimized file/symbol **output** |
 | Prompt / rules optimization | **Not scheduled** — conversation token reduction |
-| tiktoken | ✅ Phase 10 — `cl100k_base` in Probe + reports |
-| GitHub Releases + goreleaser | ✅ Phase 11 — Gate binary distribution |
+| Serena / 直結 MCP の Gate 化 | 意図的に対象外 — コード操作は Serena 直結 |
+
+---
+
+## Completed (formerly Later)
+
+| Item | Phase |
+|------|-------|
+| Dynamic intent per turn | ✅ 8 |
+| Response compression | ✅ 9 |
+| tiktoken | ✅ 10 |
+| GitHub Releases + goreleaser | ✅ 11 |
 
 ---
 
