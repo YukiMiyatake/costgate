@@ -122,6 +122,9 @@ async function runTask(modeKey, modeSpec, task) {
       `${JSON.stringify(record, null, 2)}\n`
     );
   }
+  if (task.seed_trust && env.COSTGATE_TRUST_PATH) {
+    writeFileSync(env.COSTGATE_TRUST_PATH, `${JSON.stringify(task.seed_trust, null, 2)}\n`);
+  }
   const started = Date.now();
   const stepResults = [];
 

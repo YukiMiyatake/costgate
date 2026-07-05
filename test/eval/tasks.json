@@ -297,6 +297,37 @@
           "assert_text_excludes": "ghp_1234567890abcdefghijklmnopqrst"
         }
       ]
+    },
+    {
+      "id": "shield_trust_blocks_untrusted_mcp",
+      "name": "Shield denies tools/call for untrusted backend trust",
+      "modes": ["filter_shield"],
+      "seed_trust": {
+        "version": 1,
+        "defaults": {
+          "gate_backend": "standard",
+          "direct_mcp": "restricted",
+          "unknown": "restricted"
+        },
+        "servers": {
+          "costgate-gate": { "trust": "trusted", "source": "builtin" },
+          "mock": { "trust": "untrusted" }
+        }
+      },
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "echo",
+            "arguments": {
+              "message": "hello"
+            }
+          },
+          "assert_text_contains": "[costgate-shield] tools/call denied",
+          "assert_text_excludes": "hello"
+        }
+      ]
     }
   ]
 }

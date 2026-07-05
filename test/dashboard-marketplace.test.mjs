@@ -14,6 +14,7 @@ import {
   buildCategorySummary,
   parseMarketplaceOptions,
 } from "../scripts/lib/dashboard-marketplace.mjs";
+import { loadMcpTrust } from "../scripts/lib/mcp-trust.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -105,16 +106,19 @@ function testPathSuggestions() {
 function testAddGithubBackend() {
   const dir = tempDir();
   const configPath = join(dir, "backends.json");
+  const trustPath = join(dir, "mcp-trust.json");
   writeFileSync(configPath, JSON.stringify({ backends: {} }, null, 2));
 
   const result = addMcpFromTemplate(
     "github",
     { GITHUB_TOKEN: "ghp_test_token" },
-    { configPath, marketplaceDir: MARKETPLACE }
+    { configPath, marketplaceDir: MARKETPLACE, trustPath }
   );
 
   assert(result.ok === true, "add ok");
   assert(result.backend === "github", "backend key");
+  assert(result.trust === "standard", "official install trust");
+  assert(result.trust_path === trustPath, "trust path");
   assert(result.compare_estimate?.reduction_pct > 0, "compare estimate");
   assert(result.backups.backends?.endsWith(".bak"), "backends backup");
 
@@ -125,6 +129,10 @@ function testAddGithubBackend() {
     "env mapped"
   );
 
+  const trust = loadMcpTrust({ globalPath: trustPath });
+  assert(trust.config.servers.github.trust === "standard", "github trust persisted");
+  assert(trust.config.servers.github.source === "marketplace", "github trust source");
+
   let threw = false;
   try {
     addMcpFromTemplate("github", { GITHUB_TOKEN: "x" }, { configPath, marketplaceDir: MARKETPLACE });
@@ -134,6 +142,24 @@ function testAddGithubBackend() {
   assert(threw, "duplicate backend rejected");
 
   console.error("[marketplace] add github ok");
+}
+
+function testAddCommunityBackendTrust() {
+  const dir = tempDir();
+  const configPath = join(dir, "backends.json");
+  const trustPath = join(dir, "mcp-trust.json");
+  writeFileSync(configPath, JSON.stringify({ backends: {} }, null, 2));
+
+  const result = addMcpFromTemplate(
+    "slack",
+    { SLACK_BOT_TOKEN: "xoxb-test" },
+    { configPath, marketplaceDir: MARKETPLACE, trustPath }
+  );
+
+  assert(result.trust === "restricted", "community install trust");
+  const trust = loadMcpTrust({ globalPath: trustPath });
+  assert(trust.config.servers.slack.trust === "restricted", "slack trust persisted");
+  console.error("[marketplace] add community trust ok");
 }
 
 function testAddFilesystemBackend() {
@@ -249,6 +275,7 @@ async function main() {
   testSearch();
   testPathSuggestions();
   testAddGithubBackend();
+  testAddCommunityBackendTrust();
   testAddFilesystemBackend();
   testAddBuiltinBrowser();
   await testHttpMarketplaceAndPost();
