@@ -40,6 +40,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **13. Accuracy eval** | ✅ Done | Task harness — filter/compress/code-mode regression |
 | **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
 | **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
+| **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
 
 **costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照
 
@@ -176,7 +177,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 
 | Phase | Status | Deliverable |
 |-------|--------|-------------|
-| **16. Code Mode v2** | 📋 Planned | tree-sitter outline、eval 品質アサーション |
+| **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
 | **17. Eval v2** | 📋 Planned | GitHub optional job、eval 履歴 JSON |
 | **18. DX & benchmark CI** | 📋 Planned | compress/session `--mock`、token 回帰 CI |
 | **19. Multi-MCP 実測** | 📋 Planned | filesystem / browser tier catalog + smoke |
@@ -184,14 +185,19 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 | **21. Release & 配布** | 📋 Planned | `@costgate/probe` 初回 publish、install 改善 |
 | **22. Smart intent** | 🔍 Consider | Probe ログベース intent（要スパイク） |
 
-### Phase 16 — Code Mode v2 📋
+### Phase 16 — Code Mode v2 ✅
 
-**目的:** regex outline → AST ベースで **削減率を維持しつつ情報損失を減らす**。
+**目的:** regex outline → AST / scanner ベースで **削減率を維持しつつ情報損失を減らす**。
 
-- tree-sitter（Go / TS / Python）で signature + doc comment 抽出
-- `COSTGATE_CODE_MODE_MIN_CHARS` の本番 tuning（現状 2000、benchmarks 参照）
-- eval: outline に必要シンボルが残るかのアサーション
+- **Go:** `go/parser` + `go/ast`（signature + doc comment）
+- **JS/TS:** 複数行 signature scanner（`export async function` 等）
+- **Python:** decorator + docstring + `async def` scanner
+- **`COSTGATE_CODE_MODE_ENGINE`:** `auto`（既定）| `ast` | `regex`
+- outline ヘッダに `engine: ast|regex` を出力
+- eval: `assert_symbols` で outline 品質を検証
 - Test: `npm run test:gate:codemode`, `npm run eval`
+
+> CGO なし静的ビルド（WSL）のため tree-sitter ではなく stdlib / pure-Go scanner を採用。
 
 ### Phase 17 — Eval v2 📋
 
@@ -339,7 +345,7 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 |------|----------|------------------|
 | MCP ツール定義（Gate 対象 MCP） | ✅ filter + catalog + dynamic intent | Phase 19 multi-MCP 実測 |
 | MCP ツール実行結果 | ✅ compress + code-mode | Phase 20 JSON-aware compress |
-| ファイル読取の出力量 | ✅ code-mode（regex） | Phase 16 tree-sitter outline |
+| ファイル読取の出力量 | ✅ code-mode（go/ast + scanner） | Phase 17 eval v2 |
 | 削減の品質保証 | ✅ eval（mock） | Phase 17 eval v2（GitHub optional） |
 | 計測ドリフト・回帰 | 手動 benchmarks | Phase 18 benchmark CI |
 | 会話・rules | ❌ 未計画 | Out of scope |

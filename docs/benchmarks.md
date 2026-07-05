@@ -291,6 +291,22 @@ Probe ログ（2026-07-04）サンプル:
 
 ---
 
+### Phase 16 — Code Mode v2
+
+**条件:** `COSTGATE_CODE_MODE=1`, `COSTGATE_CODE_MODE_ENGINE=auto`（既定）
+
+| 項目 | Phase 12（regex） | Phase 16（go/ast + scanner） |
+|------|-------------------|------------------------------|
+| Go 抽出 | 行 regex | `go/parser` + doc comment |
+| JS/TS | 行 regex | 複数行 signature scanner |
+| Python | 行 regex | decorator + docstring scanner |
+| outline ヘッダ | `signatures:` のみ | `engine: ast\|regex` 追加 |
+| eval 品質 | contains/excludes | + `assert_symbols` |
+
+**検証:** `npm run test:gate:codemode`（9 tests）, `npm run eval`（13/13、`code_mode_outline` に `hello`/`Config`/`engine: ast`）
+
+---
+
 ## 性能メモ
 
 | 処理 | 目安 | 備考 |
