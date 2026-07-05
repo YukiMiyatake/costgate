@@ -62,6 +62,32 @@ function testPinAndList() {
   console.error("[workspaces] pin/list ok");
 }
 
+function testSkipMissingRegistryPaths() {
+  const base = tempRoot();
+  const regPath = join(base, "registry.json");
+  writeFileSync(
+    regPath,
+    JSON.stringify(
+      {
+        version: 1,
+        workspaces: [
+          {
+            path: join(base, "ghost-missing"),
+            label: "ghost",
+            last_seen: new Date().toISOString(),
+            pinned: true,
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces.length === 0, "missing registry paths skipped");
+  console.error("[workspaces] skip missing paths ok");
+}
+
 async function testHttpScopedApi() {
   const base = tempRoot();
   const regPath = join(base, "registry.json");
@@ -120,6 +146,7 @@ async function main() {
   testEncodeDecode();
   testScopedPaths();
   testPinAndList();
+  testSkipMissingRegistryPaths();
   await testHttpScopedApi();
   console.error("[workspaces] all passed");
 }
