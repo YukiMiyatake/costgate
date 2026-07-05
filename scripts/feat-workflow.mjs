@@ -4,10 +4,12 @@
  *
  * Usage:
  *   npm run feat:start -- my-feature        # feat/my-feature
- *   npm run feat:ship -- --message "..."    # auto branch, ready PR, auto-merge queue
+ *   npm run feat:ship -- --message "..."    # commit → PR → review → merge → local main
  *   npm run feat:ship -- -m "..." --name fix/bug
  *   npm run feat:ship -- -m "..." --draft    # 手動レビュー用ドラフト PR
  *   npm run feat:ship -- -m "..." --no-auto   # auto-merge しない
+ *   npm run feat:ship -- -m "..." --no-wait   # マージ待ち・main 同期をスキップ
+ *   npm run feat:sync                       # 開いている PR のマージ待ち + main 同期
  */
 import { execSync, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -15,6 +17,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const PROTECTED = new Set(["main", "develop", "master"]);
+const DEFAULT_WAIT_TIMEOUT_MS = 20 * 60 * 1000;
+const DEFAULT_WAIT_INTERVAL_MS = 15 * 1000;
 
 function run(cmd, { silent = false, allowFail = false } = {}) {
   const r = spawnSync(cmd, {
@@ -30,6 +34,10 @@ function run(cmd, { silent = false, allowFail = false } = {}) {
 
 function runGet(cmd) {
   return run(cmd, { silent: true });
+}
+
+function sleep(ms) {
+  run(`sleep ${Math.max(1, Math.ceil(ms / 1000))}`, { silent: true });
 }
 
 function currentBranch() {
@@ -61,11 +69,16 @@ function parseArgs(argv) {
     skipPr: false,
     draft: false,
     auto: true,
+    waitMerge: true,
   };
-  const rest = argv[0] === "start" ? argv.slice(1) : argv.slice(1);
+  const rest = argv[0] === "start" || argv[0] === "sync" ? argv.slice(1) : argv.slice(1);
   if (out.cmd === "start") {
     out.name = rest[0] ?? "";
     out.prefix = rest[1] ?? "feat";
+    return out;
+  }
+  if (out.cmd === "sync") {
+    if (rest.includes("--no-wait")) out.waitMerge = false;
     return out;
   }
   for (let i = 0; i < rest.length; i++) {
@@ -79,7 +92,11 @@ function parseArgs(argv) {
     else if (a === "--draft") {
       out.draft = true;
       out.auto = false;
-    } else if (a === "--no-auto") out.auto = false;
+      out.waitMerge = false;
+    } else if (a === "--no-auto") {
+      out.auto = false;
+      out.waitMerge = false;
+    } else if (a === "--no-wait") out.waitMerge = false;
   }
   return out;
 }
@@ -121,9 +138,13 @@ function tryGet(cmd) {
 
 function prNumberForBranch(branch) {
   const raw = tryGet(
-    `gh pr list --head ${branch} --base main --state open --json number -q '.[0].number'`
+    `gh pr list --head ${branch} --base main --json number -q '.[0].number'`
   );
   return raw ? Number(raw) : 0;
+}
+
+function prViewJson(prNum, query) {
+  return tryGet(`gh pr view ${prNum} --json ${query}`);
 }
 
 function queueAutoMerge(prNum) {
@@ -138,7 +159,7 @@ function openPr(branch, opts) {
     const url = tryGet(`gh pr view ${existingNum} --json url -q .url`);
     console.error(`[feat] PR already open: ${url || existingNum}`);
     if (opts.auto && !opts.draft) queueAutoMerge(existingNum);
-    return;
+    return existingNum;
   }
 
   const title = opts.title || opts.message.split("\n")[0] || branch;
@@ -160,9 +181,65 @@ function openPr(branch, opts) {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  if (opts.auto && !opts.draft) {
-    queueAutoMerge(prNumberForBranch(branch));
+  const prNum = prNumberForBranch(branch);
+  if (opts.auto && !opts.draft) queueAutoMerge(prNum);
+  return prNum;
+}
+
+function ciFailed(prNum) {
+  const raw = prViewJson(prNum, "statusCheckRollup");
+  if (!raw) return false;
+  try {
+    const checks = JSON.parse(raw).statusCheckRollup ?? [];
+    return checks.some((c) => c.conclusion === "FAILURE");
+  } catch {
+    return false;
   }
+}
+
+function waitForPrMerge(prNum, { timeoutMs = DEFAULT_WAIT_TIMEOUT_MS } = {}) {
+  const start = Date.now();
+  console.error(`[feat] waiting for PR #${prNum} to merge (CI + auto-merge)...`);
+
+  while (Date.now() - start < timeoutMs) {
+    const state = tryGet(`gh pr view ${prNum} --json state -q .state`);
+    if (state === "MERGED") {
+      const url = tryGet(`gh pr view ${prNum} --json url -q .url`);
+      console.error(`[feat] merged: ${url || `#${prNum}`}`);
+      return;
+    }
+    if (state === "CLOSED") {
+      console.error(`[feat] PR #${prNum} closed without merge`);
+      process.exit(1);
+    }
+    if (ciFailed(prNum)) {
+      console.error(`[feat] CI failed on PR #${prNum}. Fix and push again.`);
+      process.exit(1);
+    }
+    sleep(DEFAULT_WAIT_INTERVAL_MS);
+  }
+
+  console.error(`[feat] timeout (${timeoutMs / 60000} min) waiting for PR #${prNum}`);
+  console.error("[feat] Check GitHub Actions. Resume with: npm run feat:sync");
+  process.exit(1);
+}
+
+function syncLocalMain(featureBranch) {
+  console.error("[feat] syncing local main...");
+  run("git fetch origin main");
+  run("git checkout main");
+  run("git pull origin main");
+  if (featureBranch && !PROTECTED.has(featureBranch)) {
+    run(`git branch -d ${featureBranch}`, { allowFail: true });
+  }
+  const head = runGet("git log -1 --oneline");
+  console.error(`[feat] local main: ${head}`);
+}
+
+function finishPipeline(branch, opts, prNum) {
+  if (!opts.waitMerge || !prNum) return;
+  waitForPrMerge(prNum);
+  syncLocalMain(branch);
 }
 
 function cmdStart(opts) {
@@ -180,7 +257,7 @@ function cmdStart(opts) {
 
 function cmdShip(opts) {
   if (!opts.message) {
-    console.error("Usage: npm run feat:ship -- --message \"コミットメッセージ\" [--name slug]");
+    console.error('Usage: npm run feat:ship -- --message "コミットメッセージ" [--name slug]');
     process.exit(1);
   }
   if (!hasStaged()) {
@@ -193,11 +270,35 @@ function cmdShip(opts) {
   run(`git commit -m '${msgEscaped}'`);
   run(`git push -u origin ${branch}`);
 
+  let prNum = 0;
   if (!opts.skipPr) {
-    openPr(branch, opts);
+    prNum = openPr(branch, opts);
   }
 
-  console.log(`[feat] done: ${branch}`);
+  finishPipeline(branch, opts, prNum);
+  console.log(`[feat] done: ${currentBranch()}`);
+}
+
+function cmdSync(opts) {
+  const branch = currentBranch();
+  if (PROTECTED.has(branch)) {
+    run("git fetch origin main");
+    run("git pull origin main");
+    console.log(`[feat] main: ${runGet("git log -1 --oneline")}`);
+    return;
+  }
+
+  const prNum = prNumberForBranch(branch);
+  if (!prNum) {
+    console.error(`[feat] no open PR for branch ${branch}`);
+    process.exit(1);
+  }
+
+  if (opts.waitMerge) {
+    waitForPrMerge(prNum);
+  }
+  syncLocalMain(branch);
+  console.log(`[feat] done: ${currentBranch()}`);
 }
 
 function main() {
@@ -206,8 +307,10 @@ function main() {
     cmdStart(opts);
   } else if (opts.cmd === "ship") {
     cmdShip(opts);
+  } else if (opts.cmd === "sync") {
+    cmdSync(opts);
   } else {
-    console.error("Unknown command. Use: start | ship");
+    console.error("Unknown command. Use: start | ship | sync");
     process.exit(1);
   }
 }

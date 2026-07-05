@@ -8,15 +8,17 @@ alwaysApply: true
 
 ## 必須（エージェント向け）
 
-**コミット・push・PR は `npm run feat:ship` を使う。** `main` 上にいる場合は `feat/*` ブランチを自動作成する。デフォルトで ready PR + auto-merge キュー（CI 通過後 squash）。
+**コミット・push・PR は `npm run feat:ship` を使う。** デフォルトで **PR → CI/自動レビュー → auto-merge → ローカル main 同期** まで実行。
 
 ```bash
 git add <files>
 npm run feat:ship -- --message "日本語のコミットメッセージ"
-# ブランチ名を指定する場合
-npm run feat:ship -- -m "…" --name feat/short-name
-# 手動レビューが必要な場合
+# マージ待ちをスキップ
+npm run feat:ship -- -m "…" --no-wait
+# 手動レビュー
 npm run feat:ship -- -m "…" --draft
+# マージ後に main 同期だけ
+npm run feat:sync
 ```
 
 - `main` / `develop` への直接 push 禁止（`.githooks/pre-push`）

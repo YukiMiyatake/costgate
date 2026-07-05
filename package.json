@@ -26,6 +26,7 @@
     "hooks:install": "node scripts/install-git-hooks.mjs",
     "feat:start": "node scripts/feat-workflow.mjs start",
     "feat:ship": "node scripts/feat-workflow.mjs ship",
+    "feat:sync": "node scripts/feat-workflow.mjs sync",
     "cloud:upload": "node scripts/cloud-upload.mjs",
     "docker:build": "docker compose -f docker-compose.dev.yml run --rm dev npm run build",
     "docker:gate": "docker compose -f docker-compose.dev.yml run --rm go go build -o packages/gate/bin/costgate-gate ./packages/gate/cmd/costgate-gate",
