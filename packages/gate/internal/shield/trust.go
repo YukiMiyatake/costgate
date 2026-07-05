@@ -140,6 +140,9 @@ func resolveTrustLevel(cfg trustConfig, backendName string) string {
 	if entry, ok := cfg.Servers[backendName]; ok {
 		return entry.Trust
 	}
+	if IsOfficialMarketplace(backendName) {
+		return "standard"
+	}
 	return cfg.Defaults.GateBackend
 }
 
@@ -164,7 +167,4 @@ func ModeLabel(mode Mode) string {
 	}
 }
 
-// IsOfficialMarketplace is a stub for Phase 31e; official templates default to standard.
-func IsOfficialMarketplace(_ string) bool {
-	return false
-}
+// IsOfficialMarketplace is implemented in marketplace.go (Phase 31e).

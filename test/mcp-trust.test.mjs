@@ -14,6 +14,8 @@ import {
   buildMcpTrustApiPayload,
   normalizeTrustConfig,
   patchMcpTrust,
+  defaultTrustForMarketplaceInstall,
+  applyMarketplaceInstallTrust,
   MCP_TRUST_LEVELS,
 } from "../scripts/lib/mcp-trust.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
@@ -272,12 +274,39 @@ async function testHttpApi() {
   }
 }
 
+function testMarketplaceInstallTrust() {
+  assert(defaultTrustForMarketplaceInstall({ official: true }) === "standard", "official → standard");
+  assert(defaultTrustForMarketplaceInstall({ official: false }) === "restricted", "community → restricted");
+  assert(defaultTrustForMarketplaceInstall({}) === "restricted", "missing official → restricted");
+
+  const base = tempRoot();
+  const trustPath = join(base, "mcp-trust.json");
+  applyMarketplaceInstallTrust(
+    "github",
+    { id: "github", backend_key: "github", official: true },
+    { trustPath }
+  );
+  const official = loadMcpTrust({ globalPath: trustPath });
+  assert(official.config.servers.github.trust === "standard", "install official trust");
+  assert(official.config.servers.github.source === "marketplace", "install source");
+
+  applyMarketplaceInstallTrust(
+    "slack",
+    { id: "slack", backend_key: "slack", official: false },
+    { trustPath }
+  );
+  const community = loadMcpTrust({ globalPath: trustPath });
+  assert(community.config.servers.slack.trust === "restricted", "install community trust");
+  console.error("[mcp-trust] marketplace install defaults ok");
+}
+
 async function main() {
   testDefaults();
   testProjectMerge();
   testResolveOrder();
   testEnrichMcps();
   testBuildDashboardDataTrust();
+  testMarketplaceInstallTrust();
   testPatchGlobal();
   testPatchProjectScoped();
   testPatchValidation();

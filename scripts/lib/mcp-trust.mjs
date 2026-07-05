@@ -276,6 +276,31 @@ export function saveMcpTrust(config, paths = {}) {
   return { path, config: payload };
 }
 
+/** Default trust when installing from Marketplace (Phase 31e). */
+export function defaultTrustForMarketplaceInstall(template) {
+  return template?.official === true ? "standard" : "restricted";
+}
+
+/** Write marketplace install trust into mcp-trust.json (global or project-scoped). */
+export function applyMarketplaceInstallTrust(serverName, template, paths = {}) {
+  const trust = defaultTrustForMarketplaceInstall(template);
+  const entry = normalizeServerEntry({
+    trust,
+    source: "marketplace",
+    backend_key: template?.backend_key ?? serverName,
+  });
+  if (!entry) {
+    throw new Error(`invalid marketplace trust for ${serverName}`);
+  }
+  const trustPaths = {
+    globalPath: paths.globalPaths?.trustPath ?? paths.trustPath ?? globalMcpTrustPath(),
+    projectPath: paths.scoped && paths.projectRoot ? projectMcpTrustPath(paths.projectRoot) : paths.projectPath,
+    projectRoot: paths.projectRoot,
+    scoped: Boolean(paths.scoped && paths.projectRoot),
+  };
+  return patchMcpTrust({ servers: { [serverName]: entry } }, trustPaths);
+}
+
 export function patchMcpTrust(partial, paths = {}) {
   const serverPatches = collectServerPatches(partial);
   const hasDefaults = partial.defaults && typeof partial.defaults === "object";

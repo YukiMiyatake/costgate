@@ -131,6 +131,7 @@ function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
     overridesPath: workspaceCtx.overridesPath,
     disabledPath: workspaceCtx.disabledPath,
     gateSettingsPath: workspaceCtx.gateSettingsPath,
+    trustPath: workspaceCtx.trustPath,
     usagePath: workspaceCtx.usagePath,
     logDir: workspaceCtx.logDir,
     gateLogDir: workspaceCtx.gateLogDir,

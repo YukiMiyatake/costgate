@@ -14,6 +14,7 @@ import { repoRoot } from "./paths.mjs";
 import { cursorMcpPath, loadMcpJson } from "./dashboard-control.mjs";
 import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
 import { readJson } from "./read-json.mjs";
+import { applyMarketplaceInstallTrust, defaultTrustForMarketplaceInstall } from "./mcp-trust.mjs";
 
 export function marketplaceDir() {
   return process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace");
@@ -359,6 +360,9 @@ export function addMcpFromTemplate(templateId, userEnv = {}, paths = {}) {
     data.backends[backendKey] = entry;
     saveBackendsJson(data, configPath);
     result.backend = backendKey;
+    const trustSaved = applyMarketplaceInstallTrust(backendKey, template, paths);
+    result.trust = defaultTrustForMarketplaceInstall(template);
+    result.trust_path = trustSaved.path;
   }
 
   if (template.mcp_snippet) {
