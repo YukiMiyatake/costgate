@@ -10,6 +10,7 @@ import (
 
 func TestResolveStaticOnlyWhenDynamicDisabled(t *testing.T) {
 	t.Setenv("COSTGATE_INTENT_DYNAMIC", "0")
+	t.Setenv("COSTGATE_INTENT_PROMPT", "0")
 	store := &usage.Store{
 		Tools: map[string]usage.ToolStats{
 			"merge_pull_request": {CallCount: 3, LastUsed: time.Now().UTC()},
@@ -23,6 +24,8 @@ func TestResolveStaticOnlyWhenDynamicDisabled(t *testing.T) {
 
 func TestResolveMergesRecentUsage(t *testing.T) {
 	t.Setenv("COSTGATE_INTENT_DYNAMIC", "1")
+	t.Setenv("COSTGATE_INTENT_PROMPT", "0")
+	t.Setenv("COSTGATE_INTENT_PROBE", "0")
 	store := &usage.Store{
 		Tools: map[string]usage.ToolStats{
 			"merge_pull_request": {CallCount: 1, LastUsed: time.Now().UTC()},

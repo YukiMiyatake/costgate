@@ -21,7 +21,7 @@ const groups = [
       ["cursor:measurement", "Probe 計測モード"],
       ["cursor:mcp -- status", "現在の mcp.json モード確認"],
       ["cursor:update", "Gate/Probe 再ビルド + production 設定更新"],
-      ["cursor:registry", "Activity Registry 用 Cursor hook インストール"],
+      ["cursor:registry", "Cursor hooks インストール（registry + prompt-intent）"],
     ],
   },
   {

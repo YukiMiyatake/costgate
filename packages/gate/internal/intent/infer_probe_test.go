@@ -13,6 +13,7 @@ import (
 func TestResolveProbeLogKeywords(t *testing.T) {
 	t.Setenv("COSTGATE_INTENT_DYNAMIC", "1")
 	t.Setenv("COSTGATE_INTENT_PROBE", "1")
+	t.Setenv("COSTGATE_INTENT_PROMPT", "0")
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "probe-2026-07-05.jsonl")
