@@ -41,7 +41,9 @@ func newFilterRuntime(
 		static:  staticIntent,
 		live:    map[string]bool{},
 	}
-	meta.Register(server, cat, tiers, backend, r.record)
+	meta.Register(server, cat, tiers, backend, r.record, func(name string) bool {
+		return r.live[name]
+	})
 	r.syncTools()
 	return r
 }

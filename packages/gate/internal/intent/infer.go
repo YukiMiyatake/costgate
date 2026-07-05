@@ -1,10 +1,10 @@
 package intent
 
 import (
-	"os"
 	"strings"
 	"time"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/env"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 )
 
@@ -15,16 +15,7 @@ const (
 
 // DynamicEnabled reports whether usage-based intent inference is active.
 func DynamicEnabled() bool {
-	v := strings.TrimSpace(os.Getenv("COSTGATE_INTENT_DYNAMIC"))
-	if v == "" {
-		return true
-	}
-	switch strings.ToLower(v) {
-	case "0", "false", "no", "off":
-		return false
-	default:
-		return true
-	}
+	return env.Bool("COSTGATE_INTENT_DYNAMIC", true)
 }
 
 // Resolve merges static COSTGATE_INTENT with recent tool usage keywords.

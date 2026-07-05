@@ -4,6 +4,7 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { countTokens, bytesToTokens } from "./tokens.mjs";
+import { summarizeTools as probeSummarizeTools } from "@costgate/probe/metrics";
 
 export function createMcpClient(proc, { timeoutMs = 120000 } = {}) {
   let id = 0;
@@ -76,25 +77,9 @@ export async function withMcpProcess(command, args, env, fn, options = {}) {
   }
 }
 
-/** Token estimate via tiktoken cl100k_base (matches @costgate/probe). */
+/** Token estimate via tiktoken cl100k_base (from @costgate/probe). */
 export function summarizeTools(tools) {
-  const stats = tools.map((tool) => {
-    const serialized = JSON.stringify(tool);
-    const schema_bytes = Buffer.byteLength(serialized, "utf8");
-    return {
-      name: tool.name,
-      schema_bytes,
-      estimated_tokens: countTokens(serialized),
-    };
-  });
-  const total_schema_bytes = stats.reduce((s, t) => s + t.schema_bytes, 0);
-  const estimated_tokens = stats.reduce((s, t) => s + t.estimated_tokens, 0);
-  return {
-    tool_count: stats.length,
-    total_schema_bytes,
-    estimated_tokens: estimated_tokens || bytesToTokens(total_schema_bytes),
-    tools: stats,
-  };
+  return probeSummarizeTools(tools);
 }
 
 export function pctReduction(before, after) {

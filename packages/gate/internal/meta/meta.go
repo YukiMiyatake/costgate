@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
-	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/toolcall"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -47,13 +47,21 @@ var invokeSchema = json.RawMessage(`{
 }`)
 
 // Register adds discover_tools and invoke_tool to the server.
-func Register(server *mcp.Server, cat *catalog.Catalog, tiers map[string]filter.Tier, backend *mcp.ClientSession, onInvoke func(tool string)) {
+// isListed reports whether a tool is currently in tools/list (live exposure).
+func Register(
+	server *mcp.Server,
+	cat *catalog.Catalog,
+	tiers map[string]filter.Tier,
+	backend *mcp.ClientSession,
+	onInvoke func(tool string),
+	isListed func(name string) bool,
+) {
 	server.AddTool(&mcp.Tool{
 		Name:        ToolDiscover,
 		Description: "Find hidden backend tools by keyword. Use invoke_tool to call tools not in tools/list.",
 		InputSchema: discoverSchema,
 	}, func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return handleDiscover(cat, tiers, req.Params.Arguments)
+		return handleDiscover(cat, tiers, isListed, req.Params.Arguments)
 	})
 
 	server.AddTool(&mcp.Tool{
@@ -65,7 +73,12 @@ func Register(server *mcp.Server, cat *catalog.Catalog, tiers map[string]filter.
 	})
 }
 
-func handleDiscover(cat *catalog.Catalog, tiers map[string]filter.Tier, raw json.RawMessage) (*mcp.CallToolResult, error) {
+func handleDiscover(
+	cat *catalog.Catalog,
+	tiers map[string]filter.Tier,
+	isListed func(name string) bool,
+	raw json.RawMessage,
+) (*mcp.CallToolResult, error) {
 	var args struct {
 		Query string `json:"query"`
 		Limit int    `json:"limit"`
@@ -85,11 +98,15 @@ func handleDiscover(cat *catalog.Catalog, tiers map[string]filter.Tier, raw json
 	out := make([]item, 0, len(matches))
 	for _, tool := range matches {
 		tier := tiers[tool.Name]
+		inList := false
+		if isListed != nil {
+			inList = isListed(tool.Name)
+		}
 		out = append(out, item{
 			Name:        tool.Name,
 			Description: tool.Description,
 			Tier:        tier.String(),
-			InList:      tier == filter.TierA || tier == filter.TierB,
+			InList:      inList,
 		})
 	}
 	payload, err := json.MarshalIndent(out, "", "  ")
@@ -119,18 +136,7 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.Client
 	if _, ok := cat.Get(args.Name); !ok {
 		return nil, fmt.Errorf("unknown tool %q", args.Name)
 	}
-	params := &mcp.CallToolParams{Name: args.Name}
-	if len(args.Arguments) > 0 {
-		var parsed any
-		if err := json.Unmarshal(args.Arguments, &parsed); err != nil {
-			return nil, err
-		}
-		params.Arguments = parsed
-	}
-	result, err := backend.CallTool(ctx, params)
-	if err == nil && result != nil {
-		result, _ = compress.MaybeCompress(args.Name, result)
-	}
+	result, err := toolcall.Call(ctx, backend, args.Name, args.Arguments)
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
 	}

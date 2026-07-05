@@ -4,6 +4,11 @@
   "description": "CostGate Probe — MCP measurement proxy",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./tokens": "./dist/tokens.js",
+    "./metrics": "./dist/metrics.js"
+  },
   "bin": {
     "costgate-probe": "dist/index.js"
   },

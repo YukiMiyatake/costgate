@@ -8,8 +8,6 @@
  *   npm run compress-report -- --tool get_file_contents --skip-tool-call
  */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   withMcpProcess,
   summarizeTools,
@@ -17,13 +15,9 @@ import {
   pctReduction,
 } from "./lib/mcp-client.mjs";
 import { parseProbeLogs, bytesToTokens } from "./lib/parse-probe-logs.mjs";
+import { baseGateEnv, gateBin } from "./lib/paths.mjs";
 
-const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const GATE_BIN =
-  process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
-const CONFIG =
-  process.env.COSTGATE_CONFIG ??
-  join(process.env.HOME ?? "", ".costgate/backends.json");
+const GATE_BIN = gateBin();
 
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
@@ -39,12 +33,10 @@ const DEFAULT_INVOKE = {
   },
 };
 
-const baseEnv = {
-  COSTGATE_CONFIG: CONFIG,
-  COSTGATE_CLIENT: "compress-report",
+const baseEnv = baseGateEnv("compress-report", {
   COSTGATE_GATE_MODE: "filter",
   COSTGATE_INTENT_DYNAMIC: "0",
-};
+});
 
 async function measureDefinitions() {
   const before = await withMcpProcess(

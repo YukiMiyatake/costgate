@@ -10,16 +10,11 @@
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { withMcpProcess, summarizeTools, pctReduction } from "./lib/mcp-client.mjs";
+import { baseGateEnv, gateBin, probeJs } from "./lib/paths.mjs";
 
-const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const GATE_BIN =
-  process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
-const PROBE_JS = join(ROOT, "packages/probe/dist/index.js");
-const CONFIG =
-  process.env.COSTGATE_CONFIG ??
-  join(process.env.HOME ?? "", ".costgate/backends.json");
+const GATE_BIN = gateBin();
+const PROBE_JS = probeJs();
 
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
@@ -28,10 +23,7 @@ const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
 
-const baseEnv = {
-  COSTGATE_CONFIG: CONFIG,
-  COSTGATE_CLIENT: "compare-report",
-};
+const baseEnv = baseGateEnv("compare-report");
 
 async function measureGateTransparent() {
   return withMcpProcess(

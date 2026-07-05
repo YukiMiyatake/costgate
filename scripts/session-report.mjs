@@ -9,8 +9,6 @@
  *   npm run session-report -- --skip-compare   # logs only, no live Gate measure
  */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   parseProbeLogs,
   mcpMeasurableTokens,
@@ -22,13 +20,9 @@ import {
   summarizeTools,
   pctReduction,
 } from "./lib/mcp-client.mjs";
+import { baseGateEnv, gateBin } from "./lib/paths.mjs";
 
-const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const GATE_BIN =
-  process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
-const CONFIG =
-  process.env.COSTGATE_CONFIG ??
-  join(process.env.HOME ?? "", ".costgate/backends.json");
+const GATE_BIN = gateBin();
 
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
@@ -37,10 +31,7 @@ const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
 
-const baseEnv = {
-  COSTGATE_CONFIG: CONFIG,
-  COSTGATE_CLIENT: "session-report",
-};
+const baseEnv = baseGateEnv("session-report");
 
 async function measureGate(mode) {
   return withMcpProcess(

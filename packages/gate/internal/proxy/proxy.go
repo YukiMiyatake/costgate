@@ -9,6 +9,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -71,7 +72,7 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 func newServer() *mcp.Server {
 	return mcp.NewServer(&mcp.Implementation{
 		Name:    "costgate-gate",
-		Version: "0.4.0",
+		Version: version.Version,
 	}, nil)
 }
 

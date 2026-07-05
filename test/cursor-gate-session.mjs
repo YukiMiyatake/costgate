@@ -2,24 +2,16 @@
 /**
  * Simulates a Cursor MCP session against costgate-gate (filter mode).
  */
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { withMcpProcess, summarizeTools } from "../scripts/lib/mcp-client.mjs";
+import { baseGateEnv, gateBin } from "../scripts/lib/paths.mjs";
 
-const GATE_BIN =
-  process.env.COSTGATE_GATE_BIN ??
-  join(process.cwd(), "packages/gate/bin/costgate-gate");
-
-const env = {
-  COSTGATE_CONFIG:
-    process.env.COSTGATE_CONFIG ?? join(homedir(), ".costgate/backends.json"),
-  COSTGATE_CLIENT: "cursor",
+const env = baseGateEnv("cursor", {
   COSTGATE_GATE_MODE: "filter",
-};
+});
 
 async function main() {
   const summary = await withMcpProcess(
-    GATE_BIN,
+    gateBin(),
     [],
     env,
     async (client) => {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/env"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -14,16 +15,7 @@ const defaultMaxChars = 12000
 
 // Enabled reports whether response compression is active.
 func Enabled() bool {
-	v := strings.TrimSpace(os.Getenv("COSTGATE_COMPRESS"))
-	if v == "" {
-		return false
-	}
-	switch strings.ToLower(v) {
-	case "0", "false", "no", "off":
-		return false
-	default:
-		return true
-	}
+	return env.Bool("COSTGATE_COMPRESS", false)
 }
 
 // MaxChars returns the max total text characters kept in a tool result.
