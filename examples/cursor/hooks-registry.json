@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "workspaceOpen": [
+      {
+        "command": "node /path/to/costgate/scripts/cursor-registry-hook.mjs",
+        "timeout": 30
+      }
+    ]
+  }
+}
