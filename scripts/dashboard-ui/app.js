@@ -32,8 +32,15 @@ async function fetchJson(path, options = {}) {
     headers: { ...dashHeaders(), ...options.headers },
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? `${path}: ${res.status}`);
+    let err = {};
+    const ct = res.headers.get("content-type") ?? "";
+    if (ct.includes("application/json")) {
+      err = await res.json().catch(() => ({}));
+    } else {
+      const text = await res.text().catch(() => "");
+      if (text) err = { error: text };
+    }
+    throw new Error(err.error ?? err.path ?? `${path}: HTTP ${res.status}`);
   }
   return res.json();
 }
@@ -249,6 +256,41 @@ function renderRecommendations(data) {
 }
 
 let selectedTemplate = null;
+let wizardContext = { path_candidates: [], project_root: null };
+
+function renderPathCandidates(input, spec) {
+  if (!spec.path_suggestions && spec.name !== "ALLOWED_PATH") return;
+  const candidates = wizardContext.path_candidates ?? [];
+  if (!candidates.length) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "path-suggest";
+  const title = document.createElement("div");
+  title.className = "path-suggest-title";
+  title.textContent = "Suggested paths (click to use):";
+  wrap.appendChild(title);
+
+  const list = document.createElement("div");
+  list.className = "path-suggest-list";
+  for (const c of candidates) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "path-suggest-chip";
+    btn.title = c.path;
+    btn.textContent = `${c.label}: ${c.path}`;
+    btn.onclick = () => {
+      input.value = c.path;
+      input.focus();
+    };
+    list.appendChild(btn);
+  }
+  wrap.appendChild(list);
+  input.parentElement.appendChild(wrap);
+
+  if (!input.value && candidates[0]?.path) {
+    input.value = candidates[0].path;
+  }
+}
 
 function renderCompareEstimate(est) {
   if (!est) return "Cost estimate unavailable.";
@@ -301,6 +343,7 @@ function openWizard(template) {
     input.dataset.envName = spec.name;
     label.innerHTML = `<span>${spec.name}</span>`;
     label.appendChild(input);
+    renderPathCandidates(input, spec);
     envFields.appendChild(label);
   }
   if (!(template.required_env ?? []).length) {
@@ -331,8 +374,20 @@ function closeWizard() {
 }
 
 async function loadMarketplace(query = "") {
-  const q = encodeURIComponent(query);
-  const data = await fetchJson(`/api/marketplace${q ? `?q=${q}` : ""}`);
+  const trimmed = String(query).trim();
+  const params = new URLSearchParams();
+  if (trimmed) params.set("q", trimmed);
+  const qs = params.toString();
+  const data = await fetchJson(`/api/marketplace${qs ? `?${qs}` : ""}`);
+  if (data.catalog_available === false) {
+    throw new Error(
+      `Marketplace catalog not found (${data.catalog_dir ?? "unknown"}). Run dashboard from the costgate repo or set COSTGATE_MARKETPLACE_DIR.`
+    );
+  }
+  wizardContext = {
+    project_root: data.project_root ?? null,
+    path_candidates: data.path_candidates ?? [],
+  };
   renderMarketplaceResults(data.templates ?? []);
 }
 
@@ -342,7 +397,10 @@ function setupWizard() {
   const runSearch = () => loadMarketplace(searchInput.value.trim()).catch((e) => alert(e.message));
   searchBtn.onclick = runSearch;
   searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") runSearch();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
   });
 
   document.getElementById("wizard-back").onclick = closeWizard;

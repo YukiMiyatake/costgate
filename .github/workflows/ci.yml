@@ -59,9 +59,7 @@ jobs:
         run: npm run test:filesystem
 
       - name: Dashboard tests
-        run: |
-          npm run test:dashboard
-          npm run test:dashboard:control
+        run: npm run test:dashboard:all
 
       - name: Script syntax check
         run: |
@@ -80,8 +78,13 @@ jobs:
           node --check scripts/dashboard-server.mjs
           node --check scripts/lib/dashboard-data.mjs
           node --check scripts/lib/dashboard-control.mjs
+          node --check scripts/lib/dashboard-marketplace.mjs
+          node --check scripts/lib/dashboard-project-recommend.mjs
           node --check test/dashboard-api.test.mjs
           node --check test/dashboard-control.test.mjs
+          node --check test/dashboard-marketplace.test.mjs
+          node --check test/dashboard-project-recommend.test.mjs
+          node --check test/dashboard-routes.test.mjs
           node --check test/run.mjs
           node --check test/eval/run.mjs
           node --check test/fixtures/mock-filesystem-mcp/index.mjs
