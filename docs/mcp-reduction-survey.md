@@ -3,7 +3,7 @@
 CostGate の製品方針（**MCP レイヤのトークン削減**）に向けた調査メモ。  
 最終更新: **2026-07-05**
 
-関連: [benchmarks.md](./benchmarks.md)（実測値） / [roadmap.md](./roadmap.md) Phase 23–28 Dashboard / [dev/dashboard.md](./dev/dashboard.md)
+関連: [benchmarks.md](./benchmarks.md)（実測値） / [roadmap.md](./roadmap.md) Phase 23–29 Dashboard / [dev/dashboard.md](./dev/dashboard.md)
 
 ---
 
@@ -168,7 +168,7 @@ mcp.json 典型例:
 | **P2** | Filesystem | 実 MCP compare を CI に追加 |
 | **P2** | Fetch / 検索系 | variable compress パターンの eval タスク追加 |
 | **P3** | Azure / Docker | ドキュメント + サンプル tier（採用者向け） |
-| **P3** | SaaS（Notion, Linear…） | marketplace catalog（Phase 26）でキュレーション |
+| **P3** | SaaS（Notion, Linear…） | marketplace catalog（Phase 29a）でキュレーション |
 
 ---
 
@@ -227,4 +227,4 @@ npm run compare -- --intent "your workflow"
 2. **CostGate は GitHub で固定 ~70%・変動 ~80% を実証済み**。同じパターンを Browser / Remote GitHub に展開する ROI が高い。
 3. **Fetch / 検索系は固定は小さいが変動が大きい** — compress ・ JSON summary の延長で価値あり。
 4. **複数 MCP の同時 ON は固定コストの足し算** — Dashboard（Phase 23–27）で「重複・未使用・高コスト」の可視化が製品差別化になる。
-5. **catalog + 実測のループ**を MCP 種別ごとに回すことが、マーケットプレイス（Phase 26）の信頼性の土台になる。
+5. **catalog + 実測のループ**を MCP 種別ごとに回すことが、マーケットプレイス（Phase 29）の信頼性の土台になる。

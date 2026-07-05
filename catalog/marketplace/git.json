@@ -1,0 +1,35 @@
+{
+  "id": "git",
+  "name": "Git MCP",
+  "description": "Local repository operations — status, diff, log, show — via @modelcontextprotocol/server-git. Gate-backed via backends.json.",
+  "category": "devtools",
+  "category_label": "DevTools & VCS",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+  "tags": ["git", "vcs", "diff", "log", "commit"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "git",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "${REPO_PATH}"],
+    "env": {}
+  },
+  "required_env": [
+    {
+      "name": "REPO_PATH",
+      "description": "Absolute path to the git repository root",
+      "secret": false,
+      "path_suggestions": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 10,
+    "before_tokens": 850,
+    "after_tokens": 420,
+    "source": "mcp-reduction-survey — git log/show variable, tier estimate"
+  }
+}

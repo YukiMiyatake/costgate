@@ -1,0 +1,28 @@
+{
+  "id": "memory",
+  "name": "Memory MCP",
+  "description": "Persistent knowledge graph memory via @modelcontextprotocol/server-memory. Low fixed cost; variable graph JSON benefits from compress.",
+  "category": "ai",
+  "category_label": "AI & Memory",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+  "tags": ["memory", "knowledge-graph", "persistence", "ai"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "memory",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-memory"],
+    "env": {}
+  },
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 4,
+    "before_tokens": 320,
+    "after_tokens": 180,
+    "source": "mcp-reduction-survey — memory low fixed, graph JSON variable"
+  }
+}

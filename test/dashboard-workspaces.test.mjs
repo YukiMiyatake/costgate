@@ -107,7 +107,7 @@ async function testHttpScopedApi() {
     assert(body.workspace_path === ws, "workspace path echoed");
 
     const health = await fetch(`${origin}/api/health`).then((r) => r.json());
-    assert(health.version === "phase28", "phase28 health");
+    assert(health.version === "phase29", "phase29 health");
 
     console.error("[workspaces] HTTP scoped API ok");
   } finally {

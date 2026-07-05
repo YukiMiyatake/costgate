@@ -378,6 +378,56 @@ function renderCompareEstimate(est) {
   return `~${fmt(est.before_tokens)} → ~${fmt(est.after_tokens)} tokens/tools/list (${est.reduction_pct}% reduction, ${est.tool_count ?? "?"} tools)`;
 }
 
+function renderMarketplaceBadges(t) {
+  const parts = [];
+  if (t.installed) parts.push('<span class="badge badge-installed">Installed</span>');
+  if (t.official) parts.push('<span class="badge badge-official">Official</span>');
+  if (t.gate_ready) parts.push('<span class="badge badge-gate">Gate ready</span>');
+  if (t.popularity === "high") parts.push('<span class="badge badge-pop">Popular</span>');
+  return parts.length ? `<div class="marketplace-card-badges">${parts.join("")}</div>` : "";
+}
+
+function renderCategoryTabs(categories, activeId) {
+  const container = document.getElementById("marketplace-categories");
+  if (!container) return;
+  container.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = `category-tab${activeId ? "" : " active"}`;
+  allBtn.textContent = "All";
+  allBtn.onclick = () => {
+    marketplaceCategory = "";
+    loadMarketplace().catch((e) => alert(e.message));
+  };
+  container.appendChild(allBtn);
+  for (const cat of categories ?? []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `category-tab${activeId === cat.id ? " active" : ""}`;
+    btn.textContent = `${cat.label} (${cat.count})`;
+    btn.onclick = () => {
+      marketplaceCategory = cat.id;
+      loadMarketplace().catch((e) => alert(e.message));
+    };
+    container.appendChild(btn);
+  }
+}
+
+function marketplaceQueryParams() {
+  const params = new URLSearchParams();
+  const q = document.getElementById("marketplace-search")?.value.trim();
+  if (q) params.set("q", q);
+  if (marketplaceCategory) params.set("category", marketplaceCategory);
+  const sort = document.getElementById("marketplace-sort")?.value;
+  if (sort && sort !== "name") params.set("sort", sort);
+  if (document.getElementById("filter-gate-only")?.checked) params.set("gate_only", "1");
+  if (document.getElementById("filter-official-only")?.checked) params.set("official_only", "1");
+  if (document.getElementById("filter-hide-secrets")?.checked) params.set("hide_secrets", "1");
+  return params;
+}
+
+let marketplaceCategory = "";
+
 function renderMarketplaceResults(templates) {
   const grid = document.getElementById("marketplace-results");
   const form = document.getElementById("wizard-form");
@@ -386,17 +436,18 @@ function renderMarketplaceResults(templates) {
   selectedTemplate = null;
 
   if (!templates.length) {
-    grid.innerHTML = '<p class="note">No templates match your search.</p>';
+    grid.innerHTML = '<p class="note">No templates match your filters.</p>';
     return;
   }
 
   for (const t of templates) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "marketplace-card";
+    card.className = `marketplace-card${t.installed ? " installed" : ""}`;
     card.innerHTML = `
       <div class="marketplace-card-title">${t.name}</div>
-      <div class="marketplace-card-meta">${t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
+      ${renderMarketplaceBadges(t)}
+      <div class="marketplace-card-meta">${t.category_label ?? t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
       <div class="marketplace-card-desc">${t.description}</div>
       <div class="marketplace-card-est">${renderCompareEstimate(t.compare_estimate)}</div>`;
     card.onclick = () => openWizard(t);
@@ -454,10 +505,10 @@ function closeWizard() {
   document.getElementById("marketplace-results").classList.remove("hidden");
 }
 
-async function loadMarketplace(query = "") {
-  const trimmed = String(query).trim();
-  const params = new URLSearchParams();
-  if (trimmed) params.set("q", trimmed);
+async function loadMarketplace(query) {
+  const searchInput = document.getElementById("marketplace-search");
+  if (query != null && searchInput) searchInput.value = query;
+  const params = marketplaceQueryParams();
   const qs = params.toString();
   const data = await fetchJson(`${apiPath("marketplace")}${qs ? `?${qs}` : ""}`);
   if (data.catalog_available === false) {
@@ -469,13 +520,14 @@ async function loadMarketplace(query = "") {
     project_root: data.project_root ?? null,
     path_candidates: data.path_candidates ?? [],
   };
+  renderCategoryTabs(data.categories ?? [], marketplaceCategory);
   renderMarketplaceResults(data.templates ?? []);
 }
 
 function setupWizard() {
   const searchInput = document.getElementById("marketplace-search");
   const searchBtn = document.getElementById("marketplace-search-btn");
-  const runSearch = () => loadMarketplace(searchInput.value.trim()).catch((e) => alert(e.message));
+  const runSearch = () => loadMarketplace().catch((e) => alert(e.message));
   searchBtn.onclick = runSearch;
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -483,6 +535,11 @@ function setupWizard() {
       runSearch();
     }
   });
+
+  document.getElementById("marketplace-sort")?.addEventListener("change", runSearch);
+  for (const id of ["filter-gate-only", "filter-official-only", "filter-hide-secrets"]) {
+    document.getElementById(id)?.addEventListener("change", runSearch);
+  }
 
   document.getElementById("wizard-back").onclick = closeWizard;
   document.getElementById("wizard-confirm").onclick = async () => {
@@ -509,7 +566,7 @@ function setupWizard() {
       alert(msg);
       closeWizard();
       await reload();
-      await loadMarketplace(searchInput.value.trim());
+      await loadMarketplace();
     } catch (e) {
       alert(e.message);
     }

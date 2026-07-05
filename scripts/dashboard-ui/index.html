@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>CostGate Dashboard</h1>
-    <p class="subtitle">localhost · Phase 28 · <span id="write-mode">…</span></p>
+    <p class="subtitle">localhost · Phase 29 · <span id="write-mode">…</span></p>
   </header>
 
   <div id="workspace-bar" class="workspace-bar">
@@ -83,9 +83,23 @@
       <div class="wizard-toolbar">
         <label>
           Search
-          <input type="search" id="marketplace-search" placeholder="browser, github, filesystem…" />
+          <input type="search" id="marketplace-search" placeholder="browser, github, postgres…" />
         </label>
         <button type="button" id="marketplace-search-btn" class="btn-sm">Search</button>
+        <label>
+          Sort
+          <select id="marketplace-sort">
+            <option value="name">Name</option>
+            <option value="popularity">Popularity</option>
+            <option value="reduction">Reduction %</option>
+          </select>
+        </label>
+      </div>
+      <div id="marketplace-categories" class="marketplace-categories"></div>
+      <div class="marketplace-filters">
+        <label><input type="checkbox" id="filter-gate-only" /> Gate ready only</label>
+        <label><input type="checkbox" id="filter-official-only" /> Official only</label>
+        <label><input type="checkbox" id="filter-hide-secrets" /> No secrets required</label>
       </div>
       <div id="marketplace-results" class="marketplace-grid"></div>
       <div id="wizard-form" class="wizard-form hidden">

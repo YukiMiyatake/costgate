@@ -19,7 +19,7 @@ import {
   previewMcpDisable,
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
-import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths } from "./lib/dashboard-marketplace.mjs";
+import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
 import {
   listWorkspaces,
@@ -132,15 +132,32 @@ function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
   };
 }
 
-function marketplacePayload(q, paths, marketplaceDirPath) {
+function marketplacePayload(url, paths, marketplaceDirPath) {
   const pathHints = suggestAllowedPaths({ projectRoot: paths.projectRoot });
+  const opts = parseMarketplaceOptions(url.searchParams);
+  const configPath = paths.configPath ?? paths.backendsPath;
+  const installedKeys = new Set(
+    Object.keys(loadBackendsJson(configPath).backends ?? {})
+  );
+  const allPublic = searchMarketplace("", marketplaceDirPath, { installedKeys });
+  const templates = searchMarketplace(url.searchParams, marketplaceDirPath, { installedKeys });
   return {
-    query: q,
+    query: opts.q,
+    category: opts.category || null,
+    sort: opts.sort,
+    filters: {
+      gate_only: opts.gate_only,
+      official_only: opts.official_only,
+      hide_secrets: opts.hide_secrets,
+    },
     catalog_dir: marketplaceDirPath,
     catalog_available: existsSync(marketplaceDirPath),
+    catalog_count: allPublic.length,
+    categories: buildCategorySummary(allPublic),
     project_root: pathHints.project_root,
     path_candidates: pathHints.candidates,
-    templates: searchMarketplace(q, marketplaceDirPath),
+    installed_backends: [...installedKeys],
+    templates,
     workspace_id: paths.workspace_id ?? null,
     workspace_path: paths.workspace_path ?? null,
   };
@@ -213,8 +230,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
         ...loadToolOverrides(paths.overridesPath),
       });
     } else if (section === "marketplace") {
-      const q = url.searchParams.get("q") ?? "";
-      json(res, 200, marketplacePayload(q, paths, marketplaceDirPath));
+      json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
     } else {
       apiNotFound(res, pathname);
     }
@@ -338,9 +354,8 @@ function createDashboardServer(options = {}) {
           return;
         }
         if (pathname === "/api/marketplace") {
-          const q = url.searchParams.get("q") ?? "";
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
-          json(res, 200, marketplacePayload(q, paths, marketplaceDirPath));
+          json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
           return;
         }
         const mcpPreview = pathname.match(/^\/api\/mcps\/([^/]+)\/preview$/);

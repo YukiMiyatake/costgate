@@ -1,0 +1,28 @@
+{
+  "id": "sequential-thinking",
+  "name": "Sequential Thinking MCP",
+  "description": "Structured step-by-step reasoning tool via @modelcontextprotocol/server-sequential-thinking. Minimal fixed cost.",
+  "category": "ai",
+  "category_label": "AI & Memory",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "low",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
+  "tags": ["reasoning", "thinking", "ai", "chain-of-thought"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "sequential-thinking",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+    "env": {}
+  },
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 1,
+    "before_tokens": 120,
+    "after_tokens": 80,
+    "source": "mcp-reduction-survey — single-tool MCP"
+  }
+}
