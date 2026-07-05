@@ -8,13 +8,14 @@ import (
 	"time"
 )
 
-// Entry is one workspace seen by Gate (Phase 28 Activity Registry).
+// Entry is one workspace in the Activity Registry (Phase 28+).
 type Entry struct {
-	Path     string    `json:"path"`
-	Label    string    `json:"label"`
-	LastSeen time.Time `json:"last_seen"`
-	HasConfig bool     `json:"has_config"`
-	Pinned   bool      `json:"pinned,omitempty"`
+	Path      string    `json:"path"`
+	Label     string    `json:"label"`
+	LastSeen  time.Time `json:"last_seen"`
+	HasConfig bool      `json:"has_config"`
+	Pinned    bool      `json:"pinned,omitempty"`
+	Source    string    `json:"source,omitempty"` // gate | cursor:workspace | cursor:file | pin | dashboard
 }
 
 // Registry is persisted at ~/.costgate/workspace-registry.json.
@@ -97,8 +98,8 @@ func Save(reg *Registry, path string) error {
 	return os.Rename(tmp, path)
 }
 
-// Touch records or updates a workspace path (Gate startup).
-func Touch(projectRoot string, registryPath string) error {
+// Touch records or updates a workspace path. source tags how it was discovered (gate, pin, etc.).
+func Touch(projectRoot string, registryPath string, source string) error {
 	root := strings.TrimSpace(projectRoot)
 	if root == "" {
 		return nil
@@ -118,6 +119,9 @@ func Touch(projectRoot string, registryPath string) error {
 			reg.Workspaces[i].LastSeen = now
 			reg.Workspaces[i].Label = labelForPath(abs)
 			reg.Workspaces[i].HasConfig = hasWorkspaceConfig(abs)
+			if source != "" {
+				reg.Workspaces[i].Source = source
+			}
 			found = true
 			break
 		}
@@ -128,6 +132,7 @@ func Touch(projectRoot string, registryPath string) error {
 			Label:     labelForPath(abs),
 			LastSeen:  now,
 			HasConfig: hasWorkspaceConfig(abs),
+			Source:    source,
 		})
 	}
 	return Save(reg, registryPath)
@@ -139,5 +144,9 @@ func RegisterFromEnv() {
 	if root == "" {
 		return
 	}
-	_ = Touch(root, "")
+	src := strings.TrimSpace(os.Getenv("COSTGATE_REGISTRY_SOURCE"))
+	if src == "" {
+		src = "gate"
+	}
+	_ = Touch(root, "", src)
 }

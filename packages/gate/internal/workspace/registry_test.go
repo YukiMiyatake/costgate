@@ -19,7 +19,7 @@ func TestTouchCreatesAndUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Touch(project, regPath); err != nil {
+	if err := Touch(project, regPath, "gate"); err != nil {
 		t.Fatal(err)
 	}
 	reg, err := Load(regPath)
@@ -29,13 +29,16 @@ func TestTouchCreatesAndUpdates(t *testing.T) {
 	if len(reg.Workspaces) != 1 {
 		t.Fatalf("expected 1 workspace, got %d", len(reg.Workspaces))
 	}
+	if reg.Workspaces[0].Source != "gate" {
+		t.Errorf("source = %q, want gate", reg.Workspaces[0].Source)
+	}
 	if !reg.Workspaces[0].HasConfig {
 		t.Error("expected has_config true")
 	}
 	first := reg.Workspaces[0].LastSeen
 
 	time.Sleep(5 * time.Millisecond)
-	if err := Touch(project, regPath); err != nil {
+	if err := Touch(project, regPath, "gate"); err != nil {
 		t.Fatal(err)
 	}
 	reg2, _ := Load(regPath)
