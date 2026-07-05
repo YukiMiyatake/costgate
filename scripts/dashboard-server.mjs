@@ -23,6 +23,7 @@ import {
   buildGateSettingsApiPayload,
   patchGateSettings,
 } from "./lib/gate-settings.mjs";
+import { buildMcpTrustApiPayload } from "./lib/mcp-trust.mjs";
 import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
@@ -182,6 +183,19 @@ function gateSettingsOpts(paths) {
   };
 }
 
+function mcpTrustOpts(paths) {
+  const scoped = Boolean(paths.scoped ?? paths.workspace_id);
+  const projectRoot = paths.projectRoot ?? paths.workspace_path;
+  if (!scoped || !projectRoot) {
+    return { globalPath: paths.trustPath ?? defaultPaths().trustPath };
+  }
+  return {
+    globalPath: paths.globalPaths?.trustPath ?? defaultPaths().trustPath,
+    projectPath: paths.trustPath,
+    projectRoot,
+  };
+}
+
 async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   const { dataOptions, controlPaths, marketplaceDirPath } = ctx;
 
@@ -205,7 +219,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   }
 
   const wsMatch = pathname.match(
-    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings))?$/
+    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust))?$/
   );
   if (!wsMatch) return false;
 
@@ -252,6 +266,8 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
     } else if (section === "gate-settings") {
       json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
+    } else if (section === "mcp-trust") {
+      json(res, 200, buildMcpTrustApiPayload(mcpTrustOpts(paths)));
     } else {
       apiNotFound(res, pathname);
     }
@@ -399,6 +415,11 @@ function createDashboardServer(options = {}) {
         if (pathname === "/api/gate-settings") {
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
           json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
+          return;
+        }
+        if (pathname === "/api/mcp-trust") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          json(res, 200, buildMcpTrustApiPayload(mcpTrustOpts(paths)));
           return;
         }
         if (pathname === "/api/marketplace") {

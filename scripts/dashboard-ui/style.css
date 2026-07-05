@@ -329,7 +329,7 @@ td code {
   border: 1px solid var(--accent);
 }
 
-.badge:not(.ok):not(.badge-installed):not(.badge-official):not(.badge-gate):not(.badge-pop):not(.tier-badge) {
+.badge:not(.ok):not(.badge-installed):not(.badge-official):not(.badge-gate):not(.badge-pop):not(.tier-badge):not(.trust-badge) {
   background: rgba(232, 93, 93, 0.15);
   color: var(--danger);
   border: 1px solid var(--danger);
@@ -351,6 +351,38 @@ td code {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
+}
+
+.trust-badge {
+  text-transform: lowercase;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.trust-badge.trust-trusted {
+  border-color: #6ee7a0;
+  color: #6ee7a0;
+  background: #1a3d2e;
+}
+
+.trust-badge.trust-standard {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.trust-badge.trust-restricted,
+.trust-badge.trust-untrusted {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(232, 93, 93, 0.12);
+}
+
+.trust-badge.trust-disabled {
+  border-color: var(--muted);
+  color: var(--muted);
+  background: var(--surface-raised);
 }
 
 .tier-badge.tier-b {

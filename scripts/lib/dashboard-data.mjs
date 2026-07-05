@@ -16,11 +16,12 @@ import { repoRoot } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
+import { enrichMcpsWithTrust, loadMcpTrust } from "./mcp-trust.mjs";
 import { readLatestPromptIntent, promptIntentDir } from "./prompt-intent.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
-export const DASHBOARD_VERSION = "30";
+export const DASHBOARD_VERSION = "31a";
 
 export function defaultPaths() {
   const home = homedir();
@@ -43,6 +44,7 @@ export function defaultPaths() {
     promptIntentDir: process.env.COSTGATE_PROMPT_INTENT_DIR ?? promptIntentDir(),
     gateSettingsPath:
       process.env.COSTGATE_GATE_SETTINGS_PATH ?? join(home, ".costgate", "gate-settings.json"),
+    trustPath: process.env.COSTGATE_TRUST_PATH ?? join(home, ".costgate", "mcp-trust.json"),
   };
 }
 
@@ -450,7 +452,7 @@ export function buildDashboardData(options = {}) {
   const recommendations = [...projectRecs.items, ...deleteRecommendations].sort(
     (a, b) => (b.score ?? 0) - (a.score ?? 0) || String(a.target).localeCompare(String(b.target))
   );
-  const mcps = buildMcps(
+  const mcpsBase = buildMcps(
     mcpServers,
     backends,
     byBackend,
@@ -458,6 +460,21 @@ export function buildDashboardData(options = {}) {
     disabledStore,
     backendOrigins
   );
+  const trustPaths = {
+    globalPath: options.globalPaths?.trustPath ?? globalPaths.trustPath,
+    projectPath: paths.trustPath,
+    projectRoot: paths.projectRoot,
+  };
+  const trustLoaded = loadMcpTrust(trustPaths);
+  const mcpsWithTrust = enrichMcpsWithTrust(mcpsBase.servers, {
+    trust: trustLoaded,
+    marketplaceDir: paths.marketplaceDir,
+  });
+  const mcps = {
+    ...mcpsBase,
+    servers: mcpsWithTrust.servers,
+    trust_summary: mcpsWithTrust.trust_summary,
+  };
   const promptIntent = buildPromptIntentSnapshot({ ...paths, now });
 
   return {
@@ -485,6 +502,7 @@ export function buildDashboardData(options = {}) {
       add_recommendation_count: projectRecs.items.length,
       delete_recommendation_count: deleteRecommendations.length,
       blind_spot_count: mcps.blind_spots.length,
+      trust_restricted_count: mcps.trust_summary?.restricted_or_below ?? 0,
       cursor_mode: mcps.mode,
       config_merge: effective.config_merge,
       prompt_intent: promptIntent,
@@ -528,6 +546,7 @@ export function buildHealth(extra = {}) {
       overrides: existsSync(paths.overridesPath),
       marketplace: existsSync(paths.marketplaceDir),
       prompt_intent: existsSync(paths.promptIntentDir),
+      mcp_trust: existsSync(paths.trustPath),
     },
   };
 }
