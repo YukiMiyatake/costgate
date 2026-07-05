@@ -19,6 +19,7 @@
     "test:integration": "node test/run.mjs",
     "test:schema": "node test/schema.test.mjs",
     "eval": "node test/eval/run.mjs",
+    "eval:live": "node test/eval/run.mjs --live --tasks test/eval/tasks-live.json",
     "test:tokens": "node test/tokens.test.mjs",
     "compare": "node scripts/compare-report.mjs",
     "compress-report": "node scripts/compress-report.mjs",

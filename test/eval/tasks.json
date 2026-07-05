@@ -42,7 +42,7 @@
       "steps": [
         {
           "action": "list_tools",
-          "assert": { "min_count": 15, "max_count": 15 }
+          "assert": { "min_count": 16, "max_count": 16 }
         }
       ]
     },
@@ -111,6 +111,61 @@
           "assert_text_contains": "[costgate code-mode: outline]",
           "assert_text_excludes": "fmt.Println",
           "assert_symbols": ["hello", "Config", "engine: ast"]
+        }
+      ]
+    },
+    {
+      "id": "search_issues_via_invoke",
+      "name": "invoke_tool searches issues by query",
+      "modes": ["filter", "filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "search_issues",
+            "arguments": { "owner": "o", "repo": "r", "query": "bug" }
+          },
+          "assert_text_contains": "Issue matching bug"
+        }
+      ]
+    },
+    {
+      "id": "chain_discover_invoke_issue",
+      "name": "discover_tools then invoke_tool for issue search",
+      "modes": ["filter", "filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "args": { "query": "search issue", "limit": 5 },
+          "assert_text_contains": "search_issues"
+        },
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "search_issues",
+            "arguments": { "owner": "o", "repo": "r", "query": "regression" }
+          },
+          "assert_text_contains": "Issue matching regression"
+        }
+      ]
+    },
+    {
+      "id": "path_read_main",
+      "name": "get_file_contents returns outline for main.go path",
+      "modes": ["filter_full"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "get_file_contents",
+            "arguments": { "owner": "o", "repo": "r", "path": "cmd/main.go" }
+          },
+          "assert_text_contains": "file: cmd/main.go",
+          "assert_symbols": ["package main", "hello"]
         }
       ]
     },
