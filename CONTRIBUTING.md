@@ -151,8 +151,19 @@ git push origin --delete feat/short-description   # 任意
 
 ## npm publish (maintainers)
 
+Tag push `v*` triggers `.github/workflows/npm-publish.yml` (requires `NPM_TOKEN` secret):
+
+1. `@costgate/schema`
+2. `@costgate/probe`
+
+Manual dry-run via workflow_dispatch with a version input.
+
+Local publish (discouraged — use CI):
+
 ```bash
+npm run build -w @costgate/schema && npm run build -w @costgate/probe
+npm publish -w @costgate/schema --access public
 npm publish -w @costgate/probe --access public
 ```
 
-Gate releases use goreleaser from `packages/gate` (TODO).
+Gate binaries use goreleaser — see [docs/releases.md](./docs/releases.md).

@@ -23,5 +23,13 @@
   "devDependencies": {
     "typescript": "^5.7.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YukiMiyatake/costgate.git",
+    "directory": "packages/schema"
+  }
 }
