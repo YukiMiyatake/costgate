@@ -20,6 +20,7 @@ const TESTS = [
   "cursor-registry-hook.test.mjs",
   "cursor-prompt-intent-hook.test.mjs",
   "cursor-shield-mcp-hook.test.mjs",
+  "cursor-shield-read-hook.test.mjs",
   "prompt-intent.test.mjs",
   "gate-settings.test.mjs",
   "mcp-trust.test.mjs",
