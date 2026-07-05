@@ -12,7 +12,7 @@ import {
   probeJs,
 } from "../scripts/lib/paths.mjs";
 
-const MOCK_TOOLS = 15;
+const MOCK_TOOLS = 16;
 
 async function testProbeMock() {
   const env = mockGateEnv("integration-probe");
