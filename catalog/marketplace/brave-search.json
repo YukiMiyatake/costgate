@@ -1,0 +1,36 @@
+{
+  "id": "brave-search",
+  "name": "Brave Search MCP",
+  "description": "Web search via Brave Search API through @modelcontextprotocol/server-brave-search. Gate-backed via backends.json.",
+  "category": "search",
+  "category_label": "Search & Fetch",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search",
+  "tags": ["search", "brave", "web", "api"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "brave-search",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+    }
+  },
+  "required_env": [
+    {
+      "name": "BRAVE_API_KEY",
+      "description": "Brave Search API key",
+      "secret": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 4,
+    "before_tokens": 420,
+    "after_tokens": 220,
+    "source": "mcp-reduction-survey — search result JSON variable"
+  }
+}

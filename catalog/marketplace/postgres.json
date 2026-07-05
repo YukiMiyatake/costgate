@@ -1,0 +1,36 @@
+{
+  "id": "postgres",
+  "name": "PostgreSQL MCP",
+  "description": "Read-only SQL queries and schema inspection via @modelcontextprotocol/server-postgres. Gate-backed via backends.json.",
+  "category": "database",
+  "category_label": "Database",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "high",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+  "tags": ["postgres", "postgresql", "database", "sql"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "postgres",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-postgres"],
+    "env": {
+      "POSTGRES_CONNECTION_STRING": "${DATABASE_URL}"
+    }
+  },
+  "required_env": [
+    {
+      "name": "DATABASE_URL",
+      "description": "PostgreSQL connection string (postgres://user:pass@host:5432/db)",
+      "secret": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 8,
+    "before_tokens": 680,
+    "after_tokens": 340,
+    "source": "mcp-reduction-survey — postgres schema + query tools"
+  }
+}

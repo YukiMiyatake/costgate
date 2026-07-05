@@ -1,0 +1,28 @@
+{
+  "id": "fetch",
+  "name": "Fetch MCP",
+  "description": "Fetch web pages and convert HTML to text via @modelcontextprotocol/server-fetch. Low fixed cost, high variable savings with Gate compress.",
+  "category": "search",
+  "category_label": "Search & Fetch",
+  "official": true,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+  "tags": ["fetch", "http", "web", "html", "scrape"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "fetch",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-fetch"],
+    "env": {}
+  },
+  "required_env": [],
+  "compare_estimate": {
+    "tool_count": 2,
+    "before_tokens": 180,
+    "after_tokens": 120,
+    "source": "mcp-reduction-survey — fetch low fixed, compress on HTML"
+  }
+}

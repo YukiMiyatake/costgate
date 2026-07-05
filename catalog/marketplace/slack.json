@@ -1,0 +1,36 @@
+{
+  "id": "slack",
+  "name": "Slack MCP",
+  "description": "Post messages and list channels in Slack via community MCP server. Gate-backed via backends.json.",
+  "category": "saas",
+  "category_label": "SaaS & Team",
+  "official": false,
+  "gate_ready": true,
+  "popularity": "medium",
+  "docs_url": "https://github.com/modelcontextprotocol/servers",
+  "tags": ["slack", "chat", "team", "notifications"],
+  "tier_catalog": null,
+  "install_target": "backend",
+  "backend_key": "slack",
+  "backend_template": {
+    "always": true,
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-slack"],
+    "env": {
+      "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+    }
+  },
+  "required_env": [
+    {
+      "name": "SLACK_BOT_TOKEN",
+      "description": "Slack bot token (xoxb-…)",
+      "secret": true
+    }
+  ],
+  "compare_estimate": {
+    "tool_count": 10,
+    "before_tokens": 920,
+    "after_tokens": 400,
+    "source": "mcp-reduction-survey — slack API wrapper estimate"
+  }
+}
