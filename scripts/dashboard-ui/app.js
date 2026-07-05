@@ -45,6 +45,87 @@ async function fetchJson(path, options = {}) {
   return res.json();
 }
 
+let activeWorkspaceId = sessionStorage.getItem("costgate_workspace_id") || null;
+
+function apiPath(segment) {
+  if (activeWorkspaceId) {
+    return `/api/workspaces/${encodeURIComponent(activeWorkspaceId)}/${segment}`;
+  }
+  return `/api/${segment}`;
+}
+
+function setActiveWorkspace(id, pathLabel) {
+  activeWorkspaceId = id || null;
+  if (id) {
+    sessionStorage.setItem("costgate_workspace_id", id);
+  } else {
+    sessionStorage.removeItem("costgate_workspace_id");
+  }
+  const note = document.getElementById("workspace-path");
+  if (note) note.textContent = pathLabel ?? (id ? "" : "Global (~/.costgate)");
+}
+
+async function loadWorkspaces() {
+  const data = await fetchJson("/api/workspaces");
+  const select = document.getElementById("workspace-select");
+  if (!select) return data;
+  select.innerHTML = "";
+  const globalOpt = document.createElement("option");
+  globalOpt.value = "";
+  globalOpt.textContent = "Global (~/.costgate)";
+  select.appendChild(globalOpt);
+  for (const w of data.workspaces ?? []) {
+    const opt = document.createElement("option");
+    opt.value = w.id;
+    const pin = w.pinned ? "📌 " : "";
+    opt.textContent = `${pin}${w.label}${w.has_config ? "" : " (new)"}`;
+    select.appendChild(opt);
+  }
+  if (activeWorkspaceId && [...select.options].some((o) => o.value === activeWorkspaceId)) {
+    select.value = activeWorkspaceId;
+  } else if (data.workspaces?.length) {
+    activeWorkspaceId = data.workspaces[0].id;
+    select.value = activeWorkspaceId;
+    sessionStorage.setItem("costgate_workspace_id", activeWorkspaceId);
+  } else {
+    activeWorkspaceId = null;
+    select.value = "";
+  }
+  const current = data.workspaces?.find((w) => w.id === select.value);
+  setActiveWorkspace(select.value || null, current?.path);
+  return data;
+}
+
+function setupWorkspaces() {
+  const select = document.getElementById("workspace-select");
+  const pinBtn = document.getElementById("workspace-pin-btn");
+  if (!select) return;
+  select.addEventListener("change", async () => {
+    const opt = select.selectedOptions[0];
+    setActiveWorkspace(select.value || null, opt?.textContent);
+    try {
+      await reload();
+      await loadMarketplace();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  pinBtn?.addEventListener("click", async () => {
+    const path = prompt("Pin workspace folder (absolute path):");
+    if (!path?.trim()) return;
+    try {
+      await fetchJson("/api/workspaces/pin", {
+        method: "POST",
+        body: JSON.stringify({ path: path.trim() }),
+      });
+      await loadWorkspaces();
+      await reload();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+}
+
 function renderOverview(data) {
   const cards = document.getElementById("overview-cards");
   cards.innerHTML = "";
@@ -94,7 +175,7 @@ function renderTools(data) {
     hideBtn.textContent = t.tier === "hidden" ? "Unhide" : "Hide";
     hideBtn.onclick = async () => {
       try {
-        await fetchJson(`/api/tools/${encodeURIComponent(t.name)}`, {
+        await fetchJson(apiPath(`tools/${encodeURIComponent(t.name)}`), {
           method: "PATCH",
           body: JSON.stringify({
             force_tier: t.tier === "hidden" ? "default" : "hidden",
@@ -139,7 +220,7 @@ function renderMcps(data) {
       const enable = s.enabled === false;
       if (!enable && !confirm(`Disable MCP "${s.name}"? Cursor restart required.`)) return;
       try {
-        await fetchJson(`/api/mcps/${encodeURIComponent(s.name)}`, {
+        await fetchJson(apiPath(`mcps/${encodeURIComponent(s.name)}`), {
           method: "PATCH",
           body: JSON.stringify({ enabled: enable }),
         });
@@ -378,7 +459,7 @@ async function loadMarketplace(query = "") {
   const params = new URLSearchParams();
   if (trimmed) params.set("q", trimmed);
   const qs = params.toString();
-  const data = await fetchJson(`/api/marketplace${qs ? `?${qs}` : ""}`);
+  const data = await fetchJson(`${apiPath("marketplace")}${qs ? `?${qs}` : ""}`);
   if (data.catalog_available === false) {
     throw new Error(
       `Marketplace catalog not found (${data.catalog_dir ?? "unknown"}). Run dashboard from the costgate repo or set COSTGATE_MARKETPLACE_DIR.`
@@ -415,7 +496,7 @@ function setupWizard() {
       env[input.dataset.envName] = input.value;
     });
     try {
-      const result = await fetchJson("/api/mcps", {
+      const result = await fetchJson(apiPath("mcps"), {
         method: "POST",
         body: JSON.stringify({ template: selectedTemplate.id, env }),
       });
@@ -465,10 +546,10 @@ function setupTokenBar(health) {
 
 async function reload() {
   const [overview, tools, mcps, recs] = await Promise.all([
-    fetchJson("/api/overview"),
-    fetchJson("/api/tools"),
-    fetchJson("/api/mcps"),
-    fetchJson("/api/recommendations"),
+    fetchJson(apiPath("overview")),
+    fetchJson(apiPath("tools")),
+    fetchJson(apiPath("mcps")),
+    fetchJson(apiPath("recommendations")),
   ]);
   renderOverview(overview);
   renderTools(tools);
@@ -479,11 +560,13 @@ async function reload() {
 async function main() {
   setupTabs();
   setupWizard();
+  setupWorkspaces();
   try {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
     document.getElementById("health-status").textContent =
       `health: ${health.status} · ${health.version} · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
+    await loadWorkspaces();
     await reload();
     await loadMarketplace();
   } catch (err) {

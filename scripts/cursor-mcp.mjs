@@ -48,7 +48,11 @@ function gateServer() {
   return {
     command: GATE_BIN_MCP,
     env: {
-      COSTGATE_CONFIG: BACKENDS_MCP,
+      COSTGATE_PROJECT_ROOT: "${workspaceFolder}",
+      COSTGATE_CONFIG: "${workspaceFolder}/.costgate/backends.json",
+      COSTGATE_TOOL_OVERRIDES: "${workspaceFolder}/.costgate/tool-overrides.json",
+      COSTGATE_USAGE_PATH: "${workspaceFolder}/.costgate/usage.json",
+      COSTGATE_GATE_LOG_DIR: "${workspaceFolder}/.costgate/logs",
       COSTGATE_CLIENT: "cursor",
       // Token reduction — filter + compress + code-mode (see docs/benchmarks.md)
       COSTGATE_GATE_MODE: "filter",

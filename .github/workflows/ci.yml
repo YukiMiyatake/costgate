@@ -84,7 +84,8 @@ jobs:
           node --check test/dashboard-control.test.mjs
           node --check test/dashboard-marketplace.test.mjs
           node --check test/dashboard-project-recommend.test.mjs
-          node --check test/dashboard-routes.test.mjs
+          node --check scripts/lib/dashboard-workspaces.mjs
+          node --check test/dashboard-workspaces.test.mjs
           node --check test/run.mjs
           node --check test/eval/run.mjs
           node --check test/fixtures/mock-filesystem-mcp/index.mjs

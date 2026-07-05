@@ -3,7 +3,7 @@
 CostGate の製品方針（**MCP レイヤのトークン削減**）に向けた調査メモ。  
 最終更新: **2026-07-05**
 
-関連: [benchmarks.md](./benchmarks.md)（実測値） / [roadmap.md](./roadmap.md) Phase 23–27 Dashboard / [dev/dashboard.md](./dev/dashboard.md)
+関連: [benchmarks.md](./benchmarks.md)（実測値） / [roadmap.md](./roadmap.md) Phase 23–28 Dashboard / [dev/dashboard.md](./dev/dashboard.md)
 
 ---
 

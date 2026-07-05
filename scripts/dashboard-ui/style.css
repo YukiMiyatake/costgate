@@ -231,6 +231,34 @@ footer {
   color: var(--text);
 }
 
+.workspace-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.workspace-bar select {
+  min-width: 12rem;
+  margin-left: 0.35rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+#workspace-path {
+  flex: 1;
+  min-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .btn-sm {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
