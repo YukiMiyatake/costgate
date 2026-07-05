@@ -157,7 +157,11 @@ Phase 30+    costgate-cloud         ← 後回し（MVP は Phase 6 済み）
 
 ---
 
-## Upcoming phases (16+)
+## OSS Phase 16–22 完了
+
+Phase 16–22 の OSS ロードマップは **2026-07-05 時点で完了**。次の開発は **Phase 30+ costgate-cloud**（後回し）またはメンテ・バグ修正。
+
+## Upcoming phases (16+) — archived
 
 Phase 1–15 で **計測 → 削減 → 配布 → 検証** の OSS コアは完成。  
 Phase 16 以降は **OSS 機能の深化** を優先し、cloud は [Deferred](#deferred-costgate-cloud) へ。
@@ -343,13 +347,14 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 ### 削減対象の整理
 
-| 対象 | OSS 現状 | 今後（OSS 優先） |
-|------|----------|------------------|
-| MCP ツール定義（Gate 対象 MCP） | ✅ filter + catalog + dynamic intent | Phase 19 multi-MCP 実測 |
-| MCP ツール実行結果 | ✅ compress + code-mode | Phase 20 JSON-aware compress |
-| ファイル読取の出力量 | ✅ code-mode（go/ast + scanner） | Phase 17 eval v2 |
-| 削減の品質保証 | ✅ eval（mock） | Phase 17 eval v2（GitHub optional） |
-| 計測ドリフト・回帰 | 手動 benchmarks | Phase 18 benchmark CI |
+| 対象 | OSS 現状 | 備考 |
+|------|----------|------|
+| MCP ツール定義（Gate 対象 MCP） | ✅ filter + catalog + dynamic + probe intent | Phase 16–22 完了 |
+| MCP ツール実行結果 | ✅ compress + code-mode + JSON summary + dedupe | Phase 20 |
+| ファイル読取の出力量 | ✅ go/ast + scanner outline | Phase 16 |
+| 削減の品質保証 | ✅ eval 21/21 + live optional | Phase 17 |
+| 計測ドリフト・回帰 | ✅ benchmark CI | Phase 18 |
+| Multi-MCP | ✅ github + mock + filesystem catalog | Phase 19 |
 | 会話・rules | ❌ 未計画 | Out of scope |
 | Serena / 直結 MCP | ❌ 意図的対象外 | — |
 | 可視化・課金（cloud） | MVP のみ | **Phase 30+ 後回し** |
@@ -358,7 +363,7 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 | Plan | 現状 | 次の一手（優先順） |
 |------|------|-------------------|
-| **Free (OSS)** | Gate 削減 + Probe + CLI + eval | **Phase 16–21**（本 repo） |
+| **Free (OSS)** | Gate 削減 + Probe + CLI + eval（Phase 16–22 完了） | メンテ・バグ修正 |
 | **Pro** | cloud MVP（手動 upload） | Phase 30+ Dashboard（後回し） |
 | **Team** | — | Phase 32–33（後回し） |
 
