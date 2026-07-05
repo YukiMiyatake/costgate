@@ -68,6 +68,8 @@ export function mockTestPaths(prefix = "integration") {
     usage: join(base, "usage.json"),
     logs: join(base, "logs"),
     promptIntent: join(base, "prompt-intent"),
+    vault: join(base, "vault"),
+    trust: join(base, "mcp-trust.json"),
   };
 }
 
@@ -76,11 +78,29 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
   const fixtureJs =
     backend === "filesystem" ? mockFilesystemMcpJs() : mockMcpJs();
   const paths = mockTestPaths(clientName);
+  mkdirSync(paths.vault, { recursive: true });
+  writeFileSync(
+    paths.trust,
+    `${JSON.stringify(
+      {
+        version: 1,
+        defaults: { gate_backend: "standard", direct_mcp: "restricted", unknown: "restricted" },
+        servers: {
+          "costgate-gate": { trust: "trusted", source: "builtin" },
+          [backend]: { trust: "standard" },
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
   return baseGateEnv(clientName, {
     COSTGATE_CONFIG: mockBackendsConfigPath(backend, fixtureJs),
     COSTGATE_USAGE_PATH: paths.usage,
     COSTGATE_PROBE_LOG_DIR: paths.logs,
     COSTGATE_PROMPT_INTENT_DIR: paths.promptIntent,
+    COSTGATE_SHIELD_DIR: paths.vault,
+    COSTGATE_TRUST_PATH: paths.trust,
     ...extra,
   });
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/intent"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/shield"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -24,6 +25,7 @@ type filterRuntime struct {
 	store       *usage.Store
 	static      string
 	backendName string
+	fc          *forwardContext
 	live        map[string]bool
 }
 
@@ -35,6 +37,7 @@ func newFilterRuntime(
 	store *usage.Store,
 	staticIntent string,
 	backendName string,
+	fc *forwardContext,
 ) *filterRuntime {
 	r := &filterRuntime{
 		server:      server,
@@ -44,11 +47,12 @@ func newFilterRuntime(
 		store:       store,
 		static:      staticIntent,
 		backendName: backendName,
+		fc:          fc,
 		live:        map[string]bool{},
 	}
 	meta.Register(server, cat, tiers, backend, r.record, func(name string) bool {
 		return r.live[name]
-	})
+	}, r.backendName, r.fc.shieldHandler())
 	r.syncTools()
 	return r
 }
@@ -113,7 +117,7 @@ func (r *filterRuntime) addTool(tool *mcp.Tool) {
 	}
 	name := tool.Name
 	r.server.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		result, err := callBackendFromRequest(ctx, r.backend, req)
+		result, err := callBackendFromRequest(ctx, r.backend, req, r.fc)
 		if err == nil {
 			r.record(name)
 		}
@@ -129,7 +133,7 @@ func (r *filterRuntime) logStartup() {
 	intentText := r.currentIntent()
 	a, b, c, h := filter.CountTiers(r.tiers)
 	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q dynamic=%v compress=%v codemode=%v",
-		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(),
+		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q dynamic=%v compress=%v codemode=%v shield=%v",
+		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(), shield.Enabled(),
 	)
 }

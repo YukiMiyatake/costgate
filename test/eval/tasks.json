@@ -49,6 +49,15 @@
         "COSTGATE_INTENT_PROBE": "0",
         "COSTGATE_INTENT_PROMPT": "1"
       }
+    },
+    "filter_shield": {
+      "label": "Gate filter + shield",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT": "pull request",
+        "COSTGATE_INTENT_DYNAMIC": "0",
+        "COSTGATE_SHIELD": "1"
+      }
     }
   },
   "tasks": [
@@ -267,6 +276,25 @@
             "arguments": { "owner": "o", "repo": "r", "path": "package-lock.json" }
           },
           "assert_text_contains": "[costgate: json summary"
+        }
+      ]
+    },
+    {
+      "id": "shield_redacts_github_token",
+      "name": "Shield redacts GitHub PAT in MCP tool response",
+      "modes": ["filter_shield"],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": {
+            "name": "echo",
+            "arguments": {
+              "message": "token=ghp_1234567890abcdefghijklmnopqrst"
+            }
+          },
+          "assert_text_contains": "[[CG:GITHUB_PAT:",
+          "assert_text_excludes": "ghp_1234567890abcdefghijklmnopqrst"
         }
       ]
     }
