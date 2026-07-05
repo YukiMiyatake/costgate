@@ -154,24 +154,98 @@ function renderMcps(data) {
   }
 }
 
+function recKindBadge(kind) {
+  const labels = {
+    add_mcp: "Add MCP",
+    switch_mcp: "Switch",
+    consolidate_mcp: "Consolidate",
+    delete_tool: "Delete tool",
+    delete_backend: "Delete backend",
+  };
+  const ok = kind === "add_mcp" || kind === "switch_mcp";
+  return badge(labels[kind] ?? kind, ok);
+}
+
+function openAddMcpTab(templateId) {
+  const tab = document.querySelector('#tabs button[data-tab="add-mcp"]');
+  if (tab) tab.click();
+  const searchInput = document.getElementById("marketplace-search");
+  if (searchInput && templateId) {
+    searchInput.value = templateId;
+    loadMarketplace(templateId).catch((e) => alert(e.message));
+  }
+}
+
 function renderRecommendations(data) {
   const list = document.getElementById("rec-list");
+  const sections = document.getElementById("rec-sections");
   const empty = document.getElementById("rec-empty");
   list.innerHTML = "";
+  sections.innerHTML = "";
+
   const items = data.items ?? [];
+  const addItems = items.filter((r) => r.kind === "add_mcp" || r.kind === "switch_mcp" || r.kind === "consolidate_mcp");
+  const deleteItems = items.filter((r) => r.kind === "delete_tool" || r.kind === "delete_backend");
+
   if (items.length === 0) {
     empty.classList.remove("hidden");
     return;
   }
   empty.classList.add("hidden");
-  for (const r of items) {
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span class="reason">${r.reason}</span>
-      · ${r.kind === "delete_tool" ? "tool" : "backend"}: <strong>${r.target}</strong>
-      <div class="note">${r.detail ?? ""}</div>`;
-    list.appendChild(li);
+
+  if (data.signals_detected?.length) {
+    const sig = document.createElement("p");
+    sig.className = "note rec-meta";
+    sig.textContent = `Project signals: ${data.signals_detected.join(", ")} (${data.project_root ?? "—"})`;
+    sections.appendChild(sig);
   }
+
+  const renderGroup = (title, group) => {
+    if (!group.length) return;
+    const heading = document.createElement("h3");
+    heading.className = "rec-section-title";
+    heading.textContent = title;
+    sections.appendChild(heading);
+    for (const r of group) {
+      const li = document.createElement("li");
+      li.className = `rec-item rec-${r.kind}`;
+      const head = document.createElement("div");
+      head.className = "rec-head";
+      head.appendChild(recKindBadge(r.kind));
+      const target = document.createElement("strong");
+      target.textContent = ` ${r.target}`;
+      head.appendChild(target);
+      if (r.score != null) {
+        const score = document.createElement("span");
+        score.className = "rec-score";
+        score.textContent = `score ${r.score}`;
+        head.appendChild(score);
+      }
+      li.appendChild(head);
+      const note = document.createElement("div");
+      note.className = "note";
+      note.textContent = r.detail ?? "";
+      li.appendChild(note);
+      if (r.signals?.length) {
+        const sigLine = document.createElement("div");
+        sigLine.className = "rec-signals";
+        sigLine.textContent = `signals: ${r.signals.join(", ")}`;
+        li.appendChild(sigLine);
+      }
+      if (r.template && (r.kind === "add_mcp" || r.kind === "switch_mcp")) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-sm";
+        btn.textContent = `Open ${r.template} wizard`;
+        btn.onclick = () => openAddMcpTab(r.template);
+        li.appendChild(btn);
+      }
+      list.appendChild(li);
+    }
+  };
+
+  renderGroup("Add / switch candidates", addItems);
+  renderGroup("Delete candidates", deleteItems);
 }
 
 let selectedTemplate = null;

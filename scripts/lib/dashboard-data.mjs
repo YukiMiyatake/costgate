@@ -13,6 +13,7 @@ import {
 } from "./parse-probe-logs.mjs";
 import { repoRoot } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
+import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
@@ -406,12 +407,21 @@ export function buildDashboardData(options = {}) {
   const overrides = loadToolOverrides(paths.overridesPath).tools ?? {};
   const disabledStore = loadMcpDisabled();
   const tools = mergeToolStats(byTool, usage, catalogs, defaultBackend, now, overrides);
-  const recommendations = scoreRecommendations(
+  const deleteRecommendations = scoreRecommendations(
     tools,
     listTokenSamples,
     byBackend,
     backends,
     now
+  );
+  const projectRecs = buildProjectRecommendations({
+    projectRoot: paths.projectRoot,
+    mcpPath: paths.mcpPath,
+    configPath: paths.configPath,
+    marketplaceDir: paths.marketplaceDir,
+  });
+  const recommendations = [...projectRecs.items, ...deleteRecommendations].sort(
+    (a, b) => (b.score ?? 0) - (a.score ?? 0) || String(a.target).localeCompare(String(b.target))
   );
   const mcps = buildMcps(mcpServers, backends, byBackend, detectCursorMode(mcpServers), disabledStore);
 
@@ -435,6 +445,8 @@ export function buildDashboardData(options = {}) {
       fixed_share_pct: fixedSharePct(g),
       tool_count: tools.length,
       recommendation_count: recommendations.length,
+      add_recommendation_count: projectRecs.items.length,
+      delete_recommendation_count: deleteRecommendations.length,
       blind_spot_count: mcps.blind_spots.length,
       cursor_mode: mcps.mode,
     },
@@ -445,7 +457,14 @@ export function buildDashboardData(options = {}) {
     mcps,
     recommendations: {
       items: recommendations,
-      rules: ["stale_90d", "high_cost_unused", "gate_excluded_ok"],
+      project_root: projectRecs.project_root,
+      signals_detected: projectRecs.signals_detected,
+      rules: ["recommend_add", "stale_90d", "high_cost_unused", "gate_excluded_ok"],
+      counts: {
+        add: projectRecs.items.length,
+        delete: deleteRecommendations.length,
+        total: recommendations.length,
+      },
     },
   };
 }
@@ -454,7 +473,7 @@ export function buildHealth(extra = {}) {
   const paths = defaultPaths();
   return {
     status: "ok",
-    version: "phase26",
+    version: "phase27",
     read_only: false,
     writes: {
       localhost_only: true,

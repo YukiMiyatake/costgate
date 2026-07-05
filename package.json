@@ -30,6 +30,7 @@
     "test:dashboard": "node test/dashboard-api.test.mjs",
     "test:dashboard:control": "node test/dashboard-control.test.mjs",
     "test:dashboard:marketplace": "node test/dashboard-marketplace.test.mjs",
+    "test:dashboard:project-recommend": "node test/dashboard-project-recommend.test.mjs",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
     "cursor:update": "node scripts/cursor-update.mjs",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",
