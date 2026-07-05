@@ -100,14 +100,25 @@ function mcpConfigText(cfg) {
     .toLowerCase();
 }
 
+const GITHUB_MCP_NAME_PATTERN = /^(github|github-mcp|gh-mcp|server-github)(-\d+)?$/i;
+const GITHUB_MCP_PACKAGE_PATTERN = /@modelcontextprotocol\/server-github|mcp-server-github/i;
+
+function isDirectGithubMcpServer(name, cfg) {
+  if (GATE_MCP_NAMES.has(name)) return false;
+  if (GITHUB_MCP_NAME_PATTERN.test(name)) return true;
+
+  const parts = [cfg.command, ...(cfg.args ?? []), JSON.stringify(cfg.env ?? {})]
+    .filter(Boolean)
+    .join(" ");
+  return GITHUB_MCP_PACKAGE_PATTERN.test(parts);
+}
+
 function detectDirectGithubMcp(mcpServers) {
   const hasGate = "costgate-gate" in mcpServers;
   if (!hasGate) return null;
 
   for (const [name, cfg] of Object.entries(mcpServers)) {
-    if (GATE_MCP_NAMES.has(name)) continue;
-    const blob = `${name} ${mcpConfigText(cfg)}`;
-    if (/github|server-github|gh-mcp/.test(blob)) {
+    if (isDirectGithubMcpServer(name, cfg)) {
       return name;
     }
   }

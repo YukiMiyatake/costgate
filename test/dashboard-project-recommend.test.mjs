@@ -103,6 +103,19 @@ function testSwitchToGate() {
   console.error("[project-recommend] switch to gate ok");
 }
 
+function testSerenaNotDetectedAsGithub() {
+  const { items } = buildProjectRecommendations({
+    projectRoot: join(FIX, "playwright"),
+    mcpPath: join(FIX, "serena-not-github/mcp.json"),
+    configPath: join(ROOT, "test/fixtures/dashboard/backends.json"),
+    marketplaceDir: MARKETPLACE,
+  });
+
+  const sw = items.find((r) => r.kind === "switch_mcp");
+  assert(!sw, "serena with github.com git URL must not trigger switch_mcp");
+  console.error("[project-recommend] serena not github ok");
+}
+
 function testConsolidateSearch() {
   const { items } = buildProjectRecommendations({
     projectRoot: join(FIX, "playwright"),
@@ -161,6 +174,7 @@ async function main() {
   testRulesGhPr();
   testDuplicatePenaltyGithub();
   testSwitchToGate();
+  testSerenaNotDetectedAsGithub();
   testConsolidateSearch();
   testDashboardMerge();
   console.error("[project-recommend] all passed");
