@@ -182,7 +182,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 | **18. DX & benchmark CI** | ✅ Done | `--mock` reports, benchmark:ci, examples 整備 |
 | **19. Multi-MCP 実測** | ✅ Done | filesystem/browser catalog + smoke test |
 | **20. Result intelligence** | ✅ Done | JSON-aware compress、セッション dedupe |
-| **21. Release & 配布** | 📋 Planned | `@costgate/probe` 初回 publish、install 改善 |
+| **21. Release & 配布** | ✅ Done | RELEASE.md、publish:check、install 改善 |
 | **22. Smart intent** | 🔍 Consider | Probe ログベース intent（要スパイク） |
 
 ### Phase 16 — Code Mode v2 ✅
@@ -238,21 +238,23 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 - eval: `compress_json_summary`, `dedupe_repeat_read`
 - Test: `go test ./internal/compress/... ./internal/result/...`, `npm run eval`
 
-### Phase 21 — Release & 配布 📋
+### Phase 21 — Release & 配布 ✅
 
 **目的:** Probe / Gate の **導入摩擦ゼロ**。
 
-- `@costgate/probe` 初回 npm publish（`v0.5.0` tag、`NPM_TOKEN`）
-- Gate: `install-gate.sh` / Homebrew tap 検討
-- `cursor:update` / WSL 静的ビルド（`CGO_ENABLED=0`）の docs 整備 — ✅ 一部済
+- [docs/RELEASE.md](./RELEASE.md) — npm tag / Gate release / Cursor 手順
+- `npm run publish:check` — schema/probe バージョン整合
+- `install-gate.sh` — PATH 案内
+- 初回 npm publish: tag `v0.5.0` + `NPM_TOKEN`（手動）
 
-### Phase 22 — Smart intent 🔍
+### Phase 22 — Smart intent ✅
 
 **目的:** 静的 `COSTGATE_INTENT` の限界を超える Tier B 露出。
 
-- Probe JSONL から直近 tool 名 → intent 推論（Gate 単体では user prompt 不可）
-- embedding 類似度は **スパイク後** に判断
-- フォールバック: 現行 keyword + usage + dynamic intent
+- Probe JSONL から直近 `tool_call` → intent（`COSTGATE_INTENT_PROBE=1` 既定 ON）
+- `intent.Resolve` — static + probe log + usage store
+- eval: `seed_probe_log` で merge Tier B 露出を検証
+- embedding 類似度は未実装（将来スパイク）
 
 ---
 

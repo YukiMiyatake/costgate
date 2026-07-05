@@ -76,7 +76,7 @@ npm run build:gate
 npm run test:gate   # smoke test (GitHub backend via ~/.costgate/backends.json)
 ```
 
-Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · see [docs/releases.md](./docs/releases.md)
+Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · see [docs/RELEASE.md](./docs/RELEASE.md)
 
 Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)):
 

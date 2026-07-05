@@ -43,6 +43,7 @@
     "docker:shell": "node scripts/docker-run.mjs bash",
     "docker:update": "node scripts/cursor-update.mjs --docker",
     "release:check": "goreleaser check",
+    "publish:check": "node scripts/publish-check.mjs",
     "install:gate": "bash scripts/install-gate.sh",
     "docker:test": "docker compose -f docker-compose.test.yml --profile test run --rm test-runner"
   },
