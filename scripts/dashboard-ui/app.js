@@ -175,6 +175,7 @@ function setupWorkspaces() {
     });
     try {
       await reload();
+      await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
       alert(e.message);
@@ -184,6 +185,7 @@ function setupWorkspaces() {
     try {
       await loadWorkspaces();
       await reload();
+      await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
       alert(e.message);
@@ -438,6 +440,97 @@ function setupToolsControls() {
   for (const id of ["tools-rec-only", "tools-forced-only"]) {
     document.getElementById(id)?.addEventListener("change", rerender);
   }
+}
+
+function renderGateSettings(data) {
+  const form = document.getElementById("gate-settings-form");
+  const note = document.getElementById("gate-settings-note");
+  const pathEl = document.getElementById("gate-settings-path");
+  if (!form || !data?.settings) return;
+  form.innerHTML = "";
+  for (const def of data.defs ?? []) {
+    const label = document.createElement("label");
+    label.title = def.hint ?? "";
+    const val = data.settings[def.key];
+    if (def.type === "boolean") {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = def.key;
+      input.checked = Boolean(val);
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(def.label));
+    } else if (def.type === "enum") {
+      label.appendChild(document.createTextNode(`${def.label} `));
+      const select = document.createElement("select");
+      select.name = def.key;
+      for (const opt of def.options ?? []) {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        if (opt === val) o.selected = true;
+        select.appendChild(o);
+      }
+      label.appendChild(select);
+    } else if (def.type === "number") {
+      label.appendChild(document.createTextNode(`${def.label} `));
+      const input = document.createElement("input");
+      input.type = "number";
+      input.name = def.key;
+      input.value = String(val ?? "");
+      label.appendChild(input);
+    } else {
+      label.appendChild(document.createTextNode(`${def.label} `));
+      const input = document.createElement("input");
+      input.type = "text";
+      input.name = def.key;
+      input.value = String(val ?? "");
+      label.appendChild(input);
+    }
+    form.appendChild(label);
+  }
+  if (note) {
+    note.textContent = data.config_merge
+      ? "Project .costgate/gate-settings.json overrides Global. Restart Cursor MCP to apply."
+      : "Saved to ~/.costgate/gate-settings.json. Restart Cursor MCP to apply.";
+  }
+  if (pathEl && data.paths?.effective) {
+    pathEl.textContent = data.paths.effective;
+  }
+}
+
+function collectGateSettingsForm() {
+  const form = document.getElementById("gate-settings-form");
+  if (!form) return {};
+  const out = {};
+  for (const el of form.querySelectorAll("[name]")) {
+    const key = el.name;
+    if (el.type === "checkbox") out[key] = el.checked;
+    else if (el.type === "number") out[key] = Number(el.value);
+    else out[key] = el.value;
+  }
+  return out;
+}
+
+async function loadGateSettings() {
+  const data = await fetchJson(apiPath("gate-settings"));
+  renderGateSettings(data);
+  return data;
+}
+
+function setupGateSettings() {
+  document.getElementById("gate-settings-save")?.addEventListener("click", async () => {
+    try {
+      const settings = collectGateSettingsForm();
+      await fetchJson(apiPath("gate-settings"), {
+        method: "PATCH",
+        body: JSON.stringify({ settings }),
+      });
+      await loadGateSettings();
+      alert("Gate settings saved. Restart Cursor MCP (or reload window) to apply.");
+    } catch (e) {
+      alert(e.message);
+    }
+  });
 }
 
 function renderMcps(data) {
@@ -917,6 +1010,7 @@ async function main() {
   setupToolsControls();
   setupWizard();
   setupWorkspaces();
+  setupGateSettings();
   try {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
@@ -924,6 +1018,7 @@ async function main() {
       `health: ${health.status} · ${health.version} · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
     await loadWorkspaces();
     await reload();
+    await loadGateSettings();
     await loadMarketplace();
   } catch (err) {
     document.getElementById("health-status").textContent = `Error: ${err.message}`;

@@ -110,8 +110,17 @@
     <section id="panel-mcps" class="panel">
       <header class="panel-header">
         <h2 class="panel-title">MCPs</h2>
-        <p class="panel-desc">Registered MCP servers — enable or disable without editing mcp.json by hand.</p>
+        <p class="panel-desc">Registered MCP servers, Gate feature toggles, and enable/disable actions.</p>
       </header>
+      <div id="gate-settings-panel" class="gate-settings-panel">
+        <h3 class="subsection-title">costgate-gate settings</h3>
+        <p class="note" id="gate-settings-note"></p>
+        <form id="gate-settings-form" class="gate-settings-form filter-group"></form>
+        <div class="gate-settings-actions">
+          <button type="button" id="gate-settings-save" class="btn-sm">Save Gate settings</button>
+          <span id="gate-settings-path" class="note"></span>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>

@@ -41,6 +41,8 @@ export function defaultPaths() {
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
     promptIntentDir: process.env.COSTGATE_PROMPT_INTENT_DIR ?? promptIntentDir(),
+    gateSettingsPath:
+      process.env.COSTGATE_GATE_SETTINGS_PATH ?? join(home, ".costgate", "gate-settings.json"),
   };
 }
 
