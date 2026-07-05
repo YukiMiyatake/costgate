@@ -20,18 +20,21 @@ import {
   summarizeTools,
   pctReduction,
 } from "./lib/mcp-client.mjs";
-import { baseGateEnv, gateBin } from "./lib/paths.mjs";
+import { baseGateEnv, gateBin, mockGateEnv } from "./lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
 const skipCompare = args.includes("--skip-compare");
+const useMock = args.includes("--mock");
 const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
 
-const baseEnv = baseGateEnv("session-report");
+const baseEnv = useMock
+  ? mockGateEnv("session-report")
+  : baseGateEnv("session-report");
 
 async function measureGate(mode) {
   return withMcpProcess(
@@ -87,6 +90,7 @@ function buildReport(logs, gate) {
   }));
 
   return {
+    backend: useMock ? "mock" : "github",
     period: logs.period,
     log_dir: logs.logDir,
     probe: {
@@ -128,6 +132,9 @@ function buildReport(logs, gate) {
 
 function printText(report) {
   console.log("\nCostGate Session Token Breakdown\n");
+  if (report.backend === "mock") {
+    console.log("Backend: mock MCP (CI-safe gate compare)\n");
+  }
   if (report.period) {
     console.log(`Period: ${report.period.from} → ${report.period.to}`);
   }

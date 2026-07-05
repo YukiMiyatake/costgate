@@ -13,6 +13,11 @@ import (
 const (
 	defaultTierARatio = 0.20
 	defaultTierBRatio = 0.30
+
+	scoreWeightCallCount = 0.5
+	scoreWeightRecent7d  = 0.3
+	scoreWeightRecent30d = 0.15
+	scoreWeightHasUsage  = 0.2
 )
 
 // bootstrapPrefixes boost tools with no usage history into Tier A candidates.
@@ -45,17 +50,17 @@ func Classify(tools []*mcp.Tool, store *usage.Store) map[string]Tier {
 		var score float64
 		if hasUsage {
 			st := store.Tools[tool.Name]
-			score = float64(st.CallCount) * 0.5
+			score = float64(st.CallCount) * scoreWeightCallCount
 			if !st.LastUsed.IsZero() {
 				days := time.Since(st.LastUsed).Hours() / 24
 				if days <= 7 {
-					score += 0.3
+					score += scoreWeightRecent7d
 				} else if days <= 30 {
-					score += 0.15
+					score += scoreWeightRecent30d
 				}
 			}
 			if st.CallCount > 0 {
-				score += 0.2
+				score += scoreWeightHasUsage
 			}
 		}
 		if score == 0 {

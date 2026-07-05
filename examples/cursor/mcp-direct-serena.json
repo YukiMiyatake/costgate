@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "/home/yuki/.local/bin/uvx",
+      "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/oraios/serena",
