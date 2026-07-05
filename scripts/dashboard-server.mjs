@@ -23,7 +23,7 @@ import {
   buildGateSettingsApiPayload,
   patchGateSettings,
 } from "./lib/gate-settings.mjs";
-import { buildMcpTrustApiPayload } from "./lib/mcp-trust.mjs";
+import { buildMcpTrustApiPayload, patchMcpTrust } from "./lib/mcp-trust.mjs";
 import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
@@ -196,6 +196,15 @@ function mcpTrustOpts(paths) {
   };
 }
 
+function mcpTrustPatchOpts(paths) {
+  const scoped = Boolean(paths.scoped ?? paths.workspace_id);
+  return {
+    ...mcpTrustOpts(paths),
+    scoped,
+    projectRoot: paths.projectRoot ?? paths.workspace_path,
+  };
+}
+
 async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   const { dataOptions, controlPaths, marketplaceDirPath } = ctx;
 
@@ -311,6 +320,32 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     const body = await readBody(req);
     const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
     json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsGatePatch[1]), ...result });
+    return true;
+  }
+
+  const wsTrustPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcp-trust$/);
+  if (method === "PATCH" && wsTrustPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    let workspaceCtx;
+    try {
+      workspaceCtx = resolveWorkspace(decodeURIComponent(wsTrustPatch[1]), {
+        globalFallback: defaultPaths(),
+      });
+    } catch (e) {
+      json(res, 404, { error: e.message ?? String(e) });
+      return true;
+    }
+    const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
+    const body = await readBody(req);
+    try {
+      const result = patchMcpTrust(body, mcpTrustPatchOpts(paths));
+      json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsTrustPatch[1]), ...result });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
     return true;
   }
 
@@ -531,6 +566,18 @@ function createDashboardServer(options = {}) {
           const body = await readBody(req);
           const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
           json(res, 200, { ok: true, ...result });
+          return;
+        }
+
+        if (pathname === "/api/mcp-trust") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const body = await readBody(req);
+          try {
+            const result = patchMcpTrust(body, mcpTrustPatchOpts(paths));
+            json(res, 200, { ok: true, ...result });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
           return;
         }
 

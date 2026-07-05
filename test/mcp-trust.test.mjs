@@ -13,6 +13,8 @@ import {
   enrichMcpsWithTrust,
   buildMcpTrustApiPayload,
   normalizeTrustConfig,
+  patchMcpTrust,
+  MCP_TRUST_LEVELS,
 } from "../scripts/lib/mcp-trust.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
@@ -147,6 +149,62 @@ function testBuildDashboardDataTrust() {
   console.error("[mcp-trust] buildDashboardData ok");
 }
 
+function testPatchGlobal() {
+  const base = tempRoot();
+  const trustPath = join(base, "mcp-trust.json");
+  patchMcpTrust({ server: "github", trust: "restricted" }, { globalPath: trustPath });
+  const loaded = loadMcpTrust({ globalPath: trustPath });
+  assert(loaded.config.servers.github.trust === "restricted", "patched global server");
+  console.error("[mcp-trust] patch global ok");
+}
+
+function testPatchProjectScoped() {
+  const base = tempRoot();
+  const globalDir = join(base, "global");
+  const projectRoot = join(base, "project");
+  const projectDir = join(projectRoot, ".costgate");
+  mkdirSync(globalDir, { recursive: true });
+  mkdirSync(projectDir, { recursive: true });
+
+  writeFileSync(
+    join(globalDir, "mcp-trust.json"),
+    `${JSON.stringify({
+      version: 1,
+      servers: { github: { trust: "standard" } },
+    })}\n`
+  );
+
+  patchMcpTrust(
+    { server: "github", trust: "untrusted" },
+    {
+      globalPath: join(globalDir, "mcp-trust.json"),
+      projectPath: join(projectDir, "mcp-trust.json"),
+      projectRoot,
+      scoped: true,
+    }
+  );
+
+  const loaded = loadMcpTrust({
+    globalPath: join(globalDir, "mcp-trust.json"),
+    projectPath: join(projectDir, "mcp-trust.json"),
+    projectRoot,
+  });
+  assert(loaded.config.servers.github.trust === "untrusted", "project override after patch");
+  assert(loaded.origins.servers.github === "project", "origin project after patch");
+  console.error("[mcp-trust] patch project scoped ok");
+}
+
+function testPatchValidation() {
+  let threw = false;
+  try {
+    patchMcpTrust({ server: "x", trust: "bogus" }, { globalPath: join(tempRoot(), "t.json") });
+  } catch (e) {
+    threw = e.message.includes("invalid trust");
+  }
+  assert(threw, "reject invalid trust");
+  console.error("[mcp-trust] patch validation ok");
+}
+
 async function testHttpApi() {
   const base = tempRoot();
   mkdirSync(join(base, "logs"), { recursive: true });
@@ -178,13 +236,32 @@ async function testHttpApi() {
 
   try {
     const trust = await fetch(`${baseUrl}/api/mcp-trust`).then((r) => r.json());
-    assert(trust.read_only === true, "read_only flag");
+    assert(trust.read_only === false, "editable flag");
     assert(trust.levels?.includes("restricted"), "levels list");
     assert(trust.servers["costgate-gate"]?.trust === "trusted", "GET mcp-trust");
 
+    const patch = await fetch(`${baseUrl}/api/mcp-trust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ server: "costgate-gate", trust: "standard" }),
+    });
+    assert(patch.ok, `PATCH ${patch.status}`);
+    const patched = await patch.json();
+    assert(patched.config.servers["costgate-gate"].trust === "standard", "PATCH response");
+
+    const again = await fetch(`${baseUrl}/api/mcp-trust`).then((r) => r.json());
+    assert(again.servers["costgate-gate"]?.trust === "standard", "PATCH persisted");
+
+    const bad = await fetch(`${baseUrl}/api/mcp-trust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ server: "x", trust: "invalid" }),
+    });
+    assert(bad.status === 400, "invalid trust 400");
+
     const mcps = await fetch(`${baseUrl}/api/mcps`).then((r) => r.json());
     const gate = mcps.servers?.find((s) => s.name === "costgate-gate");
-    assert(gate?.trust === "trusted", "mcps embed trust");
+    assert(gate?.trust === "standard", "mcps embed patched trust");
     assert(mcps.trust_summary != null, "mcps trust_summary");
 
     const payload = buildMcpTrustApiPayload({ globalPath: join(base, "mcp-trust.json") });
@@ -201,6 +278,10 @@ async function main() {
   testResolveOrder();
   testEnrichMcps();
   testBuildDashboardDataTrust();
+  testPatchGlobal();
+  testPatchProjectScoped();
+  testPatchValidation();
+  assert(MCP_TRUST_LEVELS.length === 4, "four trust levels");
   await testHttpApi();
   console.error("[mcp-trust] all passed");
 }
