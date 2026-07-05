@@ -121,6 +121,7 @@ See [docs/roadmap.md](./docs/roadmap.md) for phase details.
 
 - [Development roadmap](./docs/roadmap.md)
 - [MCP Dashboard（利用者向け）](./docs/dashboard.md)
+- [MCP トークン削減調査](./docs/mcp-reduction-survey.md)
 - [MCP Dashboard（開発者向け）](./docs/dev/dashboard.md)
 - [Benchmarks & verification](./docs/benchmarks.md)
 - [Repository structure](./docs/structure.md)
