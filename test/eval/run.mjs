@@ -92,6 +92,21 @@ function assertStep(step, context) {
 
 async function runTask(modeKey, modeSpec, task) {
   const env = gateEnv(`eval-${modeKey}-${task.id}`, modeSpec);
+  if (task.seed_probe_log?.length && env.COSTGATE_PROBE_LOG_DIR) {
+    mkdirSync(env.COSTGATE_PROBE_LOG_DIR, { recursive: true });
+    const now = new Date().toISOString();
+    const logPath = join(env.COSTGATE_PROBE_LOG_DIR, `probe-${now.slice(0, 10)}.jsonl`);
+    const lines = task.seed_probe_log.map((row) =>
+      JSON.stringify({
+        type: "tool_call",
+        tool: row.tool,
+        ts: now,
+        session_id: "eval-seed",
+        client: "eval",
+      })
+    );
+    writeFileSync(logPath, lines.join("\n") + "\n");
+  }
   const started = Date.now();
   const stepResults = [];
 

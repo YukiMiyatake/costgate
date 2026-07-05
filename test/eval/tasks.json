@@ -32,6 +32,14 @@
         "COSTGATE_COMPRESS": "1",
         "COSTGATE_CODE_MODE": "1"
       }
+    },
+    "filter_probe_intent": {
+      "label": "Gate filter + probe intent",
+      "env": {
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_INTENT_DYNAMIC": "1",
+        "COSTGATE_INTENT_PROBE": "1"
+      }
     }
   },
   "tasks": [
@@ -166,6 +174,20 @@
           },
           "assert_text_contains": "file: cmd/main.go",
           "assert_symbols": ["package main", "hello"]
+        }
+      ]
+    },
+    {
+      "id": "probe_intent_exposes_merge",
+      "name": "Probe log intent exposes merge tools via discover",
+      "modes": ["filter_probe_intent"],
+      "seed_probe_log": [{ "tool": "merge_pull_request" }],
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "args": { "query": "merge", "limit": 5 },
+          "assert_text_contains": "merge_pull_request"
         }
       ]
     },
