@@ -366,6 +366,8 @@ footer {
 }
 
 .marketplace-card {
+  display: block;
+  width: 100%;
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -373,6 +375,7 @@ footer {
   padding: 0.85rem 1rem;
   cursor: pointer;
   color: var(--text);
+  font: inherit;
 }
 
 .marketplace-card:hover {
