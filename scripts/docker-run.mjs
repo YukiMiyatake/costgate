@@ -10,21 +10,22 @@
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-const ROOT = dirname(fileURLToPath(new URL("..", import.meta.url)));
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const COMPOSE_FILE = join(ROOT, "docker-compose.dev.yml");
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
   args.push("bash");
 }
 
-const cmd = ["compose", "-f", "docker-compose.dev.yml", "run", "--rm", "toolchain", ...args];
+const cmd = ["compose", "-f", COMPOSE_FILE, "run", "--rm", "toolchain", ...args];
 
 const r = spawnSync("docker", cmd, {
   cwd: ROOT,
   stdio: "inherit",
-  env: process.env,
+  env: { ...process.env, PWD: ROOT },
 });
 
 process.exit(r.status ?? 1);

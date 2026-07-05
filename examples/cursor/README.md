@@ -19,7 +19,7 @@ Docker のみ（ホスト Node/Go 不要）:
 # Reload Window
 ```
 
-更新: `npm run docker:update` — [docs/docker.md](../../docs/docker.md)
+更新（ローカル再ビルド）: `npm run docker:update` — [docs/docker.md](../../docs/docker.md)
 
 - **serena** — コード操作（常時直結）
 - **costgate-gate** — GitHub MCP（Tier フィルタ + `discover_tools`）
@@ -43,7 +43,7 @@ npm run cursor:measurement
 |---------|--------|
 | `npm run cursor:production` | `costgate-gate` ON, `costgate-probe` OFF |
 | `npm run cursor:measurement` | `costgate-probe` ON, `costgate-gate` OFF |
-| `npm run cursor:update` | `main` pull + Gate/Probe ビルド + production 設定 |
+| `npm run cursor:update` | ローカルで Gate/Probe ビルド + production 設定 |
 | `npm run cursor:mcp -- status` | 現在のモードを表示 |
 
 `~/.cursor/mcp.json` は切替前に `mcp.json.bak` へバックアップされます。

@@ -33,7 +33,7 @@ chmod +x docker.sh
 
 または `npm run docker:setup`（ホストに npm がある場合）。
 
-更新: `npm run docker:update` — 詳細は [docs/docker.md](./docs/docker.md)
+更新（ローカル再ビルド）: `npm run docker:update` — 詳細は [docs/docker.md](./docs/docker.md)
 
 ### Option C — Dev Container (Cursor / VS Code)
 

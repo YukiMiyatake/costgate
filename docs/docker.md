@@ -31,7 +31,7 @@ Cursor 用 MCP 設定:
 | `npm run build` | `./docker.sh npm run build` |
 | `npm run build:gate` | `./docker.sh npm run build:gate` |
 | `npm run compare` | `./docker.sh npm run compare` |
-| `npm run cursor:update` | `npm run docker:update` |
+| `npm run cursor:update` | `npm run docker:update`（いずれもローカル再ビルド） |
 
 汎用ラッパー:
 
