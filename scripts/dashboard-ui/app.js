@@ -12,11 +12,17 @@ function fmtDate(iso) {
   }
 }
 
-function badge(text, ok = false) {
+function badge(text, ok = false, extraClass = "") {
   const span = document.createElement("span");
-  span.className = ok ? "badge ok" : "badge";
+  span.className = ["badge", ok ? "ok" : "", extraClass].filter(Boolean).join(" ");
   span.textContent = text;
   return span;
+}
+
+function tierBadge(tier, forced = false) {
+  const base = (tier ?? "—").toLowerCase();
+  const label = forced ? `${tier}*` : (tier ?? "—");
+  return badge(label, false, `tier-badge tier-${base}`);
 }
 
 function dashHeaders() {
@@ -336,7 +342,6 @@ function populateToolsBackendFilter(tools) {
 function renderToolRow(t) {
   const tr = document.createElement("tr");
   const flag = t.recommendation ? badge(t.recommendation) : document.createTextNode("—");
-  const tierLabel = t.forced_tier ? `${t.tier ?? "—"}*` : (t.tier ?? "—");
   const hideBtn = document.createElement("button");
   hideBtn.type = "button";
   hideBtn.className = t.tier === "hidden" ? "btn-sm btn-enable" : "btn-sm btn-disable";
@@ -359,13 +364,14 @@ function renderToolRow(t) {
   tr.innerHTML = `
     <td>${t.name}</td>
     <td>${t.backend ?? "—"}</td>
-    <td>${tierLabel}</td>
+    <td></td>
     <td></td>
     <td>${fmt(t.call_count)}</td>
     <td>${fmtDate(t.last_used)}</td>
     <td>${t.estimated_list_tokens != null ? `~${fmt(t.estimated_list_tokens)}` : "—"}</td>
     <td></td>
     <td></td>`;
+  tr.children[2].appendChild(tierBadge(t.tier, t.forced_tier));
   tr.children[3].appendChild(listData);
   tr.children[7].appendChild(flag);
   tr.children[8].appendChild(hideBtn);
@@ -378,12 +384,14 @@ function renderToolsTable() {
   const filtered = sortTools(filterTools(all));
   const body = document.getElementById("tools-body");
   const empty = document.getElementById("tools-empty");
+  const wrap = body?.closest(".table-wrap");
   const count = document.getElementById("tools-count");
   body.innerHTML = "";
   for (const t of filtered) {
     body.appendChild(renderToolRow(t));
   }
   if (empty) empty.classList.toggle("hidden", filtered.length > 0);
+  wrap?.classList.toggle("hidden", filtered.length === 0);
   if (count) {
     count.textContent =
       filtered.length === all.length
@@ -419,8 +427,18 @@ function setupToolsControls() {
 
 function renderMcps(data) {
   const body = document.getElementById("mcps-body");
+  const empty = document.getElementById("mcps-empty");
+  const wrap = body?.closest(".table-wrap");
   body.innerHTML = "";
-  for (const s of data.servers ?? []) {
+  const servers = data.servers ?? [];
+  if (!servers.length) {
+    empty?.classList.remove("hidden");
+    wrap?.classList.add("hidden");
+    return;
+  }
+  empty?.classList.add("hidden");
+  wrap?.classList.remove("hidden");
+  for (const s of servers) {
     const tr = document.createElement("tr");
     const measured = s.enabled === false
       ? badge("disabled")
@@ -682,7 +700,7 @@ function renderMarketplaceResults(templates) {
   }
 
   if (!templates.length) {
-    grid.innerHTML = '<p class="note">No templates match your filters.</p>';
+    grid.innerHTML = '<p class="empty-state">No templates match your filters.</p>';
     return;
   }
 
