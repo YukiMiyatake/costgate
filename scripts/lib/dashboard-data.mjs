@@ -14,6 +14,7 @@ import {
 import { repoRoot } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
+import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
@@ -30,6 +31,9 @@ export function defaultPaths() {
     overridesPath:
       process.env.COSTGATE_TOOL_OVERRIDES ??
       join(home, ".costgate", "tool-overrides.json"),
+    disabledPath:
+      process.env.COSTGATE_MCP_DISABLED_PATH ??
+      join(home, ".costgate", "mcp-disabled.json"),
     tierDir: join(repoRoot(), "packages/gate/internal/catalog/tiers"),
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
@@ -319,7 +323,7 @@ function detectBlindSpots(mcpServers, backends) {
   return blind.sort();
 }
 
-function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}) {
+function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}, backendOrigins = {}) {
   const items = [];
   const seen = new Set();
 
@@ -366,6 +370,7 @@ function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}) {
       command: backends[backend]?.command ?? null,
       backends: [backend],
       call_count: stats?.call_count ?? 0,
+      config_origin: backendOrigins[backend] ?? "project",
     });
   }
 
@@ -390,6 +395,7 @@ function detectCursorMode(mcpServers) {
  */
 export function buildDashboardData(options = {}) {
   const paths = { ...defaultPaths(), ...options };
+  const globalPaths = options.globalPaths ?? defaultPaths();
   const windowDays = options.windowDays ?? 30;
   const now = options.now ?? Date.now();
 
@@ -400,14 +406,16 @@ export function buildDashboardData(options = {}) {
     paths.gateLogDir
   );
   const usage = loadUsage(paths.usagePath);
-  const backends = loadBackends(paths.configPath);
+  const effective = resolveEffectiveConfig(paths, globalPaths);
+  const backends = effective.backends;
+  const backendOrigins = effective.backendOrigins;
   const mcpServers = loadMcpServers(paths.mcpPath);
   const catalogs = loadTierCatalogs(paths.tierDir);
   const defaultBackend = primaryBackend(backends);
 
   const g = logs.global;
-  const overrides = loadToolOverrides(paths.overridesPath).tools ?? {};
-  const disabledStore = loadMcpDisabled();
+  const overrides = effective.overrides;
+  const disabledStore = effective.disabledStore;
   const tools = mergeToolStats(byTool, usage, catalogs, defaultBackend, now, overrides);
   const deleteRecommendations = scoreRecommendations(
     tools,
@@ -425,15 +433,24 @@ export function buildDashboardData(options = {}) {
   const recommendations = [...projectRecs.items, ...deleteRecommendations].sort(
     (a, b) => (b.score ?? 0) - (a.score ?? 0) || String(a.target).localeCompare(String(b.target))
   );
-  const mcps = buildMcps(mcpServers, backends, byBackend, detectCursorMode(mcpServers), disabledStore);
+  const mcps = buildMcps(
+    mcpServers,
+    backends,
+    byBackend,
+    detectCursorMode(mcpServers),
+    disabledStore,
+    backendOrigins
+  );
 
   return {
     generated_at: new Date(now).toISOString(),
     window_days: windowDays,
+    config_merge: effective.config_merge,
     paths: {
       log_dir: paths.logDir,
       usage: paths.usagePath,
       backends: paths.configPath,
+      global_backends: effective.global_config_path ?? null,
       mcp: paths.mcpPath,
     },
     overview: {
@@ -451,6 +468,7 @@ export function buildDashboardData(options = {}) {
       delete_recommendation_count: deleteRecommendations.length,
       blind_spot_count: mcps.blind_spots.length,
       cursor_mode: mcps.mode,
+      config_merge: effective.config_merge,
     },
     tools: {
       tools,

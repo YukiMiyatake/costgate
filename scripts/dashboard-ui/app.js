@@ -223,12 +223,18 @@ function renderOverview(data) {
     cards.appendChild(card);
   }
   const note = document.getElementById("overview-note");
+  let noteText = "";
   if (data.period) {
-    note.textContent = `Period: ${data.period.from} → ${data.period.to}. Gate/Probe 外 MCP は blind spot として表示されます。`;
+    noteText = `Period: ${data.period.from} → ${data.period.to}. Gate/Probe 外 MCP は blind spot として表示されます。`;
   } else {
-    note.textContent =
+    noteText =
       "Probe ログがありません。npm run cursor:measurement で計測を開始してください。";
   }
+  if (data.config_merge) {
+    noteText +=
+      " プロジェクト表示では Global の backends / overrides / disabled を継承し、同名キーはプロジェクト設定が優先されます。";
+  }
+  note.textContent = noteText;
 }
 
 function renderTools(data) {
@@ -308,10 +314,21 @@ function renderMcps(data) {
     };
     tr.innerHTML = `
       <td>${s.name}</td>
-      <td>${s.role}</td>
+      <td></td>
       <td></td>
       <td><code>${s.command ?? "—"}</code></td>
       <td></td>`;
+    const roleCell = tr.children[1];
+    roleCell.textContent = s.role;
+    if (s.config_origin && s.role === "backend") {
+      roleCell.appendChild(document.createElement("br"));
+      roleCell.appendChild(
+        badge(
+          s.config_origin === "global" ? "Global" : "Project",
+          s.config_origin === "project"
+        )
+      );
+    }
     tr.children[2].appendChild(measured);
     tr.children[4].appendChild(toggle);
     body.appendChild(tr);
