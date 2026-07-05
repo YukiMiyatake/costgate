@@ -6,7 +6,6 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -14,6 +13,7 @@ import { dirname, join, resolve } from "node:path";
 import { repoRoot } from "./paths.mjs";
 import { cursorMcpPath, loadMcpJson } from "./dashboard-control.mjs";
 import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
+import { readJson } from "./read-json.mjs";
 
 export function marketplaceDir() {
   return process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace");
@@ -34,15 +34,6 @@ const POPULARITY_RANK = { high: 3, medium: 2, low: 1 };
 
 function categoryLabel(id, template) {
   return template.category_label ?? MARKETPLACE_CATEGORIES.find((c) => c.id === id)?.label ?? id;
-}
-
-function readJson(path) {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 export function loadMarketplaceCatalog(dir = marketplaceDir()) {

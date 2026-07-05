@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { loadMarketplaceCatalog, marketplaceDir } from "./dashboard-marketplace.mjs";
+import { readJson } from "./read-json.mjs";
 
 const SEARCH_MCP_PATTERN = /search|brave|google|tavily|exa|bing|serp/i;
 const RULES_GH_PATTERN = /\bgh\b|pull request|\bPR\b|github/i;
@@ -14,15 +15,6 @@ const SIGNAL_TEMPLATES = {
   "go.mod": ["filesystem", "github"],
   cursor_rules_gh_pr: ["github"],
 };
-
-function readJson(path) {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
 
 export function resolveProjectRoot(options = {}) {
   if (options.projectRoot) return options.projectRoot;

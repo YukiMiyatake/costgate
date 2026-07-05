@@ -2,17 +2,8 @@
  * Phase 30: merge Global (~/.costgate) templates with project-scoped overlays.
  * Project keys override Global keys with the same name.
  */
-import { existsSync, readFileSync } from "node:fs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
-
-function readJson(path) {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
+import { readJson } from "./read-json.mjs";
 
 function loadBackendsMap(configPath) {
   return readJson(configPath)?.backends ?? {};

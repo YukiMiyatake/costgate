@@ -16,7 +16,7 @@
     "dev:probe": "npm run dev -w @costgate/probe",
     "install:gate": "bash scripts/install-gate.sh",
 
-    "compare": "node scripts/compare-report.mjs",
+    "check:syntax": "node scripts/check-syntax.mjs",
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
 
@@ -52,10 +52,10 @@
     "release:check": "goreleaser check",
 
     "test": "npm run test:ci",
-    "test:ci": "npm run test:tokens && npm run test:schema && npm run test:integration && npm run eval && npm run benchmark:ci && npm run test:filesystem && npm run dashboard:test",
+    "test:ci": "npm run check:syntax && npm run test:tokens && npm run test:schema && npm run test:integration && npm run eval && npm run benchmark:ci && npm run test:filesystem && npm run dashboard:test",
     "test:local": "npm run test:ci && npm run test:gate && npm run test:gate:filter && npm run test:cursor:gate",
 
-    "test:gate": "node test/gate-measurement.mjs",
+    "test:gate-launch": "node test/costgate-gate-launch.test.mjs",
     "test:gate:compress": "cd packages/gate && go test ./internal/compress/...",
     "test:gate:codemode": "cd packages/gate && go test ./internal/codemode/...",
     "test:gate:filter": "node test/gate-filter.mjs",

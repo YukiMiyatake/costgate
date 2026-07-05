@@ -235,7 +235,7 @@ async function testHttpMarketplaceAndPost() {
     assert(installed.templates.some((t) => t.id === "github" && t.installed === true), "installed flag");
 
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert(health.version === "phase29", "phase29 health");
+    assert(health.version === "30", "dashboard health version");
 
     console.error("[marketplace] HTTP API ok");
   } finally {
