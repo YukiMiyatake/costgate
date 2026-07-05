@@ -4,9 +4,7 @@ project_name: costgate-gate
 
 before:
   hooks:
-    - cmd: bash -c "cd packages/gate && go mod tidy && go test ./..."
-      env:
-        - CGO_ENABLED=0
+    - bash -c "cd packages/gate && CGO_ENABLED=0 go mod tidy && CGO_ENABLED=0 go test ./..."
 
 builds:
   - id: costgate-gate
@@ -29,11 +27,11 @@ builds:
 
 archives:
   - id: costgate-gate
-    format: tar.gz
+    formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - LICENSE
       - packages/gate/README.md

@@ -8,7 +8,6 @@ on:
 jobs:
   eval-live:
     runs-on: ubuntu-latest
-    if: ${{ secrets.GITHUB_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
