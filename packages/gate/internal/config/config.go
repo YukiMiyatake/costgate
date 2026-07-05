@@ -21,8 +21,6 @@ type GateConfig struct {
 	Backends map[string]BackendConfig `json:"backends"`
 }
 
-var excludedBackends = map[string]bool{"serena": true}
-
 // ResolveConfigPath returns COSTGATE_CONFIG or ~/.costgate/backends.json.
 func ResolveConfigPath() string {
 	if p := os.Getenv("COSTGATE_CONFIG"); p != "" {
@@ -50,11 +48,6 @@ func Load() (GateConfig, error) {
 	if len(cfg.Backends) == 0 {
 		return GateConfig{}, fmt.Errorf("no backends in %s", path)
 	}
-	for name := range cfg.Backends {
-		if excludedBackends[name] {
-			return GateConfig{}, fmt.Errorf("gate must not configure %q; keep serena direct in Cursor", name)
-		}
-	}
 	return cfg, nil
 }
 
@@ -64,9 +57,7 @@ func PrimaryBackend(cfg GateConfig) (string, BackendConfig, error) {
 		return "github", b, nil
 	}
 	for name, backend := range cfg.Backends {
-		if !excludedBackends[name] {
-			return name, backend, nil
-		}
+		return name, backend, nil
 	}
 	return "", BackendConfig{}, fmt.Errorf("no gate backends configured")
 }

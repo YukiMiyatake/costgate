@@ -4,45 +4,38 @@
 
 ```
 Cursor mcp.json
-├── serena              … 直結（常時 ON。Probe / Gate の外）
-├── costgate-probe      … GitHub MCP 等の計測（開発）
-└── costgate-gate       … GitHub / Browser 等（将来・ツール定義を絞る）
+├── costgate-probe      … backend MCP measurement (development)
+└── costgate-gate       … filtered backends (production)
 ```
 
-**Serena は Probe でも Gate でも呼ばない。** Cursor 直結のみ。
+Backends (GitHub MCP, etc.) are configured in `~/.costgate/backends.json` and proxied by Probe or Gate — not as separate entries in `mcp.json`.
 
 ## Roles
 
-| コンポーネント | Serena | GitHub MCP 等 |
-|---|---|---|
-| **Cursor 直結** | ✅ 常時 | ❌ |
-| **Probe** | ❌ 計測しない | ✅ 計測用プロキシ |
-| **Gate** | ❌ | ✅ 削減用プロキシ |
+| Component | Purpose |
+|---|---|
+| **Probe** | Measurement proxy for configured backends; JSONL logs |
+| **Gate** | Production proxy — filters `tools/list`, delegates `tools/call` |
 
 ## Daily development
 
 ```
 Cursor
-├── serena           … コード操作
-└── costgate-probe   … GitHub 計測（任意・PAT 要）
+└── costgate-probe   … GitHub measurement (optional · PAT required)
          │
-         └── GitHub MCP（subprocess）
+         └── GitHub MCP (subprocess)
 ```
-
-Serena と Probe は **同時 ON で問題なし**（別 MCP・別ツール）。
 
 ## Overview
 
 ```
-                    ┌── serena ────────────── 直結（常時）
-Cursor ─────────────┼── costgate-probe ────── GitHub MCP（計測）
-                    └── costgate-gate ─────── browser, …（将来）
+Cursor ─────────────┼── costgate-probe ────── GitHub MCP (measurement)
+                    └── costgate-gate ─────── GitHub MCP (production)
 ```
 
 ## Probe (measurement)
 
-- stdio proxy for **GitHub and other heavy MCPs only**
-- Never spawns Serena
+- stdio proxy for configured backends (GitHub and similar)
 - JSONL to `~/.costgate/logs/`
 
 ## Gate (production)
@@ -50,7 +43,6 @@ Cursor ─────────────┼── costgate-probe ───
 - Filters `tools/list` for delegated backends (Tier A/B/C + meta tools)
 - `discover_tools` / `invoke_tool` for on-demand access to hidden tools
 - Usage store at `~/.costgate/usage.json` (imports Probe JSONL when present)
-- Serena stays outside Gate
 
 ## Dashboard (Phase 23+)
 

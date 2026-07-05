@@ -3,8 +3,8 @@
  * Switch ~/.cursor/mcp.json between production (Gate) and measurement (Probe).
  *
  * Usage:
- *   npm run cursor:production   # serena + costgate-gate (+ keep other servers)
- *   npm run cursor:measurement  # serena + costgate-probe
+ *   npm run cursor:production   # costgate-gate (+ keep other servers)
+ *   npm run cursor:measurement  # costgate-probe
  *   npm run cursor:mcp -- status
  */
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";

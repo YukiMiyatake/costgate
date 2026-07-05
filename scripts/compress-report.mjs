@@ -270,7 +270,7 @@ async function main() {
       "Definition layer = Gate filter on tools/list.",
       "Result layer = live invoke_tool with COSTGATE_COMPRESS on/off.",
       "Code mode layer (--code-mode) = outline for .go source file.",
-      "Conversation, Serena, and other MCPs are excluded.",
+      "Conversation and MCPs outside Probe/Gate are excluded.",
     ],
   };
 

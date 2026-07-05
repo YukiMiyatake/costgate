@@ -1,16 +1,5 @@
 {
   "mcpServers": {
-    "serena": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server",
-        "--context",
-        "ide"
-      ]
-    },
     "costgate-probe": {
       "command": "npx",
       "args": ["@costgate/probe"],

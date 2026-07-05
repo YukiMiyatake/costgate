@@ -9,7 +9,6 @@ Implementation phases for CostGate OSS. Business plans (Free / Pro / Team) are i
 | **Probe** (`@costgate/probe`) | Measure token usage, JSONL logs | Development / baseline only |
 | **Gate** (`costgate-gate`) | Filter `tools/list`, delegate calls | Production (daily Cursor) |
 | **Dashboard** (`npm run dashboard`) | MCP / tool stats, recommendations, control | Local Web UI (Phase 23+) |
-| **Serena** | Code intelligence | Direct in Cursor — never via Probe/Gate |
 | **costgate-cloud** | Reports, billing, team features | Private repo (future) |
 
 See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
@@ -75,7 +74,6 @@ Phase 30+    costgate-cloud       ← 後回し（MVP は Phase 6 済み）
 ### Phase 1 — Probe MVP ✅
 
 - stdio MCP proxy to GitHub (and other heavy MCPs)
-- Serena excluded from Probe/Gate backends
 - Logs: `~/.costgate/logs/probe-YYYY-MM-DD.jsonl`
 - Test: `node test/probe-measurement.mjs`
 
@@ -298,7 +296,7 @@ CLI（`session-report`, `compare`）の延長として実装し、クラウド D
 - データ: Probe JSONL, `usage.json`, `backends.json`, `mcp.json`, tier catalog
 - 画面: Overview, Tools, MCPs, Recommendations（削除候補）
 - API: `GET /api/overview`, `/api/tools`, `/api/mcps`, `/api/recommendations`
-- 計測圏外 MCP（Serena 等）に blind spot バッジ
+- 計測圏外 MCP（Gate/Probe 外の直結サーバー等）に blind spot バッジ
 - Test: API スナップショット + fixture logs
 
 ### Phase 24 — Dashboard control 📋
@@ -405,14 +403,14 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 ### 請求トークン全体への目安（GitHub MCP を Gate した場合）
 
-1 ターンの合計 ≈ システム/会話 + **ツール定義（固定）** + **ツール結果（変動）** + 他 MCP（Serena 等）。
+1 ターンの合計 ≈ システム/会話 + **ツール定義（固定）** + **ツール結果（変動）** + 他 MCP。
 
 | 使い方 | Gate による全体削減の目安 |
 |--------|---------------------------|
 | 短い会話・定義が効きやすい | **15〜30%** |
 | 通常のコーディング | **5〜15%** |
 | 長い会話 + 大きな tool 結果 | **3〜8%** |
-| Serena 定義が支配的 | **1〜5%**（GitHub 分のみ削減） |
+| 他 MCP 定義が支配的 | **1〜5%**（Gate 対象 MCP 分のみ削減） |
 
 例: 1 ターン 20,000 tokens のうち GitHub 定義 ~4,000 → Gate で ~3,000 削減 → **全体 ~15%**。
 
@@ -431,7 +429,7 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 | 計測ドリフト・回帰 | ✅ benchmark CI | Phase 18 |
 | Multi-MCP | ✅ github + mock + filesystem catalog | Phase 19 |
 | 会話・rules | ❌ 未計画 | Out of scope |
-| Serena / 直結 MCP | ❌ 意図的対象外 | — |
+| Gate/Probe 外の直結 MCP | ❌ 計測対象外 | Dashboard blind spot |
 | MCP 可視化・制御 | 📋 Phase 23–27 | ローカル Dashboard（OSS） |
 | 可視化・課金（cloud） | MVP のみ | **Phase 30+ 後回し** |
 
@@ -452,7 +450,6 @@ Pro/Team の新機能開発は **OSS Phase 27 まで凍結**（Dashboard は OSS
 | Item | Notes |
 |------|-------|
 | Prompt / rules optimization | **Not scheduled** — conversation token reduction |
-| Serena / 直結 MCP の Gate 化 | 意図的に対象外 — コード操作は Serena 直結 |
 
 ---
 

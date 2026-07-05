@@ -22,8 +22,8 @@ Shared between Probe, Gate, and costgate-cloud. One JSON object per line.
   "ts": "2026-07-04T08:00:00.000Z",
   "session_id": "uuid",
   "client": "cursor",           // cursor | claude-desktop | vscode | unknown
-  "backend": "serena",          // backend MCP server name
-  "tool": "find_symbol",
+  "backend": "github",          // backend MCP server name
+  "tool": "search_code",
   "request_bytes": 256,
   "response_bytes": 4096,
   "estimated_tokens": 1200,

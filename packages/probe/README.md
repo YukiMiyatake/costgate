@@ -1,11 +1,10 @@
 # @costgate/probe
 
-MCP measurement proxy for CostGate. Measures **GitHub and other heavy MCPs** — not Serena.
+MCP measurement proxy for CostGate. Measures **GitHub and other heavy MCPs** configured in `~/.costgate/backends.json`.
 
 ## Policy
 
-- **Serena**: always direct in Cursor (`mcp.json`). Probe never spawns it.
-- **Probe**: wraps GitHub MCP (and similar) for JSONL metrics.
+- **Probe**: wraps configured backends (e.g. GitHub MCP) for JSONL metrics.
 
 ## Layout
 
