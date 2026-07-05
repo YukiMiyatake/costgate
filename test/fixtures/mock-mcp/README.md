@@ -1,7 +1,5 @@
 # mock-mcp
 
-Placeholder for a minimal stdio MCP server used in integration tests.
+Minimal stdio MCP server for integration tests (no GitHub token).
 
-Returns fixed `tools/list` and echo responses so Probe/Gate can be tested without real backends.
-
-Implementation: TODO
+Returns 15 fixed tools and an `echo` helper. Used by `npm run test:integration`.

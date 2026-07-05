@@ -43,6 +43,12 @@ jobs:
       - name: Token counter tests
         run: npm run test:tokens
 
+      - name: Schema validation tests
+        run: npm run test:schema
+
+      - name: Integration tests (mock MCP)
+        run: npm run test:integration
+
       - name: Script syntax check
         run: |
           node --check scripts/feat-workflow.mjs
@@ -56,3 +62,5 @@ jobs:
           node --check scripts/cursor-update.mjs
           node --check scripts/docker-run.mjs
           node --check scripts/lib/paths.mjs
+          node --check test/run.mjs
+          node --check test/fixtures/mock-mcp/index.mjs

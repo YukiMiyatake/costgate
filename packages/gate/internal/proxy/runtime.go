@@ -54,9 +54,7 @@ func (r *filterRuntime) record(tool string) {
 		return
 	}
 	r.store.Record(tool)
-	if err := r.store.Save(); err != nil {
-		log.Printf("[costgate-gate] usage save: %v", err)
-	}
+	r.store.SaveDebounced()
 	if intent.DynamicEnabled() {
 		r.syncTools()
 	}

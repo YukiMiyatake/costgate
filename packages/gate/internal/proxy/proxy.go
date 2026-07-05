@@ -58,6 +58,11 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 	if err != nil {
 		return fmt.Errorf("load usage store: %w", err)
 	}
+	defer func() {
+		if err := store.Flush(); err != nil {
+			log.Printf("[costgate-gate] usage flush: %v", err)
+		}
+	}()
 	if err := store.ImportProbeLogs(""); err != nil {
 		log.Printf("[costgate-gate] probe log import: %v", err)
 	}

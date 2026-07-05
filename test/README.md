@@ -1,17 +1,23 @@
-# Integration tests (skeleton)
+# Integration tests
 
-Future tests cover:
+| Scenario | Command |
+|----------|---------|
+| Probe → mock MCP | `test/run.mjs` (probe section) |
+| Gate transparent → mock MCP | `test/run.mjs` |
+| Gate filter → mock MCP | `test/run.mjs` |
 
-| Scenario | Description |
-|----------|-------------|
-| Probe only | `Cursor → Probe → mock MCP` |
-| Gate only | `Cursor → Gate → mock MCP` |
-| Chain | `Probe → Gate → mock MCP` (Before/After metrics) |
+## Run
 
-## Run (when implemented)
+```bash
+npm run build
+npm run build:gate
+npm run test:integration
+```
+
+No `GITHUB_PERSONAL_ACCESS_TOKEN` required — uses `test/fixtures/mock-mcp`.
+
+Docker:
 
 ```bash
 docker compose -f docker-compose.test.yml --profile test run --rm test-runner
 ```
-
-Probe and Gate are **not** Compose services — the test runner starts them as subprocesses with stdio.

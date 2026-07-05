@@ -6,9 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+const defaultSaveDebounce = 2 * time.Second
 
 // ToolStats holds per-tool usage counters.
 type ToolStats struct {
@@ -20,6 +24,10 @@ type ToolStats struct {
 type Store struct {
 	path  string
 	Tools map[string]ToolStats `json:"tools"`
+
+	saveMu    sync.Mutex  `json:"-"`
+	saveTimer *time.Timer `json:"-"`
+	dirty     bool        `json:"-"`
 }
 
 // ResolvePath returns COSTGATE_USAGE_PATH or ~/.costgate/usage.json.
@@ -66,8 +74,49 @@ func (s *Store) Record(tool string) {
 	s.Tools[tool] = st
 }
 
-// Save writes the store to disk.
+// Save writes the store to disk immediately.
 func (s *Store) Save() error {
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+	return s.saveLocked()
+}
+
+// SaveDebounced schedules a disk write after a quiet period.
+func (s *Store) SaveDebounced() {
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+
+	s.dirty = true
+	if s.saveTimer != nil {
+		s.saveTimer.Stop()
+	}
+	s.saveTimer = time.AfterFunc(saveDebounceDuration(), func() {
+		s.saveMu.Lock()
+		defer s.saveMu.Unlock()
+		if !s.dirty {
+			return
+		}
+		s.dirty = false
+		_ = s.saveLocked()
+	})
+}
+
+// Flush writes pending changes immediately (e.g. on shutdown).
+func (s *Store) Flush() error {
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+	if s.saveTimer != nil {
+		s.saveTimer.Stop()
+		s.saveTimer = nil
+	}
+	if !s.dirty {
+		return nil
+	}
+	s.dirty = false
+	return s.saveLocked()
+}
+
+func (s *Store) saveLocked() error {
 	if s.path == "" {
 		s.path = ResolvePath()
 	}
@@ -124,9 +173,9 @@ func (s *Store) importJSONL(path string) error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		var row struct {
-			Type   string `json:"type"`
-			Tool   string `json:"tool"`
-			TS     string `json:"ts"`
+			Type    string `json:"type"`
+			Tool    string `json:"tool"`
+			TS      string `json:"ts"`
 			Backend string `json:"backend"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &row); err != nil || row.Type != "tool_call" || row.Tool == "" {
@@ -197,4 +246,13 @@ func (s *Store) RecentKeywords(maxTools int, within time.Duration) string {
 		}
 	}
 	return strings.Join(tokens, " ")
+}
+
+func saveDebounceDuration() time.Duration {
+	if v := strings.TrimSpace(os.Getenv("COSTGATE_USAGE_SAVE_DEBOUNCE_MS")); v != "" {
+		if ms, err := strconv.Atoi(v); err == nil && ms > 0 {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+	return defaultSaveDebounce
 }
