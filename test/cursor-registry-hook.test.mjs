@@ -3,10 +3,11 @@
  * Cursor registry hook — workspaceOpen handling.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
-import { handleCursorRegistryHook } from "../scripts/cursor-registry-hook.mjs";
+import { handleCursorRegistryHook, extractFilePathFromHook } from "../scripts/cursor-registry-hook.mjs";
 import { listWorkspaces } from "../scripts/lib/dashboard-workspaces.mjs";
+import { resolveWorkspaceRootFromPath } from "../scripts/lib/resolve-workspace-root.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -47,8 +48,61 @@ function testUnknownEvent() {
   console.error("[cursor-hook] unknown event ok");
 }
 
+function testPostToolUseRead() {
+  const { base, regPath } = tempReg();
+  const ws = join(base, "repo");
+  mkdirSync(join(ws, ".git"), { recursive: true });
+  const file = join(ws, "src", "app.ts");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, "// test\n");
+
+  const result = handleCursorRegistryHook({
+    hook_event_name: "postToolUse",
+    tool_name: "Read",
+    tool_input: { path: file },
+  });
+  assert(result.touched.length === 1, "touched repo");
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces[0].source === "cursor:file", "cursor:file source");
+  console.error("[cursor-hook] postToolUse Read ok");
+  delete process.env.COSTGATE_WORKSPACE_REGISTRY;
+}
+
+function testBeforeTabFileRead() {
+  const { base, regPath } = tempReg();
+  const ws = join(base, "tab-project");
+  mkdirSync(ws, { recursive: true });
+  writeFileSync(join(ws, "package.json"), "{}");
+  const file = join(ws, "index.js");
+  writeFileSync(file, "console.log(1)\n");
+
+  handleCursorRegistryHook({
+    hook_event_name: "beforeTabFileRead",
+    path: file,
+  });
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces.length === 1, "tab read registry");
+  console.error("[cursor-hook] beforeTabFileRead ok");
+  delete process.env.COSTGATE_WORKSPACE_REGISTRY;
+}
+
+function testResolveWorkspaceRoot() {
+  const { base } = tempReg();
+  const ws = join(base, "nested", "proj");
+  mkdirSync(join(ws, ".git"), { recursive: true });
+  const file = join(ws, "a", "b.txt");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, "x");
+  assert(resolveWorkspaceRootFromPath(file) === ws, "git root from file");
+  delete process.env.COSTGATE_WORKSPACE_REGISTRY;
+  console.error("[cursor-hook] resolve root ok");
+}
+
 async function main() {
   testWorkspaceOpen();
+  testPostToolUseRead();
+  testBeforeTabFileRead();
+  testResolveWorkspaceRoot();
   testUnknownEvent();
   console.error("[cursor-hook] all passed");
 }
