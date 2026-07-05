@@ -62,6 +62,11 @@ function assertStep(step, context) {
     if (step.assert_text_excludes && text.includes(step.assert_text_excludes)) {
       errors.push(`text should not contain "${step.assert_text_excludes}"`);
     }
+    for (const sym of step.assert_symbols ?? []) {
+      if (!text.includes(sym)) {
+        errors.push(`outline missing symbol "${sym}"`);
+      }
+    }
   }
 
   return errors;

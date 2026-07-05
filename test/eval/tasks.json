@@ -109,7 +109,8 @@
             "arguments": { "owner": "o", "repo": "r", "path": "main.go" }
           },
           "assert_text_contains": "[costgate code-mode: outline]",
-          "assert_text_excludes": "fmt.Println"
+          "assert_text_excludes": "fmt.Println",
+          "assert_symbols": ["hello", "Config", "engine: ast"]
         }
       ]
     },
