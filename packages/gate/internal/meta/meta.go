@@ -8,7 +8,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
-	"github.com/YukiMiyatake/costgate/packages/gate/internal/toolcall"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/shield"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -56,6 +56,8 @@ func Register(
 	backend *mcp.ClientSession,
 	onInvoke func(tool string),
 	isListed func(name string) bool,
+	backendName string,
+	shieldH *shield.Handler,
 ) {
 	server.AddTool(&mcp.Tool{
 		Name:        ToolDiscover,
@@ -70,7 +72,7 @@ func Register(
 		Description: "Call any backend MCP tool by name. Use discover_tools when the tool is missing from tools/list.",
 		InputSchema: invokeSchema,
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return handleInvoke(ctx, cat, backend, onInvoke, req.Params.Arguments)
+		return handleInvoke(ctx, cat, backend, backendName, shieldH, onInvoke, req.Params.Arguments)
 	})
 }
 
@@ -126,7 +128,7 @@ func handleDiscover(
 	}, nil
 }
 
-func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.ClientSession, onInvoke func(string), raw json.RawMessage) (*mcp.CallToolResult, error) {
+func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.ClientSession, backendName string, shieldHandler *shield.Handler, onInvoke func(string), raw json.RawMessage) (*mcp.CallToolResult, error) {
 	var args struct {
 		Name      string          `json:"name"`
 		Arguments json.RawMessage `json:"arguments"`
@@ -140,7 +142,7 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.Client
 	if _, ok := cat.Get(args.Name); !ok {
 		return nil, fmt.Errorf("unknown tool %q", args.Name)
 	}
-	result, callMeta, err := toolcall.Call(ctx, backend, args.Name, args.Arguments)
+	result, callMeta, err := shield.CallTool(ctx, backend, backendName, shieldHandler, args.Name, args.Arguments)
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
 	}

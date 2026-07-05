@@ -40,12 +40,16 @@ func intentKeywords() string {
 }
 
 func runTransparent(ctx context.Context, backend *mcp.ClientSession, backendName string) error {
+	fc, err := newForwardContext(backendName)
+	if err != nil {
+		return fmt.Errorf("shield init: %w", err)
+	}
 	cat, err := catalog.Load(ctx, backend, backendName)
 	if err != nil {
 		return err
 	}
 	server := newServer()
-	registerBackendTools(server, cat.Tools, backend, backendName, nil)
+	registerBackendTools(server, cat.Tools, backend, fc, nil)
 	log.Printf("[costgate-gate] transparent mode: %d tools from %s", len(cat.Tools), backendName)
 	gatelog.LogToolsList(backendName, len(cat.Tools), gatelog.EstimateListTokens(cat.Tools))
 	return serve(ctx, server)
@@ -83,8 +87,12 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 		tiers = ov.Apply(tiers)
 		log.Printf("[costgate-gate] tool overrides: %d entries", len(ov.Tools))
 	}
+	fc, err := newForwardContext(backendName)
+	if err != nil {
+		return fmt.Errorf("shield init: %w", err)
+	}
 	server := newServer()
-	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords(), backendName)
+	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords(), backendName, fc)
 	rt.logStartup()
 	return serve(ctx, server)
 }
@@ -96,7 +104,7 @@ func newServer() *mcp.Server {
 	}, nil)
 }
 
-func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.ClientSession, backendName string, onCall func(string)) {
+func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.ClientSession, fc *forwardContext, onCall func(string)) {
 	for _, tool := range tools {
 		tool := tool
 		if tool.InputSchema == nil {
@@ -104,7 +112,7 @@ func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.Cl
 			continue
 		}
 		server.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			result, err := callBackendFromRequest(ctx, backend, req)
+			result, err := callBackendFromRequest(ctx, backend, req, fc)
 			if err == nil && onCall != nil {
 				onCall(req.Params.Name)
 			}
