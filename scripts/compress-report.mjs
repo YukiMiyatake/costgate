@@ -5,7 +5,7 @@
  * Usage:
  *   npm run compress-report
  *   npm run compress-report -- --json
- *   npm run compress-report -- --tool get_file_contents --skip-tool-call
+ *   npm run compress-report -- --code-mode
  */
 import { existsSync } from "node:fs";
 import {
@@ -22,6 +22,7 @@ const GATE_BIN = gateBin();
 const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
 const skipToolCall = args.includes("--skip-tool-call");
+const codeModeReport = args.includes("--code-mode");
 const toolIdx = args.indexOf("--tool");
 const backendTool = toolIdx >= 0 ? args[toolIdx + 1] : "get_file_contents";
 
@@ -30,6 +31,14 @@ const DEFAULT_INVOKE = {
     owner: "YukiMiyatake",
     repo: "costgate",
     path: "package-lock.json",
+  },
+};
+
+const CODE_MODE_INVOKE = {
+  get_file_contents: {
+    owner: "YukiMiyatake",
+    repo: "costgate",
+    path: "packages/gate/cmd/costgate-gate/main.go",
   },
 };
 
@@ -69,14 +78,15 @@ async function measureDefinitions() {
   };
 }
 
-async function measureToolCall(compress) {
-  const invokeArgs = DEFAULT_INVOKE[backendTool] ?? {};
+async function measureToolCall(compress, { codeMode = false, invoke = DEFAULT_INVOKE } = {}) {
+  const invokeArgs = invoke[backendTool] ?? {};
   return withMcpProcess(
     GATE_BIN,
     [],
     {
       ...baseEnv,
       COSTGATE_COMPRESS: compress ? "1" : "0",
+      COSTGATE_CODE_MODE: codeMode ? "1" : "0",
       COSTGATE_COMPRESS_MAX_CHARS:
         process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
     },
@@ -130,6 +140,14 @@ function printReport(report) {
     console.log(`Without compress:      ~${t.without_compress.estimated_tokens.toLocaleString()} tokens (${t.without_compress.text_chars.toLocaleString()} text chars)`);
     console.log(`With compress:         ~${t.with_compress.estimated_tokens.toLocaleString()} tokens (${t.with_compress.text_chars.toLocaleString()} text chars)`);
     console.log(`Savings per call:      ~${t.savings_per_call.toLocaleString()} (${t.reduction_pct}%)\n`);
+  }
+
+  if (report.code_mode) {
+    const c = report.code_mode;
+    console.log(`## Layer 2b — Code mode (${c.path})\n`);
+    console.log(`Raw:                   ~${c.raw.estimated_tokens.toLocaleString()} tokens`);
+    console.log(`Code mode only:        ~${c.codemode.estimated_tokens.toLocaleString()} tokens (${c.codemode_reduction_pct}%)`);
+    console.log(`Code mode + compress:  ~${c.both.estimated_tokens.toLocaleString()} tokens (${c.both_reduction_pct}%)\n`);
   }
 
   if (report.combined) {
@@ -189,6 +207,26 @@ async function main() {
     };
   }
 
+  let codeMode = null;
+  if (codeModeReport && !skipToolCall) {
+    const invoke = CODE_MODE_INVOKE;
+    const path = invoke[backendTool]?.path ?? backendTool;
+    if (!jsonOut) {
+      console.error(`[compress-report] code-mode layer (${path})...`);
+    }
+    const raw = await measureToolCall(false, { codeMode: false, invoke });
+    const codemode = await measureToolCall(false, { codeMode: true, invoke });
+    const both = await measureToolCall(true, { codeMode: true, invoke });
+    codeMode = {
+      path,
+      raw,
+      codemode,
+      both,
+      codemode_reduction_pct: pctReduction(raw.estimated_tokens, codemode.estimated_tokens),
+      both_reduction_pct: pctReduction(raw.estimated_tokens, both.estimated_tokens),
+    };
+  }
+
   let combined = null;
   if (toolResult) {
     const beforeTotal =
@@ -210,11 +248,13 @@ async function main() {
   const report = {
     definitions,
     tool_result: toolResult,
+    code_mode: codeMode,
     combined,
     probe_logs: probeLogs,
     notes: [
       "Definition layer = Gate filter on tools/list.",
       "Result layer = live invoke_tool with COSTGATE_COMPRESS on/off.",
+      "Code mode layer (--code-mode) = outline for .go source file.",
       "Conversation, Serena, and other MCPs are excluded.",
     ],
   };

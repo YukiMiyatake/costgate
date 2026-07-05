@@ -34,6 +34,7 @@ See [docs/releases.md](../../docs/releases.md).
 - **Meta tools** (always): `discover_tools`, `invoke_tool`
 - **Dynamic intent** (default ON): recent tool usage augments `COSTGATE_INTENT`; Tier B exposure refreshes after each call
 - **Response compression** (default OFF): set `COSTGATE_COMPRESS=1` to truncate large tool results
+- **Code mode** (production ON): `COSTGATE_CODE_MODE=1` — source files → signature outline
 - **Usage**: `~/.costgate/usage.json` (+ optional import from Probe JSONL logs)
 
 ### Environment
@@ -45,6 +46,9 @@ See [docs/releases.md](../../docs/releases.md).
 | `COSTGATE_INTENT` | (empty) | Static keywords to expose Tier B tools |
 | `COSTGATE_INTENT_DYNAMIC` | `1` | `0`/`false` disables usage-based intent inference |
 | `COSTGATE_COMPRESS` | `0` | `1`/`true` enables tool result text truncation |
+| `COSTGATE_CODE_MODE` | `0` | `1`/`true` — outline for `.go`/`.ts`/`.py` file reads |
+| `COSTGATE_CODE_MODE_MIN_CHARS` | `3000` | Min source size before outline |
+| `COSTGATE_CODE_MODE_MAX_CHARS` | `6000` | Max outline output size |
 | `COSTGATE_COMPRESS_MAX_CHARS` | `12000` | Max total text chars kept per tool result |
 | `COSTGATE_USAGE_PATH` | `~/.costgate/usage.json` | Tool usage store |
 | `COSTGATE_PROBE_LOG_DIR` | `~/.costgate/logs` | Probe logs for usage import |
@@ -61,6 +65,7 @@ See [examples/cursor/mcp-gate-github.json](../../examples/cursor/mcp-gate-github
 ```bash
 npm run test:gate            # transparent mode (26 tools)
 npm run test:gate:filter     # filter mode + discover_tools
+npm run test:gate:codemode   # code-mode outline unit tests
 npm run compare              # Before/After token estimate report
 ```
 

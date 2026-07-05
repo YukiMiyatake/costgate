@@ -36,7 +36,7 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **9. Response compression** | ✅ Done | Gate truncates oversized tool result text |
 | **10. tiktoken** | ✅ Done | `cl100k_base` token counts in Probe + reports |
 | **11. Gate releases** | ✅ Done | goreleaser + GitHub Releases + `install-gate.sh` |
-| **12. Code Mode** | 📋 Planned | Symbol/structure-aware file output in Gate |
+| **12. Code Mode** | ✅ Done | Source outline transform for file read tools |
 | **13. Accuracy eval** | 📋 Planned | Task harness — filter/compress quality regression |
 | **14. Multi-MCP catalog** | 📋 Planned | Tier rules beyond GitHub; multi-backend compare |
 | **15. Probe npm publish** | 📋 Planned | `npx @costgate/probe` public distribution |
@@ -154,16 +154,13 @@ Phase 15 Probe npm      … 計測の一般配布（小さく並行可）
 Phase 16+ cloud         … Pro/Team 本番化（別 repo）
 ```
 
-### Phase 12 — Code Mode 📋
+### Phase 12 — Code Mode ✅
 
-**目的:** ファイル読取結果を **意味を保ちつつ圧縮**（Phase 9 の truncate より高品質）。
-
-- **Gate 内蔵:** `COSTGATE_CODE_MODE=1`（compress と併用可）
-- **出力:** シンボル一覧・関連抜粋・構造サマリ（全文返却を避ける）
-- **実装:** Go + tree-sitter（または段階的に言語別 MVP）
-- **対象:** `get_file_contents` 等の大きな text 結果
-- **検証:** `compress-report` 拡張 + Code Mode ON/OFF 比較
-- **依存:** Phase 9 compress（フォールバックとして残す）
+- **`COSTGATE_CODE_MODE=1`**: large source files → signature outline (Go/JS/Python)
+- **Pipeline:** code-mode first, then compress (fallback for JSON / non-code)
+- **Env:** `COSTGATE_CODE_MODE_MIN_CHARS` (3000), `COSTGATE_CODE_MODE_MAX_CHARS` (6000)
+- **`cursor:production`**: code-mode ON by default (with compress)
+- Test: `npm run test:gate:codemode`, `npm run compress-report -- --code-mode`
 
 ### Phase 13 — Accuracy eval 📋
 
@@ -242,7 +239,7 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 |------|----------|------|
 | MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter + dynamic intent | Phase 14 multi-MCP |
 | MCP ツール実行結果（truncate） | ✅ compress（Phase 9） | Phase 12 Code Mode で置き換え |
-| ファイル読取の出力量 | ❌ truncate のみ | **Phase 12 Code Mode** |
+| ファイル読取の出力量 | ✅ code-mode + compress | Phase 13 eval で品質検証 |
 | 削減の品質保証 | ❌ | **Phase 13 accuracy eval** |
 | 会話・ユーザープロンプト・rules | ❌ | **未計画** |
 | Serena / 直結 MCP の定義 | ❌（意図的に対象外） | — |

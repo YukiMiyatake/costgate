@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/result"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Call invokes a backend tool and applies response compression when enabled.
+// Call invokes a backend tool and applies code-mode + compression when enabled.
 func Call(ctx context.Context, backend *mcp.ClientSession, name string, rawArgs json.RawMessage) (*mcp.CallToolResult, error) {
 	params := &mcp.CallToolParams{Name: name}
 	if len(rawArgs) > 0 {
@@ -18,10 +18,9 @@ func Call(ctx context.Context, backend *mcp.ClientSession, name string, rawArgs 
 		}
 		params.Arguments = args
 	}
-	result, err := backend.CallTool(ctx, params)
+	raw, err := backend.CallTool(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	out, _ := compress.MaybeCompress(name, result)
-	return out, nil
+	return result.Process(name, rawArgs, raw), nil
 }

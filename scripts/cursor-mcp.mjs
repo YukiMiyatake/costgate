@@ -51,6 +51,7 @@ function gateServer() {
       COSTGATE_CONFIG: BACKENDS_MCP,
       COSTGATE_CLIENT: "cursor",
       COSTGATE_COMPRESS: "1",
+      COSTGATE_CODE_MODE: process.env.COSTGATE_CODE_MODE ?? "1",
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
     },
   };
