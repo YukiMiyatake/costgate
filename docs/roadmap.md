@@ -179,7 +179,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 |-------|--------|-------------|
 | **16. Code Mode v2** | ✅ Done | go/ast + JS/Py scanners, eval symbol assertions |
 | **17. Eval v2** | ✅ Done | chain tasks, --out/--diff, optional live CI |
-| **18. DX & benchmark CI** | 📋 Planned | compress/session `--mock`、token 回帰 CI |
+| **18. DX & benchmark CI** | ✅ Done | `--mock` reports, benchmark:ci, examples 整備 |
 | **19. Multi-MCP 実測** | 📋 Planned | filesystem / browser tier catalog + smoke |
 | **20. Result intelligence** | 📋 Planned | JSON 要約 compress、セッション dedupe |
 | **21. Release & 配布** | 📋 Planned | `@costgate/probe` 初回 publish、install 改善 |
@@ -209,14 +209,14 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 - `npm run eval:live` + `.github/workflows/eval-live.yml`（`GITHUB_TOKEN` あり時のみ）
 - Test: `npm run eval`, optional `npm run eval:live`
 
-### Phase 18 — DX & benchmark CI 📋
+### Phase 18 — DX & benchmark CI ✅
 
 **目的:** 開発体験と **計測値ドリフト** の早期検知。
 
 - `compress-report` / `session-report` に `--mock`（compare 同様）
-- CI: `compare --mock` + token 上限アサート
-- GitHub MCP schema 変動のドキュメント自動更新（手動 → 半自動）
-- Quick win: `classify.go` スコア式整理、examples 絶対パス除去
+- `npm run benchmark:ci` — mock compare + token 上限アサート（CI 組込み）
+- `classify.go` スコア式を定数化
+- examples: 絶対パス除去（`costgate-gate` / `npx @costgate/probe` / `~/.costgate/...`）
 
 ### Phase 19 — Multi-MCP 実測 📋
 

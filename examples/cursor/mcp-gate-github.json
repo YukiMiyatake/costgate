@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "/home/yuki/.local/bin/uvx",
+      "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/oraios/serena",
@@ -12,9 +12,9 @@
       ]
     },
     "costgate-gate": {
-      "command": "/home/yuki/work/costgate/packages/gate/bin/costgate-gate",
+      "command": "costgate-gate",
       "env": {
-        "COSTGATE_CONFIG": "/home/yuki/.costgate/backends.json",
+        "COSTGATE_CONFIG": "~/.costgate/backends.json",
         "COSTGATE_CLIENT": "cursor"
       }
     }

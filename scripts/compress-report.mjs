@@ -15,7 +15,7 @@ import {
   pctReduction,
 } from "./lib/mcp-client.mjs";
 import { parseProbeLogs, bytesToTokens } from "./lib/parse-probe-logs.mjs";
-import { baseGateEnv, gateBin } from "./lib/paths.mjs";
+import { baseGateEnv, gateBin, mockGateEnv } from "./lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 
@@ -23,16 +23,21 @@ const args = process.argv.slice(2);
 const jsonOut = args.includes("--json");
 const skipToolCall = args.includes("--skip-tool-call");
 const codeModeReport = args.includes("--code-mode");
+const useMock = args.includes("--mock");
 const toolIdx = args.indexOf("--tool");
 const backendTool = toolIdx >= 0 ? args[toolIdx + 1] : "get_file_contents";
 
-const DEFAULT_INVOKE = {
-  get_file_contents: {
-    owner: "YukiMiyatake",
-    repo: "costgate",
-    path: "package-lock.json",
-  },
-};
+const DEFAULT_INVOKE = useMock
+  ? {
+      get_file_contents: { owner: "o", repo: "r", path: "package-lock.json" },
+    }
+  : {
+      get_file_contents: {
+        owner: "YukiMiyatake",
+        repo: "costgate",
+        path: "package-lock.json",
+      },
+    };
 
 const CODE_MODE_INVOKE = {
   get_file_contents: {
@@ -42,10 +47,16 @@ const CODE_MODE_INVOKE = {
   },
 };
 
-const baseEnv = baseGateEnv("compress-report", {
-  COSTGATE_GATE_MODE: "filter",
-  COSTGATE_INTENT_DYNAMIC: "0",
-});
+const baseEnv = useMock
+  ? mockGateEnv("compress-report", {
+      COSTGATE_GATE_MODE: "filter",
+      COSTGATE_INTENT: "pull request",
+      COSTGATE_INTENT_DYNAMIC: "0",
+    })
+  : baseGateEnv("compress-report", {
+      COSTGATE_GATE_MODE: "filter",
+      COSTGATE_INTENT_DYNAMIC: "0",
+    });
 
 async function measureDefinitions() {
   const before = await withMcpProcess(
@@ -127,6 +138,9 @@ function printReport(report) {
   }
 
   console.log("\nCostGate Token Reduction Report\n");
+  if (report.backend === "mock") {
+    console.log("Backend: mock MCP (CI-safe, no GitHub token)\n");
+  }
 
   const d = report.definitions;
   console.log("## Layer 1 — Tool definitions (tools/list)\n");
@@ -246,6 +260,7 @@ async function main() {
   const probeLogs = probeVariableEstimate(logs);
 
   const report = {
+    backend: useMock ? "mock" : "github",
     definitions,
     tool_result: toolResult,
     code_mode: codeMode,

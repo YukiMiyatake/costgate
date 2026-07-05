@@ -52,10 +52,14 @@ jobs:
       - name: Accuracy eval (mock MCP)
         run: npm run eval
 
+      - name: Benchmark CI (mock compare)
+        run: npm run benchmark:ci
+
       - name: Script syntax check
         run: |
           node --check scripts/feat-workflow.mjs
           node --check scripts/compare-report.mjs
+          node --check scripts/benchmark-ci.mjs
           node --check scripts/lib/mcp-client.mjs
           node --check scripts/lib/parse-probe-logs.mjs
           node --check scripts/lib/tokens.mjs

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "serena": {
-      "command": "/home/yuki/.local/bin/uvx",
+      "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/oraios/serena",
@@ -12,11 +12,11 @@
       ]
     },
     "costgate-probe": {
-      "command": "node",
-      "args": ["/home/yuki/work/costgate/packages/probe/dist/index.js"],
+      "command": "npx",
+      "args": ["@costgate/probe"],
       "env": {
-        "COSTGATE_CONFIG": "/home/yuki/.costgate/backends.json",
-        "COSTGATE_PROBE_LOG_DIR": "/home/yuki/.costgate/logs",
+        "COSTGATE_CONFIG": "~/.costgate/backends.json",
+        "COSTGATE_PROBE_LOG_DIR": "~/.costgate/logs",
         "COSTGATE_CLIENT": "cursor"
       }
     }
