@@ -5,6 +5,9 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 
 ORG_NAME="${COSTGATE_ORG:-costgate}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CLOUD_ROOT="${COSTGATE_CLOUD_ROOT:-$(dirname "$REPO_ROOT")/costgate-cloud}"
+
 GITHUB_USER=$(gh api user --jq .login)
 
 echo "==> GitHub user: $GITHUB_USER"
@@ -32,7 +35,7 @@ else
     --homepage "https://github.com/$ORG_NAME/costgate"
 fi
 
-cd /home/yuki/work/costgate
+cd "$REPO_ROOT"
 git remote remove origin 2>/dev/null || true
 git remote add origin "https://github.com/$ORG_NAME/costgate.git"
 git push -u origin main
@@ -48,10 +51,14 @@ else
     --homepage "https://github.com/$ORG_NAME/costgate"
 fi
 
-cd /home/yuki/work/costgate-cloud
-git remote remove origin 2>/dev/null || true
-git remote add origin "https://github.com/$ORG_NAME/costgate-cloud.git"
-git push -u origin main
+if [[ ! -d "$CLOUD_ROOT" ]]; then
+  echo "WARN: costgate-cloud not found at $CLOUD_ROOT (set COSTGATE_CLOUD_ROOT)"
+else
+  cd "$CLOUD_ROOT"
+  git remote remove origin 2>/dev/null || true
+  git remote add origin "https://github.com/$ORG_NAME/costgate-cloud.git"
+  git push -u origin main
+fi
 
 echo ""
 echo "==> Done!"
