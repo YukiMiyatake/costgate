@@ -9,8 +9,17 @@
 <body>
   <header>
     <h1>CostGate Dashboard</h1>
-    <p class="subtitle">localhost · Phase 27 · <span id="write-mode">…</span></p>
+    <p class="subtitle">localhost · Phase 28 · <span id="write-mode">…</span></p>
   </header>
+
+  <div id="workspace-bar" class="workspace-bar">
+    <label>
+      Workspace
+      <select id="workspace-select"></select>
+    </label>
+    <button type="button" id="workspace-pin-btn" class="btn-sm">Pin folder</button>
+    <span id="workspace-path" class="note"></span>
+  </div>
 
   <div id="token-bar" class="token-bar hidden">
     <label>Write token <input type="password" id="dash-token" placeholder="COSTGATE_DASHBOARD_TOKEN" /></label>

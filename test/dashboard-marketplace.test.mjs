@@ -189,7 +189,7 @@ async function testHttpMarketplaceAndPost() {
     assert(body.compare_estimate?.after_tokens > 0, "POST compare_estimate");
 
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert(health.version === "phase27", "phase27 health");
+    assert(health.version === "phase28", "phase28 health");
 
     console.error("[marketplace] HTTP API ok");
   } finally {
