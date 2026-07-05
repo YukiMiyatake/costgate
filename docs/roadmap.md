@@ -41,7 +41,24 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **14. Multi-MCP catalog** | ✅ Done | Backend tier rules (github/mock) + compare --mock |
 | **15. Probe npm publish** | ✅ Done | tag `v*` → npm publish workflow |
 
-**costgate-cloud（別 repo）:** Phase 16+ — dashboard, auto-upload, Stripe / Team policies
+**costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照
+
+---
+
+## Development priority（2026-07）
+
+**方針: OSS 本体（削減の質・範囲・信頼性）を優先。costgate-cloud（Dashboard / Billing / Team）は Phase 1–15 完了後も当面後回し。**
+
+| 優先 | 領域 | 理由 |
+|------|------|------|
+| **1** | Gate / Probe / eval / catalog（本 repo） | 全ユーザーが直接得るトークン削減 |
+| **2** | 配布・DX（npm publish、WSL、benchmark CI） | 導入摩擦と回帰防止 |
+| **3** | costgate-cloud（別 repo） | OSS が安定してから Pro/Team 化 |
+
+```
+Phase 16–22  OSS 強化（本 repo）     ← 現在の主戦場
+Phase 30+    costgate-cloud         ← 後回し（MVP は Phase 6 済み）
+```
 
 ---
 
@@ -139,20 +156,116 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 ---
 
-## Upcoming phases (12+)
+## Upcoming phases (16+)
 
-Phase 1–11 で **計測 → 削減 → 配布** の OSS コアは完成。  
-Phase 12 以降は **削減の質・信頼性・適用範囲・配布** を広げ、costgate-cloud で **可視化・課金** を進める。
+Phase 1–15 で **計測 → 削減 → 配布 → 検証** の OSS コアは完成。  
+Phase 16 以降は **OSS 機能の深化** を優先し、cloud は [Deferred](#deferred-costgate-cloud) へ。
 
-### 優先順（推奨）
+### 優先順（OSS ファースト）
 
 ```
-Phase 12 Code Mode      … 削減の質（truncate の先）
-Phase 13 Accuracy eval  … 削減の副作用を定量
-Phase 14 Multi-MCP      … GitHub 以外への拡張
-Phase 15 Probe npm      … 計測の一般配布（小さく並行可）
-Phase 16+ cloud         … Pro/Team 本番化（別 repo）
+Phase 16  Code Mode v2           … outline 精度（tree-sitter）
+Phase 17  Eval v2                … GitHub live + 回帰履歴
+Phase 18  DX & benchmark CI      … --mock レポート、drift 検知
+Phase 19  Multi-MCP 実測          … filesystem / browser catalog
+Phase 20  Result intelligence    … JSON-aware compress、dedupe
+Phase 21  Release & 配布         … npm v0.5.0、Gate installer 改善
+Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
+        ↘ Phase 30+ cloud       … 後回し
 ```
+
+| Phase | Status | Deliverable |
+|-------|--------|-------------|
+| **16. Code Mode v2** | 📋 Planned | tree-sitter outline、eval 品質アサーション |
+| **17. Eval v2** | 📋 Planned | GitHub optional job、eval 履歴 JSON |
+| **18. DX & benchmark CI** | 📋 Planned | compress/session `--mock`、token 回帰 CI |
+| **19. Multi-MCP 実測** | 📋 Planned | filesystem / browser tier catalog + smoke |
+| **20. Result intelligence** | 📋 Planned | JSON 要約 compress、セッション dedupe |
+| **21. Release & 配布** | 📋 Planned | `@costgate/probe` 初回 publish、install 改善 |
+| **22. Smart intent** | 🔍 Consider | Probe ログベース intent（要スパイク） |
+
+### Phase 16 — Code Mode v2 📋
+
+**目的:** regex outline → AST ベースで **削減率を維持しつつ情報損失を減らす**。
+
+- tree-sitter（Go / TS / Python）で signature + doc comment 抽出
+- `COSTGATE_CODE_MODE_MIN_CHARS` の本番 tuning（現状 2000、benchmarks 参照）
+- eval: outline に必要シンボルが残るかのアサーション
+- Test: `npm run test:gate:codemode`, `npm run eval`
+
+### Phase 17 — Eval v2 📋
+
+**目的:** mock 100% pass を **本番に近い条件** で補強。
+
+- 固定タスク: issue 検索、path 特定、`discover_tools` → `invoke_tool` チェーン
+- GitHub token あり CI job（optional / nightly）
+- `npm run eval -- --out` で履歴 JSON、フェーズ間 diff
+- Test: 既存 `npm run eval` + optional live job
+
+### Phase 18 — DX & benchmark CI 📋
+
+**目的:** 開発体験と **計測値ドリフト** の早期検知。
+
+- `compress-report` / `session-report` に `--mock`（compare 同様）
+- CI: `compare --mock` + token 上限アサート
+- GitHub MCP schema 変動のドキュメント自動更新（手動 → 半自動）
+- Quick win: `classify.go` スコア式整理、examples 絶対パス除去
+
+### Phase 19 — Multi-MCP 実測 📋
+
+**目的:** GitHub 以外の backend で **tier catalog + 実測**。
+
+| Backend | 優先 | 最初の一歩 |
+|---------|------|------------|
+| filesystem MCP | 高 | smoke + `catalog/tiers/filesystem.json` |
+| cursor-ide-browser | 中 | tool 数・token 計測 |
+| postgres / sqlite | 低 | catalog テンプレのみ |
+
+- benchmarks.md に backend 別セクション追加
+- Test: `npm run compare -- --mock` パターンを拡張
+
+### Phase 20 — Result intelligence 📋
+
+**目的:** compress の **切り方** を賢くする（情報損失 vs トークン）。
+
+- JSON: keys / 先頭 N entries のみ（`package-lock.json` 向け）
+- 同一 file 再 read のセッション内 dedupe cache
+- eval: 圧縮後もタスク成功するか
+
+### Phase 21 — Release & 配布 📋
+
+**目的:** Probe / Gate の **導入摩擦ゼロ**。
+
+- `@costgate/probe` 初回 npm publish（`v0.5.0` tag、`NPM_TOKEN`）
+- Gate: `install-gate.sh` / Homebrew tap 検討
+- `cursor:update` / WSL 静的ビルド（`CGO_ENABLED=0`）の docs 整備 — ✅ 一部済
+
+### Phase 22 — Smart intent 🔍
+
+**目的:** 静的 `COSTGATE_INTENT` の限界を超える Tier B 露出。
+
+- Probe JSONL から直近 tool 名 → intent 推論（Gate 単体では user prompt 不可）
+- embedding 類似度は **スパイク後** に判断
+- フォールバック: 現行 keyword + usage + dynamic intent
+
+---
+
+## Deferred — costgate-cloud
+
+**ステータス: 後回し。** OSS Phase 16–22 が一段落してから [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) で再開。
+
+| Phase | 内容 | 前提 |
+|-------|------|------|
+| **30 Dashboard** | session / eval / benchmark の Web UI | OSS eval JSON 形式安定 |
+| **31 Auto-upload** | セッション終了後 metrics 自動送信 | Probe `session_end` フック |
+| **32 Billing** | Stripe Pro/Team | Dashboard MVP |
+| **33 Team policies** | 許可 MCP / ツール制限 | Billing + Gate env テンプレ |
+
+**既存（維持）:** Phase 6 MVP — Reporter、API、`npm run cloud:upload`（opt-in）。新規開発は OSS 優先の間は **bugfix のみ**。
+
+---
+
+## Completed phases (12–15)
 
 ### Phase 12 — Code Mode ✅
 
@@ -187,19 +300,7 @@ Phase 16+ cloud         … Pro/Team 本番化（別 repo）
 - **CI:** `.github/workflows/npm-publish.yml` — tag `v*` で `@costgate/schema` → `@costgate/probe` を publish
 - **Secrets:** repo に `NPM_TOKEN`（npm automation token）を設定
 - **Quick start:** README の `npx @costgate/probe` 例
-
-### Phase 16+ — costgate-cloud（別 repo）📋
-
-**目的:** Pro / Team プランの本番化。OSS 本体とは独立して進める。
-
-| 項目 | 内容 |
-|------|------|
-| **16 Dashboard** | session-report の Web UI、履歴グラフ |
-| **17 Auto-upload** | セッション終了後の metrics 自動送信 |
-| **18 Billing** | Stripe、Pro/Team プラン |
-| **19 Team policies** | 許可 MCP / ツール制限、組織ダッシュボード |
-
-Repo: [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) — Phase 6 MVP（Reporter + API + `cloud:upload`）済み。
+- **残:** 初回 tag publish（→ Phase 21）
 
 ---
 
@@ -234,24 +335,26 @@ CostGate が **直接削減できるのは MCP ツール定義（`tools/list`）
 
 ### 削減対象の整理
 
-| 対象 | OSS 現状 | 今後 |
-|------|----------|------|
-| MCP ツール定義（Gate 対象 MCP） | ✅ Gate filter + dynamic intent | Phase 14 multi-MCP |
-| MCP ツール実行結果（truncate） | ✅ compress（Phase 9） | Phase 12 Code Mode で置き換え |
-| ファイル読取の出力量 | ✅ code-mode + compress | Phase 13 eval で品質検証 |
-| 削減の品質保証 | ❌ | **Phase 13 accuracy eval** |
-| 会話・ユーザープロンプト・rules | ❌ | **未計画** |
-| Serena / 直結 MCP の定義 | ❌（意図的に対象外） | — |
+| 対象 | OSS 現状 | 今後（OSS 優先） |
+|------|----------|------------------|
+| MCP ツール定義（Gate 対象 MCP） | ✅ filter + catalog + dynamic intent | Phase 19 multi-MCP 実測 |
+| MCP ツール実行結果 | ✅ compress + code-mode | Phase 20 JSON-aware compress |
+| ファイル読取の出力量 | ✅ code-mode（regex） | Phase 16 tree-sitter outline |
+| 削減の品質保証 | ✅ eval（mock） | Phase 17 eval v2（GitHub optional） |
+| 計測ドリフト・回帰 | 手動 benchmarks | Phase 18 benchmark CI |
+| 会話・rules | ❌ 未計画 | Out of scope |
+| Serena / 直結 MCP | ❌ 意図的対象外 | — |
+| 可視化・課金（cloud） | MVP のみ | **Phase 30+ 後回し** |
 
 ### Pro / Team プランとの関係
 
-| Plan | 現状（Phase 1–11） | Phase 12+ で追加 |
-|------|-------------------|------------------|
-| **Free (OSS)** | Gate 削減 + Probe 計測 + CLI レポート | Code Mode、eval、multi-MCP |
-| **Pro** | cloud MVP（手動 upload + markdown） | Phase 16–17 ダッシュボード・自動レポート |
-| **Team** | — | Phase 18–19 課金・ポリシー・組織管理 |
+| Plan | 現状 | 次の一手（優先順） |
+|------|------|-------------------|
+| **Free (OSS)** | Gate 削減 + Probe + CLI + eval | **Phase 16–21**（本 repo） |
+| **Pro** | cloud MVP（手動 upload） | Phase 30+ Dashboard（後回し） |
+| **Team** | — | Phase 32–33（後回し） |
 
-Pro/Team は **可視化・レポート・チーム管理** が中心。会話トークンそのものを削る機能はロードマップに含めていない。
+Pro/Team の新機能開発は **OSS Phase 22 まで凍結**。既存 `cloud:upload` / Reporter はメンテのみ。
 
 ---
 
@@ -284,5 +387,6 @@ npm run test:gate:filter
 npm run test:tokens
 npm run compare
 npm run compress-report
-npm run session-report
+npm run eval
+npm run test:integration
 ```

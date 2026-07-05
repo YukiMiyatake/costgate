@@ -109,9 +109,11 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 
 | Plan | Scope |
 |------|-------|
-| **Free (OSS)** | Probe + Gate core → Phase 12–15 |
-| **Pro** | Cloud reports & dashboard → Phase 16–17 ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
-| **Team / Enterprise** | Billing, policies, org dashboard → Phase 18–19 |
+| **Free (OSS)** | Probe + Gate — **Phase 16–21 優先**（本 repo） |
+| **Pro** | Cloud dashboard — **Phase 30+ 後回し** ([costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud)) |
+| **Team** | Billing / policies — **Phase 32+ 後回し** |
+
+OSS 機能を先に完成させ、cloud は MVP（手動 upload）を維持したまま凍結。詳細は [docs/roadmap.md](./docs/roadmap.md#development-priority2026-07)。
 
 See [docs/roadmap.md](./docs/roadmap.md) for phase details.
 
