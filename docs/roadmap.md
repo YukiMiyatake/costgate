@@ -181,7 +181,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 | **17. Eval v2** | ✅ Done | chain tasks, --out/--diff, optional live CI |
 | **18. DX & benchmark CI** | ✅ Done | `--mock` reports, benchmark:ci, examples 整備 |
 | **19. Multi-MCP 実測** | ✅ Done | filesystem/browser catalog + smoke test |
-| **20. Result intelligence** | 📋 Planned | JSON 要約 compress、セッション dedupe |
+| **20. Result intelligence** | ✅ Done | JSON-aware compress、セッション dedupe |
 | **21. Release & 配布** | 📋 Planned | `@costgate/probe` 初回 publish、install 改善 |
 | **22. Smart intent** | 🔍 Consider | Probe ログベース intent（要スパイク） |
 
@@ -229,13 +229,14 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 - `npm run test:filesystem` — CI smoke
 - Test: `go test ./internal/catalog/...`, `npm run test:filesystem`
 
-### Phase 20 — Result intelligence 📋
+### Phase 20 — Result intelligence ✅
 
 **目的:** compress の **切り方** を賢くする（情報損失 vs トークン）。
 
-- JSON: keys / 先頭 N entries のみ（`package-lock.json` 向け）
-- 同一 file 再 read のセッション内 dedupe cache
-- eval: 圧縮後もタスク成功するか
+- JSON: top-level keys + 先頭 N entries 要約（`COSTGATE_COMPRESS_JSON=1` 既定 ON）
+- 同一 tool+args の再 read → セッション内 dedupe cache（`COSTGATE_DEDUPE=1` 既定 ON）
+- eval: `compress_json_summary`, `dedupe_repeat_read`
+- Test: `go test ./internal/compress/... ./internal/result/...`, `npm run eval`
 
 ### Phase 21 — Release & 配布 📋
 
