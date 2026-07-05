@@ -43,12 +43,49 @@
 
     <section id="panel-tools" class="panel">
       <div id="tools-blind" class="banner hidden"></div>
+      <div class="wizard-toolbar tools-toolbar">
+        <label>
+          Search
+          <input type="search" id="tools-search" placeholder="tool or backend…" />
+        </label>
+        <label>
+          Backend
+          <select id="tools-backend-filter">
+            <option value="">All backends</option>
+          </select>
+        </label>
+        <label>
+          Sort
+          <select id="tools-sort">
+            <option value="call_count">Call count</option>
+            <option value="name">Name</option>
+            <option value="last_used">Last used</option>
+            <option value="list_tokens">List tokens</option>
+          </select>
+        </label>
+        <span id="tools-count" class="tools-count"></span>
+      </div>
+      <div id="tools-tier-tabs" class="marketplace-categories"></div>
+      <div class="marketplace-filters tools-filters">
+        <label>
+          List data
+          <select id="tools-measured-filter">
+            <option value="">All</option>
+            <option value="measured">Measured</option>
+            <option value="unmeasured">No list data</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="tools-rec-only" /> Has recommendation</label>
+        <label><input type="checkbox" id="tools-forced-only" /> Forced tier only</label>
+      </div>
+      <p id="tools-empty" class="note hidden">No tools match your filters.</p>
       <table>
         <thead>
           <tr>
             <th>Tool</th>
             <th>Backend</th>
             <th>Tier</th>
+            <th>List data</th>
             <th>Calls</th>
             <th>Last used</th>
             <th>List tokens</th>

@@ -114,6 +114,7 @@ async function testHttpApi() {
     const text = await html.text();
     assert(text.includes("CostGate Dashboard"), "html title");
     assert(text.includes("Add MCP"), "wizard tab");
+    assert(text.includes("tools-search"), "tools filter UI");
 
     console.error("[dashboard] HTTP API ok");
   } finally {
