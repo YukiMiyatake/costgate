@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import Ajv, { type ValidateFunction } from "ajv";
-import addFormats from "ajv-formats";
+import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
+import addFormatsPkg from "ajv-formats";
+
+type AddFormatsFn = (ajv: InstanceType<typeof Ajv2020>) => void;
+const addFormats = addFormatsPkg as unknown as AddFormatsFn;
 
 export type LogEventType =
   | "session_start"
@@ -33,12 +36,14 @@ export function loadLogEventSchema(): unknown {
 }
 
 function getValidator(): ValidateFunction {
-  if (!validator) {
-    const ajv = new Ajv({ allErrors: true, strict: false });
-    addFormats(ajv);
-    validator = ajv.compile(loadLogEventSchema() as object);
+  if (validator) {
+    return validator;
   }
-  return validator;
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  const compiled = ajv.compile(loadLogEventSchema() as object);
+  validator = compiled;
+  return compiled;
 }
 
 /** Validate a parsed log event object against the JSON Schema. */
