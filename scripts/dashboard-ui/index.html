@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CostGate Dashboard</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>CostGate Dashboard</h1>
+    <p class="subtitle">Read-only · localhost · Phase 23</p>
+  </header>
+
+  <nav id="tabs">
+    <button type="button" data-tab="overview" class="active">Overview</button>
+    <button type="button" data-tab="tools">Tools</button>
+    <button type="button" data-tab="mcps">MCPs</button>
+    <button type="button" data-tab="recommendations">Recommendations</button>
+  </nav>
+
+  <main>
+    <section id="panel-overview" class="panel active">
+      <div id="overview-cards" class="cards"></div>
+      <p class="note" id="overview-note"></p>
+    </section>
+
+    <section id="panel-tools" class="panel">
+      <div id="tools-blind" class="banner hidden"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Backend</th>
+            <th>Tier</th>
+            <th>Calls</th>
+            <th>Last used</th>
+            <th>List tokens</th>
+            <th>Flag</th>
+          </tr>
+        </thead>
+        <tbody id="tools-body"></tbody>
+      </table>
+    </section>
+
+    <section id="panel-mcps" class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Role</th>
+            <th>Measured</th>
+            <th>Command</th>
+          </tr>
+        </thead>
+        <tbody id="mcps-body"></tbody>
+      </table>
+    </section>
+
+    <section id="panel-recommendations" class="panel">
+      <ul id="rec-list" class="rec-list"></ul>
+      <p id="rec-empty" class="note hidden">No delete candidates in the current window.</p>
+    </section>
+  </main>
+
+  <footer>
+    <span id="health-status">Loading…</span>
+  </footer>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

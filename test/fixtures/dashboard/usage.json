@@ -1,0 +1,15 @@
+{
+  "tools": {
+    "search_issues": {
+      "call_count": 5,
+      "last_used": "2026-06-20T08:00:00.000Z"
+    },
+    "create_pull_request": {
+      "call_count": 0,
+      "last_used": "2026-03-01T08:00:00.000Z"
+    },
+    "fork_repository": {
+      "call_count": 0
+    }
+  }
+}

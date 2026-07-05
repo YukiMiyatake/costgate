@@ -1,0 +1,5 @@
+{"type":"session_start","ts":"2026-06-01T10:00:00.000Z","session_id":"sess-001","client":"cursor"}
+{"type":"tools_list","ts":"2026-06-01T10:00:01.000Z","session_id":"sess-001","tool_count":3,"total_schema_bytes":1200,"estimated_tokens":300,"tools":[{"name":"search_issues","schema_bytes":400,"estimated_tokens":100},{"name":"create_pull_request","schema_bytes":500,"estimated_tokens":150},{"name":"fork_repository","schema_bytes":300,"estimated_tokens":50}]}
+{"type":"tool_call","ts":"2026-06-01T10:05:00.000Z","session_id":"sess-001","client":"cursor","backend":"github","tool":"search_issues","request_bytes":120,"response_bytes":800,"estimated_tokens":230}
+{"type":"tool_call","ts":"2026-06-15T11:00:00.000Z","session_id":"sess-002","client":"cursor","backend":"github","tool":"search_issues","request_bytes":100,"response_bytes":600,"estimated_tokens":175}
+{"type":"session_end","ts":"2026-06-15T11:30:00.000Z","session_id":"sess-002"}
