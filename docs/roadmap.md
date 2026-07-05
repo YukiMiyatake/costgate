@@ -171,7 +171,7 @@ Phase 18  DX & benchmark CI      … --mock レポート、drift 検知
 Phase 19  Multi-MCP 実測          … filesystem / browser catalog
 Phase 20  Result intelligence    … JSON-aware compress、dedupe
 Phase 21  Release & 配布         … npm v0.5.0、Gate installer 改善
-Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
+Phase 22  Smart intent           … Probe JSONL intent
         ↘ Phase 30+ cloud       … 後回し
 ```
 
@@ -183,7 +183,7 @@ Phase 22  Smart intent（検討）   … keyword 超えの Tier B 露出
 | **19. Multi-MCP 実測** | ✅ Done | filesystem/browser catalog + smoke test |
 | **20. Result intelligence** | ✅ Done | JSON-aware compress、セッション dedupe |
 | **21. Release & 配布** | ✅ Done | RELEASE.md、publish:check、install 改善 |
-| **22. Smart intent** | 🔍 Consider | Probe ログベース intent（要スパイク） |
+| **22. Smart intent** | ✅ Done | Probe JSONL intent + eval seed |
 
 ### Phase 16 — Code Mode v2 ✅
 

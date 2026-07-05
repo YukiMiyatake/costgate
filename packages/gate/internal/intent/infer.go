@@ -18,18 +18,34 @@ func DynamicEnabled() bool {
 	return env.Bool("COSTGATE_INTENT_DYNAMIC", true)
 }
 
-// Resolve merges static COSTGATE_INTENT with recent tool usage keywords.
+// ProbeIntentEnabled reports whether fresh Probe JSONL keywords augment intent.
+func ProbeIntentEnabled() bool {
+	return env.Bool("COSTGATE_INTENT_PROBE", true)
+}
+
+// Resolve merges static COSTGATE_INTENT with probe log + usage keywords.
 func Resolve(store *usage.Store, static string) string {
 	static = strings.TrimSpace(static)
-	if !DynamicEnabled() || store == nil {
+	if !DynamicEnabled() {
 		return static
 	}
-	recent := store.RecentKeywords(defaultMaxRecent, defaultWindow)
-	if recent == "" {
-		return static
+
+	var parts []string
+	if static != "" {
+		parts = append(parts, static)
 	}
-	if static == "" {
-		return recent
+
+	if ProbeIntentEnabled() {
+		if probe := usage.RecentProbeLogKeywords("", defaultMaxRecent, defaultWindow); probe != "" {
+			parts = append(parts, probe)
+		}
 	}
-	return static + " " + recent
+
+	if store != nil {
+		if recent := store.RecentKeywords(defaultMaxRecent, defaultWindow); recent != "" {
+			parts = append(parts, recent)
+		}
+	}
+
+	return strings.TrimSpace(strings.Join(parts, " "))
 }
