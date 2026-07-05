@@ -2,7 +2,7 @@
 /**
  * Cursor prompt-intent hook tests.
  */
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { handleCursorPromptIntentHook } from "../scripts/cursor-prompt-intent-hook.mjs";
@@ -42,9 +42,31 @@ function testSkipOtherEvents() {
   console.error("[prompt-hook] skip ok");
 }
 
+function testTranscriptOptIn() {
+  const dir = tempDir();
+  const transcript = join(dir, "transcript.jsonl");
+  writeFileSync(
+    transcript,
+    `${JSON.stringify({ role: "user", text: "query postgres database" })}\n`
+  );
+  process.env.COSTGATE_PROMPT_INTENT_TRANSCRIPT = "1";
+  const result = handleCursorPromptIntentHook({
+    hook_event_name: "beforeSubmitPrompt",
+    prompt: "help me",
+    transcript_path: transcript,
+    conversation_id: "conv-tr",
+    generation_id: "gen-tr",
+  });
+  assert(result.keywords.includes("postgres") || result.keywords.includes("database"), "transcript boost");
+  console.error("[prompt-hook] transcript opt-in ok");
+  delete process.env.COSTGATE_PROMPT_INTENT_TRANSCRIPT;
+  delete process.env.COSTGATE_PROMPT_INTENT_DIR;
+}
+
 async function main() {
   testBeforeSubmitPrompt();
   testSkipOtherEvents();
+  testTranscriptOptIn();
   console.error("[prompt-hook] all passed");
 }
 

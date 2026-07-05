@@ -67,6 +67,7 @@ export function mockTestPaths(prefix = "integration") {
   return {
     usage: join(base, "usage.json"),
     logs: join(base, "logs"),
+    promptIntent: join(base, "prompt-intent"),
   };
 }
 
@@ -79,6 +80,7 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
     COSTGATE_CONFIG: mockBackendsConfigPath(backend, fixtureJs),
     COSTGATE_USAGE_PATH: paths.usage,
     COSTGATE_PROBE_LOG_DIR: paths.logs,
+    COSTGATE_PROMPT_INTENT_DIR: paths.promptIntent,
     ...extra,
   });
 }

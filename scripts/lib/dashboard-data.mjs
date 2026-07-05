@@ -16,6 +16,7 @@ import { repoRoot } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
+import { readLatestPromptIntent, promptIntentDir } from "./prompt-intent.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
@@ -39,6 +40,27 @@ export function defaultPaths() {
     tierDir: join(repoRoot(), "packages/gate/internal/catalog/tiers"),
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
+    promptIntentDir: process.env.COSTGATE_PROMPT_INTENT_DIR ?? promptIntentDir(),
+  };
+}
+
+const PROMPT_INTENT_WINDOW_MS = 10 * 60 * 1000;
+
+/** Latest prompt-intent hook record for Dashboard overview (Phase 28c). */
+export function buildPromptIntentSnapshot(options = {}) {
+  const dir = options.promptIntentDir ?? defaultPaths().promptIntentDir;
+  const record = readLatestPromptIntent({ dir });
+  if (!record?.keywords) return null;
+  const ageMs = record.ts ? (options.now ?? Date.now()) - record.ts : null;
+  return {
+    keywords: record.keywords,
+    templates: record.templates ?? [],
+    sources: record.sources ?? [],
+    ts: record.ts ?? null,
+    conversation_id: record.conversation_id ?? null,
+    generation_id: record.generation_id ?? null,
+    stale: ageMs != null && ageMs > PROMPT_INTENT_WINDOW_MS,
+    age_sec: ageMs != null ? Math.round(ageMs / 1000) : null,
   };
 }
 
@@ -434,6 +456,7 @@ export function buildDashboardData(options = {}) {
     disabledStore,
     backendOrigins
   );
+  const promptIntent = buildPromptIntentSnapshot({ ...paths, now });
 
   return {
     generated_at: new Date(now).toISOString(),
@@ -462,6 +485,7 @@ export function buildDashboardData(options = {}) {
       blind_spot_count: mcps.blind_spots.length,
       cursor_mode: mcps.mode,
       config_merge: effective.config_merge,
+      prompt_intent: promptIntent,
     },
     tools: {
       tools,
@@ -501,6 +525,7 @@ export function buildHealth(extra = {}) {
       mcp: existsSync(paths.mcpPath),
       overrides: existsSync(paths.overridesPath),
       marketplace: existsSync(paths.marketplaceDir),
+      prompt_intent: existsSync(paths.promptIntentDir),
     },
   };
 }

@@ -2,8 +2,9 @@
 /**
  * Phase 23: dashboard API snapshot tests (fixture-based, no live Gate).
  */
-import { mkdirSync, copyFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
@@ -22,12 +23,25 @@ function fixtureOptions(now) {
     join(FIX, "gate-sample.jsonl"),
     join(logDir, "gate-fixture.jsonl")
   );
+  const promptIntentDir = join(tmpdir(), `costgate-dash-pi-${process.pid}`);
+  mkdirSync(promptIntentDir, { recursive: true });
+  writeFileSync(
+    join(promptIntentDir, "latest.json"),
+    `${JSON.stringify({
+      keywords: "github pull merge",
+      templates: ["github"],
+      sources: ["prompt"],
+      ts: now - 30_000,
+      conversation_id: "conv-fixture",
+    })}\n`
+  );
   return {
     logDir,
     gateLogDir: logDir,
     usagePath: join(FIX, "usage.json"),
     configPath: join(FIX, "backends.json"),
     mcpPath: join(FIX, "mcp.json"),
+    promptIntentDir,
     windowDays: 30,
     now,
   };
@@ -63,6 +77,9 @@ async function testBuildData() {
   const listPR = data.tools.tools.find((t) => t.name === "list_pull_requests");
   assert(listPR?.call_count === 1, "gate tool_call should merge list_pull_requests");
 
+  assert(data.overview.prompt_intent?.keywords.includes("github"), "prompt intent in overview");
+  assert(data.overview.prompt_intent.stale === false, "prompt intent fresh");
+
   console.error("[dashboard] buildDashboardData ok");
   return data;
 }
@@ -85,6 +102,7 @@ async function testHttpApi() {
 
     const overview = await fetchJson(port, "/api/overview");
     assert(overview.sessions === 2, "overview sessions");
+    assert(overview.prompt_intent?.keywords, "overview prompt_intent");
 
     const tools = await fetchJson(port, "/api/tools");
     assert(Array.isArray(tools.tools), "tools array");

@@ -310,8 +310,8 @@ Dashboard（将来）:
 |----|------|------|
 | **28a** | `prompt-intent.mjs` + Hook + install + Node tests | なし |
 | **28b** | Gate `RecentPromptIntentKeywords` + env + Go tests | 28a |
-| **28c** | eval task + Dashboard 表示（任意） | 28b |
-| **28d** | transcript tail opt-in（任意） | 28a |
+| **28c** | eval task + Dashboard 表示 | ✅ |
+| **28d** | transcript tail opt-in | ✅（`COSTGATE_PROMPT_INTENT_TRANSCRIPT=1`） |
 
 ---
 
