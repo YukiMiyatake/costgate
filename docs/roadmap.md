@@ -48,7 +48,8 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 | **27. Project recommend** | 📋 Planned | Repo-aware MCP suggestions |
 
 **costgate-cloud（別 repo）:** 後回し — [Deferred](#deferred-costgate-cloud) 参照  
-**Dashboard 仕様:** [dashboard.md](./dashboard.md)（利用者） / [dev/dashboard.md](./dev/dashboard.md)（開発者）
+**Dashboard 仕様:** [dashboard.md](./dashboard.md)（利用者） / [dev/dashboard.md](./dev/dashboard.md)（開発者）  
+**MCP 削減調査:** [mcp-reduction-survey.md](./mcp-reduction-survey.md)
 
 ---
 
