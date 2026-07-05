@@ -150,6 +150,7 @@ export function listWorkspaces(options = {}) {
 
   const add = (entry) => {
     const path = resolve(entry.path);
+    if (!existsSync(path)) return;
     if (seen.has(path)) return;
     seen.add(path);
     items.push({

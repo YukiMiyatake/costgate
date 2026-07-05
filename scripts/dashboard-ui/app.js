@@ -46,6 +46,22 @@ async function fetchJson(path, options = {}) {
 }
 
 let activeWorkspaceId = sessionStorage.getItem("costgate_workspace_id") || null;
+let workspaceApiAvailable = true;
+
+function isWorkspaceApiError(message) {
+  if (!message) return false;
+  return (
+    message === "not_found" ||
+    message.startsWith("unknown workspace:") ||
+    /\/api\/workspaces\//.test(message)
+  );
+}
+
+function clearWorkspaceSelection() {
+  activeWorkspaceId = null;
+  sessionStorage.removeItem("costgate_workspace_id");
+  setActiveWorkspace(null, "Global (~/.costgate)");
+}
 
 function apiPath(segment) {
   if (activeWorkspaceId) {
@@ -66,34 +82,60 @@ function setActiveWorkspace(id, pathLabel) {
 }
 
 async function loadWorkspaces() {
-  const data = await fetchJson("/api/workspaces");
   const select = document.getElementById("workspace-select");
-  if (!select) return data;
-  select.innerHTML = "";
-  const globalOpt = document.createElement("option");
-  globalOpt.value = "";
-  globalOpt.textContent = "Global (~/.costgate)";
-  select.appendChild(globalOpt);
-  for (const w of data.workspaces ?? []) {
-    const opt = document.createElement("option");
-    opt.value = w.id;
-    const pin = w.pinned ? "📌 " : "";
-    opt.textContent = `${pin}${w.label}${w.has_config ? "" : " (new)"}`;
-    select.appendChild(opt);
+  const bar = document.getElementById("workspace-bar");
+  try {
+    const data = await fetchJson("/api/workspaces");
+    workspaceApiAvailable = true;
+    if (bar) bar.classList.remove("hidden");
+    if (!select) return data;
+    select.innerHTML = "";
+    const globalOpt = document.createElement("option");
+    globalOpt.value = "";
+    globalOpt.textContent = "Global (~/.costgate)";
+    select.appendChild(globalOpt);
+    for (const w of data.workspaces ?? []) {
+      const opt = document.createElement("option");
+      opt.value = w.id;
+      const pin = w.pinned ? "📌 " : "";
+      opt.textContent = `${pin}${w.label}${w.has_config ? "" : " (new)"}`;
+      select.appendChild(opt);
+    }
+
+    let selectedId = activeWorkspaceId;
+    if (selectedId && ![...select.options].some((o) => o.value === selectedId)) {
+      selectedId = null;
+    }
+    if (!selectedId && data.workspaces?.length === 1) {
+      selectedId = data.workspaces[0].id;
+    }
+    if (selectedId) {
+      select.value = selectedId;
+      activeWorkspaceId = selectedId;
+      sessionStorage.setItem("costgate_workspace_id", selectedId);
+    } else {
+      select.value = "";
+      clearWorkspaceSelection();
+    }
+    const current = data.workspaces?.find((w) => w.id === select.value);
+    if (select.value) {
+      setActiveWorkspace(select.value, current?.path);
+    }
+    return data;
+  } catch (e) {
+    workspaceApiAvailable = false;
+    clearWorkspaceSelection();
+    if (select) {
+      select.innerHTML = "";
+      const globalOpt = document.createElement("option");
+      globalOpt.value = "";
+      globalOpt.textContent = "Global (~/.costgate)";
+      select.appendChild(globalOpt);
+      select.value = "";
+    }
+    if (bar) bar.classList.add("hidden");
+    return { workspaces: [], legacy: true };
   }
-  if (activeWorkspaceId && [...select.options].some((o) => o.value === activeWorkspaceId)) {
-    select.value = activeWorkspaceId;
-  } else if (data.workspaces?.length) {
-    activeWorkspaceId = data.workspaces[0].id;
-    select.value = activeWorkspaceId;
-    sessionStorage.setItem("costgate_workspace_id", activeWorkspaceId);
-  } else {
-    activeWorkspaceId = null;
-    select.value = "";
-  }
-  const current = data.workspaces?.find((w) => w.id === select.value);
-  setActiveWorkspace(select.value || null, current?.path);
-  return data;
 }
 
 function setupWorkspaces() {
@@ -601,17 +643,27 @@ function setupTokenBar(health) {
   });
 }
 
-async function reload() {
-  const [overview, tools, mcps, recs] = await Promise.all([
-    fetchJson(apiPath("overview")),
-    fetchJson(apiPath("tools")),
-    fetchJson(apiPath("mcps")),
-    fetchJson(apiPath("recommendations")),
-  ]);
-  renderOverview(overview);
-  renderTools(tools);
-  renderMcps(mcps);
-  renderRecommendations(recs);
+async function reload(retryGlobal = true) {
+  try {
+    const [overview, tools, mcps, recs] = await Promise.all([
+      fetchJson(apiPath("overview")),
+      fetchJson(apiPath("tools")),
+      fetchJson(apiPath("mcps")),
+      fetchJson(apiPath("recommendations")),
+    ]);
+    renderOverview(overview);
+    renderTools(tools);
+    renderMcps(mcps);
+    renderRecommendations(recs);
+  } catch (e) {
+    if (retryGlobal && activeWorkspaceId && isWorkspaceApiError(e.message)) {
+      clearWorkspaceSelection();
+      const select = document.getElementById("workspace-select");
+      if (select) select.value = "";
+      return reload(false);
+    }
+    throw e;
+  }
 }
 
 async function main() {
