@@ -174,6 +174,135 @@ function renderRecommendations(data) {
   }
 }
 
+let selectedTemplate = null;
+
+function renderCompareEstimate(est) {
+  if (!est) return "Cost estimate unavailable.";
+  return `~${fmt(est.before_tokens)} → ~${fmt(est.after_tokens)} tokens/tools/list (${est.reduction_pct}% reduction, ${est.tool_count ?? "?"} tools)`;
+}
+
+function renderMarketplaceResults(templates) {
+  const grid = document.getElementById("marketplace-results");
+  const form = document.getElementById("wizard-form");
+  grid.innerHTML = "";
+  form.classList.add("hidden");
+  selectedTemplate = null;
+
+  if (!templates.length) {
+    grid.innerHTML = '<p class="note">No templates match your search.</p>';
+    return;
+  }
+
+  for (const t of templates) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "marketplace-card";
+    card.innerHTML = `
+      <div class="marketplace-card-title">${t.name}</div>
+      <div class="marketplace-card-meta">${t.category} · ${(t.tags ?? []).slice(0, 3).join(", ")}</div>
+      <div class="marketplace-card-desc">${t.description}</div>
+      <div class="marketplace-card-est">${renderCompareEstimate(t.compare_estimate)}</div>`;
+    card.onclick = () => openWizard(t);
+    grid.appendChild(card);
+  }
+}
+
+function openWizard(template) {
+  selectedTemplate = template;
+  document.getElementById("marketplace-results").classList.add("hidden");
+  const form = document.getElementById("wizard-form");
+  form.classList.remove("hidden");
+  document.getElementById("wizard-title").textContent = template.name;
+  document.getElementById("wizard-desc").textContent = template.description;
+
+  const envFields = document.getElementById("wizard-env-fields");
+  envFields.innerHTML = "";
+  for (const spec of template.required_env ?? []) {
+    const label = document.createElement("label");
+    label.className = "wizard-env-label";
+    const input = document.createElement("input");
+    input.type = spec.secret ? "password" : "text";
+    input.name = spec.name;
+    input.placeholder = spec.description;
+    input.dataset.envName = spec.name;
+    label.innerHTML = `<span>${spec.name}</span>`;
+    label.appendChild(input);
+    envFields.appendChild(label);
+  }
+  if (!(template.required_env ?? []).length) {
+    envFields.innerHTML = '<p class="note">No environment variables required.</p>';
+  }
+
+  document.getElementById("wizard-estimate").textContent = renderCompareEstimate(
+    template.compare_estimate
+  );
+
+  const hint = document.getElementById("wizard-hint");
+  if (template.builtin_hint) {
+    hint.textContent = template.builtin_hint;
+    hint.classList.remove("hidden");
+  } else {
+    hint.classList.add("hidden");
+  }
+
+  const confirm = document.getElementById("wizard-confirm");
+  confirm.textContent =
+    template.install_target === "builtin" ? "Show instructions" : "Add MCP";
+}
+
+function closeWizard() {
+  selectedTemplate = null;
+  document.getElementById("wizard-form").classList.add("hidden");
+  document.getElementById("marketplace-results").classList.remove("hidden");
+}
+
+async function loadMarketplace(query = "") {
+  const q = encodeURIComponent(query);
+  const data = await fetchJson(`/api/marketplace${q ? `?q=${q}` : ""}`);
+  renderMarketplaceResults(data.templates ?? []);
+}
+
+function setupWizard() {
+  const searchInput = document.getElementById("marketplace-search");
+  const searchBtn = document.getElementById("marketplace-search-btn");
+  const runSearch = () => loadMarketplace(searchInput.value.trim()).catch((e) => alert(e.message));
+  searchBtn.onclick = runSearch;
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runSearch();
+  });
+
+  document.getElementById("wizard-back").onclick = closeWizard;
+  document.getElementById("wizard-confirm").onclick = async () => {
+    if (!selectedTemplate) return;
+    if (selectedTemplate.install_target === "builtin") {
+      alert(selectedTemplate.builtin_hint ?? "Enable this MCP in Cursor Settings.");
+      return;
+    }
+    const env = {};
+    document.querySelectorAll("#wizard-env-fields input[data-env-name]").forEach((input) => {
+      env[input.dataset.envName] = input.value;
+    });
+    try {
+      const result = await fetchJson("/api/mcps", {
+        method: "POST",
+        body: JSON.stringify({ template: selectedTemplate.id, env }),
+      });
+      let msg = "MCP configuration saved.";
+      if (result.backend) msg += ` backends.json: ${result.backend}.`;
+      if (result.compare_estimate) {
+        msg += ` Estimated cost: ${renderCompareEstimate(result.compare_estimate)}.`;
+      }
+      if (result.requires_cursor_restart) msg += " Restart Cursor to apply.";
+      alert(msg);
+      closeWizard();
+      await reload();
+      await loadMarketplace(searchInput.value.trim());
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+}
+
 function setupTabs() {
   const buttons = document.querySelectorAll("#tabs button");
   buttons.forEach((btn) => {
@@ -217,12 +346,14 @@ async function reload() {
 
 async function main() {
   setupTabs();
+  setupWizard();
   try {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
     document.getElementById("health-status").textContent =
       `health: ${health.status} · ${health.version} · probe logs: ${health.data_sources.probe_logs ? "yes" : "no"}`;
     await reload();
+    await loadMarketplace();
   } catch (err) {
     document.getElementById("health-status").textContent = `Error: ${err.message}`;
   }

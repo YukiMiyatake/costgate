@@ -454,7 +454,7 @@ export function buildHealth(extra = {}) {
   const paths = defaultPaths();
   return {
     status: "ok",
-    version: "phase25",
+    version: "phase26",
     read_only: false,
     writes: {
       localhost_only: true,

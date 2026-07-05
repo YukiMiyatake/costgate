@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>CostGate Dashboard</h1>
-    <p class="subtitle">localhost · Phase 24 · <span id="write-mode">…</span></p>
+    <p class="subtitle">localhost · Phase 26 · <span id="write-mode">…</span></p>
   </header>
 
   <div id="token-bar" class="token-bar hidden">
@@ -21,6 +21,7 @@
     <button type="button" data-tab="tools">Tools</button>
     <button type="button" data-tab="mcps">MCPs</button>
     <button type="button" data-tab="recommendations">Recommendations</button>
+    <button type="button" data-tab="add-mcp">Add MCP</button>
   </nav>
 
   <main>
@@ -66,6 +67,28 @@
     <section id="panel-recommendations" class="panel">
       <ul id="rec-list" class="rec-list"></ul>
       <p id="rec-empty" class="note hidden">No delete candidates in the current window.</p>
+    </section>
+
+    <section id="panel-add-mcp" class="panel">
+      <div class="wizard-toolbar">
+        <label>
+          Search
+          <input type="search" id="marketplace-search" placeholder="browser, github, filesystem…" />
+        </label>
+        <button type="button" id="marketplace-search-btn" class="btn-sm">Search</button>
+      </div>
+      <div id="marketplace-results" class="marketplace-grid"></div>
+      <div id="wizard-form" class="wizard-form hidden">
+        <h2 id="wizard-title"></h2>
+        <p id="wizard-desc" class="note"></p>
+        <div id="wizard-env-fields"></div>
+        <div id="wizard-estimate" class="wizard-estimate"></div>
+        <p id="wizard-hint" class="note hidden"></p>
+        <div class="wizard-actions">
+          <button type="button" id="wizard-back" class="btn-sm">Back</button>
+          <button type="button" id="wizard-confirm" class="btn-sm btn-primary">Add MCP</button>
+        </div>
+      </div>
     </section>
   </main>
 

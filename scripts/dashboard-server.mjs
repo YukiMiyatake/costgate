@@ -19,6 +19,8 @@ import {
   previewMcpDisable,
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
+import { searchMarketplace, addMcpFromTemplate } from "./lib/dashboard-marketplace.mjs";
+import { defaultPaths } from "./lib/dashboard-data.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -124,6 +126,14 @@ function createDashboardServer(options = {}) {
           });
           return;
         }
+        if (pathname === "/api/marketplace") {
+          const q = url.searchParams.get("q") ?? "";
+          json(res, 200, {
+            query: q,
+            templates: searchMarketplace(q, controlPaths.marketplaceDir),
+          });
+          return;
+        }
         const mcpPreview = pathname.match(/^\/api\/mcps\/([^/]+)\/preview$/);
         if (mcpPreview) {
           const name = decodeURIComponent(mcpPreview[1]);
@@ -137,6 +147,34 @@ function createDashboardServer(options = {}) {
           return;
         }
         serveStatic(pathname, res);
+        return;
+      }
+
+      if (method === "POST") {
+        if (!authorizeWrite(req)) {
+          json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+          return;
+        }
+
+        if (pathname === "/api/mcps") {
+          const body = await readBody(req);
+          const template = body.template;
+          if (!template) {
+            json(res, 400, { error: "template required" });
+            return;
+          }
+          const paths = {
+            ...defaultPaths(),
+            ...dataOptions,
+            ...controlPaths,
+          };
+          const result = addMcpFromTemplate(template, body.env ?? {}, paths);
+          json(res, 200, result);
+          return;
+        }
+
+        res.writeHead(404);
+        res.end("Not found");
         return;
       }
 
