@@ -2,9 +2,9 @@
 
 フェーズごとの **トークン削減率** と **性能・検証** の記録。再現手順付き。
 
-最終更新: **2026-07-05**（Phase 10–15 追計測）  
+最終更新: **2026-07-05**（Phase 10–22 追計測）  
 計測環境: Docker toolchain / Node 22 / Go 1.25 / WSL2  
-Backend: GitHub MCP 26 tools（`~/.costgate/backends.json`）+ mock MCP 15 tools（`compare --mock` / `eval`）
+Backend: GitHub MCP 26 tools（`~/.costgate/backends.json`）+ mock MCP 16 tools（`compare --mock` / `eval`）
 
 ---
 
@@ -26,7 +26,10 @@ npm run compare              # Phase 3–4: 定義レイヤ（GitHub）
 npm run compare -- --mock    # Phase 14: 定義レイヤ（mock、トークン不要）
 npm run compress-report      # Phase 9: 定義 + 結果レイヤ
 npm run compress-report -- --code-mode   # Phase 12: code-mode 比較
-npm run eval                 # Phase 13: タスク成功率（mock）
+npm run eval                 # Phase 13+: タスク成功率（mock）
+npm run eval:live            # Phase 17: GitHub live（token 要）
+npm run benchmark:ci         # Phase 18: mock compare 回帰アサート
+npm run test:filesystem      # Phase 19: filesystem catalog smoke
 npm run session-report       # Phase 7: Probe ログ内訳
 npm run test:gate:filter     # Phase 3, 8: スモーク
 npm run test:gate:compress   # Phase 9: ユニット
@@ -57,6 +60,13 @@ Docker: `./docker.sh npm run compare` 等（[docker.md](./docker.md)）
 | **13** Accuracy eval | タスク成功率 | — | **13/13 pass** | 100% | `npm run eval` |
 | **14** Multi-MCP mock | 定義（catalog） | 684 tok | 320 tok | **53.2%** | `compare --mock` |
 | **15** Probe npm | 配布 | — | `npx @costgate/probe` | — | tag → npm CI |
+| **16** Code Mode v2 | AST outline | regex | go/ast + scanner | 品質↑ | `test:gate:codemode` |
+| **17** Eval v2 | タスク拡張 | 13 tasks | **21 tasks** | 100% | `eval --diff` |
+| **18** benchmark CI | mock 回帰 | 734 tok | 370 tok | **49.6%** | `benchmark:ci` |
+| **19** filesystem MCP | catalog smoke | 9 tools | 8 tools | tool↓ | `test:filesystem` |
+| **20** JSON compress | 大 JSON | raw | summary | 大幅↓ | eval `compress_json_summary` |
+| **20** dedupe | 再 read | full | cache hit | — | eval `dedupe_repeat_read` |
+| **22** probe intent | Tier B 露出 | — | merge 検出 | — | eval `probe_intent` |
 
 \* tool_call ログが少ないセッションでは fixed share ≈ 100%。20k tokens/turn 想定の全体削減 ~15% は roadmap シナリオ。  
 † `COSTGATE_INTENT="pull request"` 時。トークン数はツール数増加に比例（Tier B 追加）。  
@@ -303,7 +313,61 @@ Probe ログ（2026-07-04）サンプル:
 | outline ヘッダ | `signatures:` のみ | `engine: ast\|regex` 追加 |
 | eval 品質 | contains/excludes | + `assert_symbols` |
 
-**検証:** `npm run test:gate:codemode`（9 tests）, `npm run eval`（13/13、`code_mode_outline` に `hello`/`Config`/`engine: ast`）
+**検証:** `npm run test:gate:codemode`（9 tests）, `npm run eval`（`code_mode_outline` に `hello`/`Config`/`engine: ast`）
+
+---
+
+### Phase 17 — Eval v2
+
+| 指標 | 値 |
+|------|-----|
+| タスク数 | **21**（mock、5 モード） |
+| Pass rate | **100%**（21/21） |
+| baseline | `test/eval/baseline.json`（`eval --out` / `--diff`） |
+| live | `npm run eval:live`（`GITHUB_TOKEN`、週次 CI optional） |
+
+---
+
+### Phase 18 — benchmark CI
+
+| 指標 | Before | After | 削減 |
+|------|--------|-------|------|
+| mock tools | 16 | 7 | 56% |
+| est. tokens | ~734 | ~370 | **49.6%** |
+
+**検証:** `npm run benchmark:ci`（CI 組込み）、`compress-report --mock` / `session-report --mock`
+
+---
+
+### Phase 19 — Multi-MCP（filesystem）
+
+| 指標 | transparent | filter |
+|------|-------------|--------|
+| tools | 9 | 8（+2 meta） |
+| est. tokens | ~324 | ~361 |
+
+filesystem は Tier A が多く token 増もあり得る。smoke は **tool 数削減 + catalog 適用** を検証。
+
+**検証:** `npm run test:filesystem`, `compare --mock --backend filesystem`
+
+---
+
+### Phase 20 — Result intelligence
+
+| 機能 | 検証 |
+|------|------|
+| JSON summary | eval `compress_json_summary` — `[costgate: json summary` |
+| Session dedupe | eval `dedupe_repeat_read` — 2 回目 `[costgate: dedupe cache hit]` |
+
+**検証:** `go test ./internal/compress/... ./internal/result/...`
+
+---
+
+### Phase 22 — Smart intent
+
+Probe JSONL の直近 `tool_call` から intent キーワードを推論し Tier B を露出。
+
+**検証:** eval `probe_intent_exposes_merge`（`seed_probe_log` + `discover_tools`）
 
 ---
 
@@ -317,7 +381,8 @@ Probe ログ（2026-07-04）サンプル:
 | `npm run compare -- --mock` | ~2 min | mock MCP、GitHub 不要 |
 | `npm run compress-report` | ~3 min | Gate ×4 + 2× tool call |
 | `npm run compress-report -- --code-mode` | ~4 min | 上記 + code-mode 3 パターン |
-| `npm run eval` | ~3 min | mock、13 タスク |
+| `npm run eval` | ~4 min | mock、21 タスク |
+| `npm run benchmark:ci` | ~2.5 min | mock compare + アサート |
 | Probe `tools/list` 初回 | ~2–3s | JSONL タイムスタンプ差分 |
 | 圧縮処理（Gate 内） | <1ms | 文字列 truncate のみ |
 
