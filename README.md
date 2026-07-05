@@ -57,12 +57,19 @@ See [examples/cursor/](./examples/cursor/) for full configuration.
 
 ## Quick start (Gate)
 
-Requires **Go 1.25+**.
+Requires **Go 1.25+** to build from source, or install a release binary (no Go):
 
 ```bash
+# Option A — GitHub Release (recommended for end users)
+./scripts/install-gate.sh          # → ~/.local/bin/costgate-gate
+costgate-gate --version
+
+# Option B — build from source
 npm run build:gate
 npm run test:gate   # smoke test (GitHub backend via ~/.costgate/backends.json)
 ```
+
+Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · see [docs/releases.md](./docs/releases.md)
 
 Add to Cursor `~/.cursor/mcp.json` (keep **serena** direct; see [mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)):
 
@@ -105,6 +112,7 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 - [Benchmarks & verification](./docs/benchmarks.md)
 - [Repository structure](./docs/structure.md)
 - [Docker / Dev Container](./docs/docker.md)
+- [Gate releases](./docs/releases.md)
 - [Architecture](./docs/architecture.md)
 - [Log schema](./docs/log-schema.md)
 - [Contributing](./CONTRIBUTING.md)

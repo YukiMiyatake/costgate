@@ -34,6 +34,12 @@ jobs:
         working-directory: packages/gate
         run: go test ./...
 
+      - name: Goreleaser config check
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: check
+
       - name: Token counter tests
         run: npm run test:tokens
 
@@ -47,3 +53,5 @@ jobs:
           node --check scripts/session-report.mjs
           node --check scripts/cloud-upload.mjs
           node --check scripts/cursor-mcp.mjs
+          node --check scripts/cursor-update.mjs
+          node --check scripts/docker-run.mjs

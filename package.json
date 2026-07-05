@@ -35,6 +35,8 @@
     "docker:gate": "node scripts/docker-run.mjs npm run build:gate",
     "docker:shell": "node scripts/docker-run.mjs bash",
     "docker:update": "node scripts/cursor-update.mjs --docker",
+    "release:check": "goreleaser check",
+    "install:gate": "bash scripts/install-gate.sh",
     "docker:test": "docker compose -f docker-compose.test.yml --profile test run --rm test-runner"
   },
   "engines": {

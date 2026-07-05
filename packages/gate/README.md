@@ -9,6 +9,16 @@ stdio MCP gateway (Go). Filters `tools/list` to cut token cost; delegates calls 
 npm run build:gate
 ```
 
+## Install (release binary, no Go)
+
+```bash
+./scripts/install-gate.sh          # latest from GitHub Releases
+./scripts/install-gate.sh v0.4.0   # specific tag
+costgate-gate --version
+```
+
+See [docs/releases.md](../../docs/releases.md).
+
 ## Modes
 
 | `COSTGATE_GATE_MODE` | Behavior |

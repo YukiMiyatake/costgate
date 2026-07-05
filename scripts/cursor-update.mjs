@@ -22,10 +22,7 @@ function run(cmd, opts = {}) {
 
 function gateVersion() {
   try {
-    const mainGo = join(ROOT, "packages/gate/cmd/costgate-gate/main.go");
-    const src = execSync(`grep costgate-gate "${mainGo}"`, { encoding: "utf8" });
-    const m = src.match(/costgate-gate\] (v[\d.]+)/);
-    return m?.[1] ?? "unknown";
+    return execSync(`"${GATE_BIN}" --version`, { encoding: "utf8", cwd: ROOT }).trim();
   } catch {
     return "unknown";
   }
