@@ -799,6 +799,19 @@ function renderTools(data) {
   } else {
     noCatalog?.classList.add("hidden");
   }
+  const probeErr = document.getElementById("tools-probe-error");
+  const probeErrors = data.backend_probe_errors;
+  if (probeErrors && Object.keys(probeErrors).length) {
+    probeErr?.classList.remove("hidden");
+    if (probeErr) {
+      const list = Object.entries(probeErrors)
+        .map(([name, msg]) => `${name}: ${msg}`)
+        .join("; ");
+      probeErr.textContent = t("tools.probeErrorBanner", { list });
+    }
+  } else {
+    probeErr?.classList.add("hidden");
+  }
   populateToolsBackendFilter(data);
   renderToolsTierTabs();
   renderToolsTable();

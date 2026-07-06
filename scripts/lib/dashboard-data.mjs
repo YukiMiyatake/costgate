@@ -5,6 +5,10 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import {
+  ensureBackendToolsCache,
+  mergeBackendToolsCache,
+} from "./dashboard-backend-probe.mjs";
 import { readJson } from "./read-json.mjs";
 import {
   parseProbeLogs,
@@ -71,7 +75,7 @@ export function buildPromptIntentSnapshot(options = {}) {
   };
 }
 
-function loadTierCatalogs(tierDir) {
+export function loadTierCatalogs(tierDir) {
   const catalogs = {};
   if (!existsSync(tierDir)) return catalogs;
   for (const file of readdirSync(tierDir).filter((f) => f.endsWith(".json"))) {
@@ -459,14 +463,17 @@ export function buildDashboardData(options = {}) {
   const now = options.now ?? Date.now();
 
   const logs = parseProbeLogs(paths.logDir);
+  const effective = resolveEffectiveConfig(paths, globalPaths);
+  const backends = effective.backends;
   const { byTool, byBackend, listTokenSamples } = parseProbeToolStats(
     paths.logDir,
     windowDays,
     paths.gateLogDir
   );
+  if (options.backendToolsCache) {
+    mergeBackendToolsCache(byTool, options.backendToolsCache, backends);
+  }
   const usage = loadUsage(paths.usagePath);
-  const effective = resolveEffectiveConfig(paths, globalPaths);
-  const backends = effective.backends;
   const backendOrigins = effective.backendOrigins;
   const mcpServers = loadMcpServers(paths.mcpPath);
   const catalogs = loadTierCatalogs(paths.tierDir);
@@ -579,6 +586,27 @@ export function buildDashboardData(options = {}) {
       },
     },
   };
+}
+
+/**
+ * Build tools tab payload; probes backends without tier catalogs via MCP tools/list.
+ */
+export async function buildToolsPayload(options = {}) {
+  const paths = { ...defaultPaths(), ...options };
+  const globalPaths = options.globalPaths ?? defaultPaths();
+  const effective = resolveEffectiveConfig(paths, globalPaths);
+  const catalogs = loadTierCatalogs(paths.tierDir);
+  const { cache, errors } = await ensureBackendToolsCache(
+    effective.backends,
+    catalogs,
+    options.probeOptions ?? {}
+  );
+  const data = buildDashboardData({ ...options, backendToolsCache: cache });
+  const payload = { ...data.tools };
+  if (errors && Object.keys(errors).length) {
+    payload.backend_probe_errors = errors;
+  }
+  return payload;
 }
 
 export function buildHealth(extra = {}) {
