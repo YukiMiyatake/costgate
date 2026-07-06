@@ -15,13 +15,21 @@ const groups = [
     ],
   },
   {
+    title: "Install / CLI",
+    cmds: [
+      ["(npx) @costgate/cli init", "本番セットアップ（Gate DL + mcp.json + hooks）"],
+      ["build:cli", "@costgate/cli runtime 同梱ビルド"],
+      ["install:gate", "~/.local/bin へ Gate のみ（上級者）"],
+    ],
+  },
+  {
     title: "Cursor / MCP",
     cmds: [
-      ["cursor:production", "Gate 本番モード（Dashboard 自動起動込み）"],
+      ["cursor:production", "Gate 本番（clone 開発者向け）"],
       ["cursor:measurement", "Probe 計測モード"],
       ["cursor:mcp -- status", "現在の mcp.json モード確認"],
       ["cursor:update", "Gate/Probe 再ビルド + production 設定更新"],
-      ["cursor:registry", "Cursor hooks インストール（registry + prompt-intent + shield-mcp + shield-read）"],
+      ["cursor:registry", "Cursor hooks（= costgate registry）"],
     ],
   },
   {

@@ -1,7 +1,7 @@
 /**
  * Shared repo paths for scripts and tests.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,11 +9,18 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 export function repoRoot() {
-  return ROOT;
+  return process.env.COSTGATE_RUNTIME_ROOT ?? ROOT;
 }
 
 export function gateBin() {
-  return process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
+  if (process.env.COSTGATE_GATE_BIN) {
+    return process.env.COSTGATE_GATE_BIN;
+  }
+  const installed = join(homedir(), ".costgate", "bin", "costgate-gate");
+  if (existsSync(installed)) {
+    return installed;
+  }
+  return join(ROOT, "packages/gate/bin/costgate-gate");
 }
 
 export function probeJs() {

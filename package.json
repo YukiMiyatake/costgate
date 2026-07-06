@@ -2,17 +2,19 @@
   "name": "costgate",
   "private": true,
   "bin": {
-    "costgate": "./scripts/costgate.mjs"
+    "costgate": "./packages/cli/bin/costgate.mjs"
   },
   "description": "Gate your MCP. Cut your bill.",
   "workspaces": [
     "packages/schema",
-    "packages/probe"
+    "packages/probe",
+    "packages/cli"
   ],
   "scripts": {
     "help": "node scripts/npm-help.mjs",
 
-    "build": "npm run build -w @costgate/schema && npm run build -w @costgate/probe",
+    "build": "npm run build -w @costgate/schema && npm run build -w @costgate/probe && npm run build -w @costgate/cli",
+    "build:cli": "npm run build -w @costgate/cli",
     "build:gate": "cd packages/gate && CGO_ENABLED=0 go build -o bin/costgate-gate ./cmd/costgate-gate",
     "build:probe": "npm run build -w @costgate/probe",
     "build:schema": "npm run build -w @costgate/schema",
@@ -20,6 +22,7 @@
     "install:gate": "bash scripts/install-gate.sh",
 
     "check:syntax": "node scripts/check-syntax.mjs",
+    "test:cli": "node test/cli-package.test.mjs",
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
 
@@ -28,10 +31,10 @@
     "cursor:mcp": "node scripts/cursor-mcp.mjs",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
-    "cursor:registry": "node scripts/install-cursor-registry-hook.mjs",
+    "cursor:registry": "node packages/cli/bin/costgate.mjs registry",
     "cursor:update": "node scripts/cursor-update.mjs",
 
-    "dashboard": "node scripts/dashboard-server.mjs",
+    "dashboard": "node packages/cli/bin/costgate.mjs dashboard",
     "dashboard:test": "node test/run-dashboard.mjs",
     "shield:sanitize-prompt": "node scripts/costgate.mjs shield sanitize-prompt",
 
@@ -56,7 +59,7 @@
     "release:check": "goreleaser check",
 
     "test": "npm run test:ci",
-    "test:ci": "npm run check:syntax && npm run test:tokens && npm run test:schema && npm run test:integration && npm run eval && npm run benchmark:ci && npm run test:filesystem && npm run dashboard:test",
+    "test:ci": "npm run check:syntax && npm run test:cli && npm run test:tokens && npm run test:schema && npm run test:integration && npm run eval && npm run benchmark:ci && npm run test:filesystem && npm run dashboard:test",
     "test:local": "npm run test:ci && npm run test:gate && npm run test:gate:filter && npm run test:cursor:gate",
 
     "test:gate-launch": "node test/costgate-gate-launch.test.mjs",

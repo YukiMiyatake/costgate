@@ -1,52 +1,43 @@
 # Repository structure
 
-CostGate OSS is a **monorepo**. Probe (npm) and Gate (Go binary) live in one repository.
+CostGate OSS is a **monorepo**. Gate (Go binary) and the npm entry layer (`@costgate/cli`) live in one repository.
 
 ```
 costgate/
 ├── packages/
 │   ├── schema/          @costgate/schema   — shared log schema (npm, internal)
 │   ├── probe/           @costgate/probe    — measurement MCP (npm publish)
+│   ├── cli/             @costgate/cli     — npm entry (launcher, Dashboard, hooks)
 │   └── gate/            costgate-gate      — gateway MCP (Go binary, goreleaser)
+├── catalog/marketplace/ MCP カタログ（CLI runtime に同梱）
 ├── docs/
-│   ├── dashboard.md     … MCP Dashboard（利用者向け）
-│   └── dev/             … 開発者向け仕様
-│       └── dashboard.md
 ├── examples/
-├── scripts/
+├── scripts/             開発用（publish 時は packages/cli/runtime にコピー）
 └── package.json         npm workspaces root (private)
 ```
+
+## Distribution model
+
+| Layer | Publish | User entry |
+|-------|---------|------------|
+| **Gate** | GitHub Releases (`costgate-gate_*`) | `@costgate/cli init` がダウンロード |
+| **CLI** | npm `@costgate/cli` | `npx @costgate/cli init` |
+| **Probe** | npm `@costgate/probe` | 計測時のみ `npx @costgate/probe` |
 
 ## Why monorepo (not separate repos)
 
 | Concern | Answer |
 |---------|--------|
-| npm publish `@costgate/probe` | Works from `packages/probe` in monorepo |
+| npm publish `@costgate/cli` / `@costgate/probe` | Works from `packages/*` in monorepo |
 | Go binary for Gate | Built from `packages/gate` in same repo |
-| Shared log schema | `packages/schema` — single source of truth |
-| Version sync | One repo, tagged releases (e.g. `v0.2.0`) |
+| Dashboard / hooks in npm | `packages/cli` build copies `scripts/` + `catalog/` |
+| Version sync | One tag `v*` → Gate binary + schema + probe + cli |
 
-**Separate repos are not required for npm distribution.**
-
-Publish from workspace:
-
-```bash
-npm publish -w @costgate/probe --access public
-```
-
-Gate releases via GitHub Releases (goreleaser) from the same repo.
-
-## When to split repos (later, optional)
-
-- Different teams owning Probe vs Gate independently
-- Different licenses
-- Gate rewritten in another language with no shared code
-
-For solo / small team development, monorepo is simpler.
+Gate releases via GitHub Releases (goreleaser). npm packages publish on the same tag via `npm-publish.yml`.
 
 ## Related repo
 
 | Repo | Role |
 |------|------|
-| [costgate](.) | OSS — Probe + Gate |
+| [costgate](.) | OSS — Probe + Gate + CLI |
 | [costgate-cloud](../costgate-cloud) | Private — Pro / Team / Enterprise SaaS |

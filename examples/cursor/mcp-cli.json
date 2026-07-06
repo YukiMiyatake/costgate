@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "npx",
+      "args": ["-y", "@costgate/cli@latest", "gate"],
+      "env": {
+        "COSTGATE_PROJECT_ROOT": "${workspaceFolder}",
+        "COSTGATE_CONFIG": "${workspaceFolder}/.costgate/backends.json",
+        "COSTGATE_TOOL_OVERRIDES": "${workspaceFolder}/.costgate/tool-overrides.json",
+        "COSTGATE_USAGE_PATH": "${workspaceFolder}/.costgate/usage.json",
+        "COSTGATE_GATE_LOG_DIR": "${workspaceFolder}/.costgate/logs",
+        "COSTGATE_DASHBOARD_AUTO": "1",
+        "COSTGATE_DASHBOARD_AUTO_OPEN": "1",
+        "COSTGATE_CLIENT": "cursor",
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_COMPRESS": "1",
+        "COSTGATE_CODE_MODE": "1",
+        "COSTGATE_SHIELD": "1",
+        "COSTGATE_SHIELD_SESSION": "cursor"
+      }
+    }
+  }
+}
