@@ -2,10 +2,12 @@
  * @costgate/cli tests (runtime resolution, mcp config, install helpers).
  */
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   cliRuntimeRoot,
+  cliPackageRoot,
   readCliPackageVersion,
   runtimeScript,
 } from "../packages/cli/src/cli-runtime.mjs";
@@ -32,6 +34,8 @@ function test(name, fn) {
 test("cliRuntimeRoot resolves monorepo in dev", () => {
   const root = cliRuntimeRoot();
   assert.equal(runtimeScript("costgate-gate-launch.mjs"), join(root, "scripts", "costgate-gate-launch.mjs"));
+  const monorepo = join(cliPackageRoot(), "..", "..");
+  assert.equal(root, monorepo, "monorepo scripts should win over packages/cli/runtime");
 });
 
 test("readCliPackageVersion is semver-like", () => {

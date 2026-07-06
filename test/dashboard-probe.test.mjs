@@ -5,6 +5,7 @@ import {
   isDashboardFresh,
   isStaleDashboardCapabilities,
   probeDashboardApi,
+  probeWorkspaceDeepRoutes,
 } from "../scripts/lib/dashboard-probe.mjs";
 
 async function withServer(fn) {
@@ -23,6 +24,7 @@ async function withServer(fn) {
 async function testFreshServer() {
   await withServer(async (port) => {
     assert(await probeDashboardApi({ host: "127.0.0.1", port }, "/api/shield-settings"));
+    assert(await probeWorkspaceDeepRoutes({ host: "127.0.0.1", port }));
     assert(await isDashboardFresh({ host: "127.0.0.1", port }));
   });
   console.error("[dashboard-probe] fresh server ok");
@@ -37,10 +39,18 @@ function testStaleCapabilities() {
     })
   );
   assert(
+    isStaleDashboardCapabilities({
+      status: "ok",
+      ui: { settings: {} },
+      capabilities: { shield_settings: true, workspace_deep_routes: false },
+    }),
+    "workspace_deep_routes false is stale"
+  );
+  assert(
     !isStaleDashboardCapabilities({
       status: "ok",
       ui: { settings: {} },
-      capabilities: { shield_settings: true },
+      capabilities: { shield_settings: true, workspace_deep_routes: true },
     })
   );
   console.error("[dashboard-probe] stale capabilities ok");
