@@ -8,6 +8,11 @@ import { homedir } from "node:os";
 import {
   ensureBackendToolsCache,
   mergeBackendToolsCache,
+  backendsNeedingProbe,
+  isBackendCacheStale,
+  isBackendCacheMissing,
+  loadBackendToolsCache,
+  backendToolsCachePath,
 } from "./dashboard-backend-probe.mjs";
 import { readJson } from "./read-json.mjs";
 import {
@@ -596,11 +601,39 @@ export async function buildToolsPayload(options = {}) {
   const globalPaths = options.globalPaths ?? defaultPaths();
   const effective = resolveEffectiveConfig(paths, globalPaths);
   const catalogs = loadTierCatalogs(paths.tierDir);
-  const { cache, errors } = await ensureBackendToolsCache(
-    effective.backends,
-    catalogs,
-    options.probeOptions ?? {}
+  const probeOptions = options.probeOptions ?? {};
+  const cachePath = probeOptions.cachePath ?? backendToolsCachePath();
+  let cache = loadBackendToolsCache(cachePath);
+  let errors = {};
+
+  const probeCandidates = backendsNeedingProbe(effective.backends, catalogs);
+  const missing = probeCandidates.filter((name) =>
+    isBackendCacheMissing(cache, name)
   );
+  const stale = probeCandidates.filter(
+    (name) =>
+      !missing.includes(name) &&
+      isBackendCacheStale(cache, name, effective.backends[name])
+  );
+
+  if (missing.length) {
+    const result = await ensureBackendToolsCache(effective.backends, catalogs, {
+      ...probeOptions,
+      only: missing,
+      cachePath,
+    });
+    cache = result.cache;
+    errors = result.errors;
+  }
+
+  if (stale.length && !options.blockBackgroundProbe) {
+    void ensureBackendToolsCache(effective.backends, catalogs, {
+      ...probeOptions,
+      only: stale,
+      cachePath,
+    }).catch(() => {});
+  }
+
   const data = buildDashboardData({ ...options, backendToolsCache: cache });
   const payload = { ...data.tools };
   if (errors && Object.keys(errors).length) {

@@ -8,6 +8,10 @@ import {
   ensureBackendToolsCache,
   mergeBackendToolsCache,
   backendsNeedingProbe,
+  prepareProbeConfig,
+  isSerenaBackend,
+  isBackendCacheStale,
+  isBackendCacheMissing,
 } from "../scripts/lib/dashboard-backend-probe.mjs";
 import { buildDashboardData, buildToolsPayload } from "../scripts/lib/dashboard-data.mjs";
 
@@ -16,6 +20,24 @@ const MOCK_MCP = join(ROOT, "test/fixtures/mock-mcp/index.mjs");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
+}
+
+function testPrepareProbeConfig() {
+  const serena = {
+    command: "uvx",
+    args: ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "ide"],
+  };
+  assert(isSerenaBackend("serena", serena), "detect serena backend");
+  const prepared = prepareProbeConfig("serena", serena);
+  assert(
+    prepared.args.includes("--open-web-dashboard") &&
+      prepared.args.includes("false") &&
+      prepared.args.includes("--enable-gui-log-window"),
+    "serena probe adds no-browser flags"
+  );
+  const unchanged = prepareProbeConfig("github", { command: "npx", args: ["-y", "github"] });
+  assert(!unchanged.args.includes("--open-web-dashboard"), "non-serena unchanged");
+  console.error("[backend-probe] prepareProbeConfig ok");
 }
 
 async function testProbeMockMcp() {
@@ -115,6 +137,7 @@ async function testBuildToolsPayload() {
 }
 
 async function main() {
+  testPrepareProbeConfig();
   await testProbeMockMcp();
   await testEnsureCacheAndMerge();
   await testBuildToolsPayload();
