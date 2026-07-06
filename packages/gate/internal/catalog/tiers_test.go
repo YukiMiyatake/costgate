@@ -75,6 +75,21 @@ func TestLoadTierRulesBrowser(t *testing.T) {
 	}
 }
 
+func TestApplyForBackend(t *testing.T) {
+	rules := &TierRules{
+		Overrides: map[string]string{
+			"read_file": "A",
+		},
+	}
+	classified := map[string]filter.Tier{
+		"filesystem/read_file": filter.TierB,
+	}
+	out := rules.ApplyForBackend(classified, "filesystem")
+	if out["filesystem/read_file"] != filter.TierA {
+		t.Errorf("got tier %v", out["filesystem/read_file"])
+	}
+}
+
 func TestLoadTierRulesUnknown(t *testing.T) {
 	rules, err := LoadTierRules("unknown-backend")
 	if err != nil {

@@ -1,0 +1,16 @@
+{
+  "backends": {
+    "github": {
+      "always": true,
+      "command": "bash",
+      "args": [
+        "-lc",
+        "export GITHUB_PERSONAL_ACCESS_TOKEN=\"$(gh auth token)\"; exec npx -y @modelcontextprotocol/server-github"
+      ]
+    },
+    "remote": {
+      "always": true,
+      "url": "https://example.com/mcp"
+    }
+  }
+}
