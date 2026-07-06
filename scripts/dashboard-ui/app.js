@@ -121,6 +121,11 @@ function apiPath(segment) {
   return `/api/${segment}`;
 }
 
+/** Global-only APIs (not scoped to workspace). */
+function globalApiPath(segment) {
+  return `/api/${segment}`;
+}
+
 function setActiveWorkspace(id, pathLabel, { explicit = false } = {}) {
   activeWorkspaceId = id || null;
   if (id) {
@@ -761,7 +766,7 @@ function collectShieldSettingsForm() {
 }
 
 async function loadShieldSettings() {
-  const data = await fetchJson(apiPath("shield-settings"));
+  const data = await fetchJson(globalApiPath("shield-settings"));
   renderShieldSettings(data);
   return data;
 }
@@ -770,7 +775,7 @@ function setupShieldSettings() {
   document.getElementById("shield-settings-save")?.addEventListener("click", async () => {
     try {
       const settings = collectShieldSettingsForm();
-      await fetchJson(apiPath("shield-settings"), {
+      await fetchJson(globalApiPath("shield-settings"), {
         method: "PATCH",
         body: JSON.stringify({ settings }),
       });

@@ -248,6 +248,18 @@ async function testShieldSettingsRoutes() {
     assert(patched.settings.prompt_block === true, "shield prompt_block applied");
     assert(existsSync(settingsPath), "shield settings file written");
 
+    const workspaces = await expectJson(base, "/api/workspaces");
+    const wsId = workspaces.workspaces?.[0]?.id;
+    if (wsId) {
+      const wsGet = await expectJson(base, `/api/workspaces/${encodeURIComponent(wsId)}/shield-settings`);
+      assert(typeof wsGet.settings?.prompt_block === "boolean", "workspace shield settings GET");
+      const wsPatch = await expectJson(base, `/api/workspaces/${encodeURIComponent(wsId)}/shield-settings`, {
+        method: "PATCH",
+        body: { settings: { prompt_block: false } },
+      });
+      assert(wsPatch.ok === true, "workspace shield PATCH ok");
+    }
+
     console.error("[routes] shield-settings ok");
   } finally {
     if (prevHooks === undefined) delete process.env.CURSOR_HOOKS_PATH;
