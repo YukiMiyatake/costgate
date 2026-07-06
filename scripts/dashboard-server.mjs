@@ -243,7 +243,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   }
 
   const wsMatch = pathname.match(
-    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust|shield-prompt))?$/
+    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust|shield-prompt|shield-settings))?$/
   );
   if (!wsMatch) return false;
 
@@ -294,6 +294,8 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       json(res, 200, buildMcpTrustApiPayload(mcpTrustOpts(paths)));
     } else if (section === "shield-prompt") {
       json(res, 200, buildShieldPromptApiPayload({ dir: paths.shieldPromptBlockDir }));
+    } else if (section === "shield-settings") {
+      json(res, 200, buildShieldSettingsApiPayload(defaultHooksPath()));
     } else {
       apiNotFound(res, pathname);
     }
@@ -315,6 +317,26 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       marketplaceDir: marketplaceDirPath,
     });
     json(res, 200, { ...result, workspace_id: wsId, workspace_path: paths.projectRoot });
+    return true;
+  }
+
+  const wsShieldPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/shield-settings$/);
+  if (method === "PATCH" && wsShieldPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const body = await readBody(req);
+    try {
+      const result = patchShieldSettings(body.settings ?? body, defaultHooksPath());
+      json(res, 200, {
+        ...result,
+        workspace_id: decodeURIComponent(wsShieldPatch[1]),
+        ...buildShieldSettingsApiPayload(defaultHooksPath()),
+      });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
     return true;
   }
 
