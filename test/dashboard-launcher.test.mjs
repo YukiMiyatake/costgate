@@ -4,6 +4,7 @@ import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 import {
   ensureDashboard,
   probeDashboardHealth,
+  isStaleDashboardHealth,
   dashboardServerScript,
   isDashboardAutoEnabled,
 } from "../scripts/lib/dashboard-launcher.mjs";
@@ -76,8 +77,16 @@ function testEnvFlags() {
   console.error("[dashboard-launcher] env ok");
 }
 
+function testStaleHealth() {
+  assert(isStaleDashboardHealth({ status: "ok" }), "missing ui is stale");
+  assert(!isStaleDashboardHealth({ status: "ok", ui: { settings: {} } }), "ui present is fresh");
+  assert(!isStaleDashboardHealth(null), "null not stale");
+  console.error("[dashboard-launcher] stale health ok");
+}
+
 async function main() {
   testEnvFlags();
+  testStaleHealth();
   await testProbe();
   await testEnsureStartsAndReuses();
   console.error("[dashboard-launcher] all passed");

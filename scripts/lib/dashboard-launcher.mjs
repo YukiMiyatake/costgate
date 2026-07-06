@@ -40,6 +40,12 @@ export function isDashboardAutoOpenEnabled(env = process.env) {
 }
 
 export async function probeDashboardHealth(options = {}) {
+  const detail = await fetchDashboardHealth(options);
+  return detail.ok;
+}
+
+/** @returns {{ ok: boolean, data: object | null }} */
+export async function fetchDashboardHealth(options = {}) {
   const host = options.host ?? process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
   const port = Number(options.port ?? process.env.COSTGATE_DASHBOARD_PORT ?? 8787);
   const url = `${dashboardUrl(host, port)}/api/health`;
@@ -48,12 +54,40 @@ export async function probeDashboardHealth(options = {}) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal });
-    return res.ok;
+    if (!res.ok) return { ok: false, data: null };
+    const data = await res.json().catch(() => null);
+    return { ok: true, data };
   } catch {
-    return false;
+    return { ok: false, data: null };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Pre-i18n dashboard processes lack `ui` on /api/health but still bind the port. */
+export function isStaleDashboardHealth(data) {
+  return data?.status === "ok" && data.ui == null;
+}
+
+function killProcessOnPort(port) {
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    if (process.platform === "win32") {
+      execFile(
+        "powershell",
+        [
+          "-NoProfile",
+          "-Command",
+          `Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`,
+        ],
+        () => done()
+      );
+      return;
+    }
+    execFile("fuser", [`${port}/tcp`, "-k"], () => {
+      execFile("sh", ["-c", `lsof -ti :${port} | xargs -r kill 2>/dev/null || true`], () => done());
+    });
+  });
 }
 
 export function spawnDashboardProcess(options = {}) {
@@ -126,9 +160,13 @@ export async function ensureDashboard(options = {}) {
     return { url, running, started: false, opened: false, skipped: "auto_disabled" };
   }
 
-  const already = await probeDashboardHealth({ host, port });
-  if (already) {
+  const already = await fetchDashboardHealth({ host, port });
+  if (already.ok && !isStaleDashboardHealth(already.data)) {
     return { url, running: true, started: false, opened: false };
+  }
+  if (already.ok && isStaleDashboardHealth(already.data)) {
+    await killProcessOnPort(port);
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   const pid = spawnDashboardProcess({
