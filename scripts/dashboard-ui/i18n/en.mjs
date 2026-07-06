@@ -219,4 +219,27 @@ export default {
     no: "no",
     dash: "—",
   },
+  shield: {
+    settingsTitle: "Prompt Shield settings",
+    save: "Save Shield settings",
+    saved: "Shield settings saved. Restart Cursor to apply.",
+    note: "Updates ~/.costgate/shield-settings.json and merges ~/.cursor/hooks.json (beforeSubmitPrompt).",
+    hooksOutOfSync: "hooks.json is out of sync with saved settings — click Save to apply.",
+    installed: "Hook installed",
+    notInstalled: "Hook not installed",
+  },
+  shieldSetting: {
+    prompt_block: {
+      label: "Block secrets on prompt submit",
+      hint: "Runs beforeSubmitPrompt hook to block API keys and other secrets",
+    },
+    aggressive: {
+      label: "Aggressive detection",
+      hint: "Also block email, phone, paths, and env-style values",
+    },
+    fail_open: {
+      label: "Fail open on hook errors",
+      hint: "When off (default), hook errors block submit (fail-closed)",
+    },
+  },
 };

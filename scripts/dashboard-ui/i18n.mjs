@@ -145,6 +145,14 @@ export async function saveUiSettingsToApi(fetchJson, patch) {
   return data;
 }
 
+export function shieldSettingLabel(key, fallback) {
+  return t(`shieldSetting.${key}.label`, {}, fallback);
+}
+
+export function shieldSettingHint(key, fallback) {
+  return t(`shieldSetting.${key}.hint`, {}, fallback);
+}
+
 export function gateSettingLabel(key, fallback) {
   return t(`gateSetting.${key}.label`, {}, fallback);
 }

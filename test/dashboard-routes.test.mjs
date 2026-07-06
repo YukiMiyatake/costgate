@@ -2,7 +2,7 @@
 /**
  * Dashboard HTTP route matrix — catches 404 regressions (e.g. marketplace search).
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -92,6 +92,7 @@ async function testGetRoutes() {
       "/api/gate-settings",
       "/api/mcp-trust",
       "/api/shield-prompt",
+      "/api/shield-settings",
       "/api/ui-settings",
       "/api/marketplace",
       "/api/marketplace?q=browser",
@@ -223,12 +224,47 @@ async function testUiSettingsRoutes() {
   }
 }
 
+async function testShieldSettingsRoutes() {
+  const dir = tempFixture();
+  const hooksPath = join(dir, "hooks.json");
+  writeFileSync(hooksPath, `${JSON.stringify({ version: 1, hooks: {} }, null, 2)}\n`);
+  const settingsPath = join(dir, "shield-settings.json");
+  const prevHooks = process.env.CURSOR_HOOKS_PATH;
+  const prevSettings = process.env.COSTGATE_SHIELD_SETTINGS_PATH;
+  process.env.CURSOR_HOOKS_PATH = hooksPath;
+  process.env.COSTGATE_SHIELD_SETTINGS_PATH = settingsPath;
+
+  const { base, close } = await startServer();
+  try {
+    const get = await expectJson(base, "/api/shield-settings");
+    assert(typeof get.settings?.prompt_block === "boolean", "shield settings GET");
+    assert(Array.isArray(get.defs), "shield defs");
+
+    const patched = await expectJson(base, "/api/shield-settings", {
+      method: "PATCH",
+      body: { settings: { prompt_block: true, aggressive: false, fail_open: false } },
+    });
+    assert(patched.ok === true, "shield PATCH ok");
+    assert(patched.settings.prompt_block === true, "shield prompt_block applied");
+    assert(existsSync(settingsPath), "shield settings file written");
+
+    console.error("[routes] shield-settings ok");
+  } finally {
+    if (prevHooks === undefined) delete process.env.CURSOR_HOOKS_PATH;
+    else process.env.CURSOR_HOOKS_PATH = prevHooks;
+    if (prevSettings === undefined) delete process.env.COSTGATE_SHIELD_SETTINGS_PATH;
+    else process.env.COSTGATE_SHIELD_SETTINGS_PATH = prevSettings;
+    await close();
+  }
+}
+
 async function main() {
   testNormalizePathname();
   await testGetRoutes();
   await testPostAndPatch();
   await testMissingCatalog();
   await testUiSettingsRoutes();
+  await testShieldSettingsRoutes();
   console.error("[routes] all passed");
 }
 
