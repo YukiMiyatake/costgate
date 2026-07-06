@@ -91,6 +91,7 @@ async function testGetRoutes() {
       "/api/overrides",
       "/api/gate-settings",
       "/api/mcp-trust",
+      "/api/shield-prompt",
       "/api/marketplace",
       "/api/marketplace?q=browser",
       "/api/marketplace?q=github",
@@ -144,6 +145,13 @@ async function testPostAndPatch() {
       body: { force_tier: "hidden" },
     });
     assert(patch.ok === true, "PATCH tool");
+
+    const sanitize = await expectJson(base, "/api/shield-prompt/sanitize", {
+      method: "POST",
+      body: { text: "token ghp_abcdefghijklmnopqrstuvwxyz123456" },
+    });
+    assert(sanitize.ok === true, "POST sanitize");
+    assert(sanitize.sanitized.includes("[[CG:"), "sanitized placeholder");
 
     const badMethod = await fetch(`${base}/api/marketplace`, { method: "PUT" });
     assert(badMethod.status === 405, "PUT marketplace 405");

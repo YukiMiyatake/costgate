@@ -256,6 +256,58 @@ main {
   margin-top: 0.5rem;
 }
 
+.shield-prompt-panel {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: rgba(232, 93, 93, 0.08);
+}
+
+.shield-findings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.shield-finding {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  background: rgba(232, 93, 93, 0.15);
+  border: 1px solid rgba(232, 93, 93, 0.35);
+}
+
+.shield-sanitize-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.shield-sanitize-text {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.shield-prompt-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .toolbar-count {
   margin-left: auto;
   font-size: 0.78rem;

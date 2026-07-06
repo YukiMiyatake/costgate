@@ -18,6 +18,7 @@ import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
 import { enrichMcpsWithTrust, loadMcpTrust } from "./mcp-trust.mjs";
 import { readLatestPromptIntent, promptIntentDir } from "./prompt-intent.mjs";
+import { buildShieldPromptSnapshot, shieldPromptBlockDir } from "./shield-prompt.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
@@ -42,6 +43,8 @@ export function defaultPaths() {
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
     promptIntentDir: process.env.COSTGATE_PROMPT_INTENT_DIR ?? promptIntentDir(),
+    shieldPromptBlockDir:
+      process.env.COSTGATE_SHIELD_PROMPT_DIR ?? shieldPromptBlockDir(),
     gateSettingsPath:
       process.env.COSTGATE_GATE_SETTINGS_PATH ?? join(home, ".costgate", "gate-settings.json"),
     trustPath: process.env.COSTGATE_TRUST_PATH ?? join(home, ".costgate", "mcp-trust.json"),
@@ -476,6 +479,7 @@ export function buildDashboardData(options = {}) {
     trust_summary: mcpsWithTrust.trust_summary,
   };
   const promptIntent = buildPromptIntentSnapshot({ ...paths, now });
+  const shieldPrompt = buildShieldPromptSnapshot({ dir: paths.shieldPromptBlockDir, now });
 
   return {
     generated_at: new Date(now).toISOString(),
@@ -506,6 +510,8 @@ export function buildDashboardData(options = {}) {
       cursor_mode: mcps.mode,
       config_merge: effective.config_merge,
       prompt_intent: promptIntent,
+      shield_prompt: shieldPrompt,
+      shield_prompt_block_count: shieldPrompt.block_count ?? 0,
     },
     tools: {
       tools,
@@ -546,6 +552,7 @@ export function buildHealth(extra = {}) {
       overrides: existsSync(paths.overridesPath),
       marketplace: existsSync(paths.marketplaceDir),
       prompt_intent: existsSync(paths.promptIntentDir),
+      shield_prompt: existsSync(paths.shieldPromptBlockDir),
       mcp_trust: existsSync(paths.trustPath),
     },
   };

@@ -61,6 +61,17 @@ export function shieldPromptFailOpen() {
   return v === "1" || v === "true" || v === "yes";
 }
 
+/** When true, prompt blocking also detects email/phone/path/env (Mode.Aggressive). */
+export function shieldPromptAggressive() {
+  const v = process.env.COSTGATE_SHIELD_PROMPT_AGGRESSIVE;
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/** Infer mode for prompt secret detection (hook + Dashboard sanitize). */
+export function promptInferMode() {
+  return shieldPromptAggressive() ? Mode.Aggressive : Mode.Secrets;
+}
+
 function maskSecret(value) {
   if (!value || value.length <= 8) return "••••";
   return `${value.slice(0, 4)}…${value.slice(-4)}`;

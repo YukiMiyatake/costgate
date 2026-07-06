@@ -8,9 +8,11 @@
 import { pathToFileURL } from "node:url";
 import {
   inferSecrets,
+  promptInferMode,
   shieldPromptEnabled,
   shieldPromptFailOpen,
 } from "./lib/shield-redact.mjs";
+import { writePromptBlockEvent } from "./lib/shield-prompt.mjs";
 
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -54,9 +56,32 @@ export function handleCursorShieldPromptHook(payload, context = {}) {
     return { ok: true, skipped: true, event, reason: "empty_prompt", continue: true };
   }
 
-  const findings = inferSecrets(prompt, context.inferOptions ?? {});
+  const inferOptions = {
+    mode: promptInferMode(),
+    ...(context.inferOptions ?? {}),
+  };
+  const findings = inferSecrets(prompt, inferOptions);
   if (findings.length === 0) {
     return { ok: true, event, continue: true, findings: [] };
+  }
+
+  const user_message = buildSecretBlockMessage(findings);
+  if (!context.skipPersist) {
+    try {
+      writePromptBlockEvent(
+        {
+          prompt,
+          findings,
+          message: user_message,
+          conversation_id: payload.conversation_id ?? payload.conversationId ?? null,
+          generation_id: payload.generation_id ?? payload.generationId ?? null,
+          workspace_root: payload.workspace_root ?? payload.workspaceRoot ?? null,
+        },
+        context.blockOptions ?? {}
+      );
+    } catch {
+      // fail-closed on block still applies; persist errors are non-fatal
+    }
   }
 
   return {
@@ -64,7 +89,7 @@ export function handleCursorShieldPromptHook(payload, context = {}) {
     event,
     continue: false,
     findings,
-    user_message: buildSecretBlockMessage(findings),
+    user_message,
   };
 }
 

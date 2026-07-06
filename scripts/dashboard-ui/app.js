@@ -273,6 +273,7 @@ function renderOverview(data) {
     ["Recommendations", fmt(data.recommendation_count)],
     ["Blind spots", fmt(data.blind_spot_count)],
     ["Trust ≤ restricted", fmt(data.trust_restricted_count ?? 0)],
+    ["Shield blocks", fmt(data.shield_prompt_block_count ?? data.shield_prompt?.block_count ?? 0)],
     ["Cursor mode", data.cursor_mode ?? "—"],
   ];
   if (data.prompt_intent?.keywords) {
@@ -282,6 +283,16 @@ function renderOverview(data) {
     items.push([label, value]);
   } else {
     items.push(["Prompt intent", "—"]);
+  }
+  const sp = data.shield_prompt;
+  if (sp?.last_block?.kinds?.length) {
+    const lb = sp.last_block;
+    const age = lb.age_sec != null ? `${lb.age_sec}s ago` : "";
+    const kinds = lb.kinds.join(", ");
+    const label = lb.stale ? "Last shield block (stale)" : "Last shield block";
+    items.push([label, `${kinds}${age ? ` · ${age}` : ""}`]);
+  } else {
+    items.push(["Last shield block", "—"]);
   }
   for (const [label, value] of items) {
     const card = document.createElement("div");
@@ -308,7 +319,82 @@ function renderOverview(data) {
     const age = pi.age_sec != null ? `${pi.age_sec}s ago` : "";
     noteText += ` Prompt intent: templates=[${templates}] sources=[${sources}]${age ? ` ${age}` : ""}.`;
   }
+  if (data.shield_prompt?.aggressive) {
+    noteText += " Shield prompt mode: aggressive (email/phone/path/env).";
+  }
   note.textContent = noteText;
+  renderShieldPromptPanel(data.shield_prompt);
+}
+
+function renderShieldFinding(finding) {
+  const span = document.createElement("span");
+  span.className = "shield-finding";
+  span.innerHTML = `<strong>${finding.kind}</strong> <code>${finding.masked ?? "••••"}</code>`;
+  return span;
+}
+
+function renderShieldPromptPanel(snapshot) {
+  const panel = document.getElementById("shield-prompt-panel");
+  const note = document.getElementById("shield-prompt-note");
+  const findingsEl = document.getElementById("shield-prompt-findings");
+  const sanitizedEl = document.getElementById("shield-prompt-sanitized");
+  if (!panel || !note || !findingsEl || !sanitizedEl) return;
+
+  const last = snapshot?.last_block;
+  if (!last?.findings?.length) {
+    panel.classList.add("hidden");
+    findingsEl.innerHTML = "";
+    sanitizedEl.value = "";
+    return;
+  }
+
+  panel.classList.remove("hidden");
+  const age = last.age_sec != null ? `${last.age_sec}s ago` : "";
+  const stale = last.stale ? " (stale)" : "";
+  note.textContent =
+    last.message ??
+    `Detected ${last.kinds?.join(", ") ?? "secrets"} in your prompt. Submit was blocked.${age ? ` ${age}${stale}.` : ""} Paste the sanitized version below into Cursor.`;
+
+  findingsEl.innerHTML = "";
+  for (const f of last.findings ?? []) {
+    findingsEl.appendChild(renderShieldFinding(f));
+  }
+
+  loadShieldPromptSanitized(sanitizedEl);
+}
+
+async function loadShieldPromptSanitized(textarea) {
+  if (!textarea) return;
+  try {
+    const data = await fetchJson(apiPath("shield-prompt"));
+    const sanitized = data.latest?.sanitized ?? "";
+    textarea.value = sanitized;
+    textarea.placeholder = sanitized ? "" : "No sanitized prompt stored for last block.";
+  } catch {
+    textarea.placeholder = "Could not load sanitized prompt.";
+  }
+}
+
+function setupShieldPromptPanel() {
+  document.getElementById("shield-prompt-copy")?.addEventListener("click", async () => {
+    const text = document.getElementById("shield-prompt-sanitized")?.value ?? "";
+    if (!text.trim()) {
+      alert("No sanitized prompt to copy.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Sanitized prompt copied. Paste into Cursor chat and submit.");
+    } catch (e) {
+      alert(e.message ?? "Copy failed");
+    }
+  });
+  document.getElementById("shield-prompt-refresh")?.addEventListener("click", async () => {
+    const textarea = document.getElementById("shield-prompt-sanitized");
+    await loadShieldPromptSanitized(textarea);
+    const overview = await fetchJson(apiPath("overview"));
+    renderShieldPromptPanel(overview.shield_prompt);
+  });
 }
 
 let toolsData = null;
@@ -1068,6 +1154,7 @@ async function main() {
   setupWizard();
   setupWorkspaces();
   setupGateSettings();
+  setupShieldPromptPanel();
   try {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);

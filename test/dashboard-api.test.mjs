@@ -127,12 +127,15 @@ async function testHttpApi() {
     const marketplaceSlash = await fetchJson(port, "/api/marketplace/");
     assert(Array.isArray(marketplaceSlash.templates), "marketplace trailing slash");
 
+    const shield = await fetchJson(port, "/api/shield-prompt");
+    assert(typeof shield.block_count === "number", "shield-prompt payload");
+
     const html = await fetch(`http://127.0.0.1:${port}/`);
     assert(html.ok, "index html");
     const text = await html.text();
     assert(text.includes("CostGate Dashboard"), "html title");
     assert(text.includes("Add MCP"), "wizard tab");
-    assert(text.includes("tools-search"), "tools filter UI");
+    assert(text.includes("shield-prompt-panel"), "shield prompt UI");
 
     console.error("[dashboard] HTTP API ok");
   } finally {
