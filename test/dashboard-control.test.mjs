@@ -2,7 +2,7 @@
 /**
  * Phase 24: dashboard control unit tests (isolated temp files).
  */
-import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -65,6 +65,35 @@ function testMcpEnableDisable() {
   console.error("[dashboard-control] mcp enable/disable ok");
 }
 
+function testBackendEnableDisable() {
+  const dir = tempDir();
+  const mcpPath = join(dir, "mcp.json");
+  const disabledPath = join(dir, "mcp-disabled.json");
+  const configPath = join(dir, "backends.json");
+  writeFileSync(
+    mcpPath,
+    JSON.stringify({ mcpServers: { "costgate-gate": { command: "/bin/gate" } } }, null, 2)
+  );
+  writeFileSync(
+    configPath,
+    JSON.stringify({ backends: { filesystem: { command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem"] } } }, null, 2)
+  );
+
+  const off = setMcpServerEnabled("filesystem", false, { mcpPath, disabledPath, configPath });
+  assert(off.role === "backend", "backend role");
+  assert(off.updated.mcp_disabled === true, "disabled store updated");
+  assert(off.updated.mcp_json === false, "mcp.json untouched");
+  const cfg = loadMcpJson(mcpPath);
+  assert(!cfg.mcpServers.filesystem, "backend not added to mcp.json");
+  const disabled = JSON.parse(readFileSync(disabledPath, "utf8"));
+  assert(disabled.filesystem?._costgate_backend === true, "backend marker stored");
+
+  const on = setMcpServerEnabled("filesystem", true, { mcpPath, disabledPath, configPath });
+  assert(on.updated.mcp_disabled === true, "removed from disabled");
+  assert(!existsSync(disabledPath) || !readFileSync(disabledPath, "utf8").includes("filesystem"), "cleared disabled");
+  console.error("[dashboard-control] backend enable/disable ok");
+}
+
 async function testHttpPatch() {
   const dir = tempDir();
   const overridesPath = join(dir, "tool-overrides.json");
@@ -115,6 +144,7 @@ async function testHttpPatch() {
 async function main() {
   testToolOverrides();
   testMcpEnableDisable();
+  testBackendEnableDisable();
   await testHttpPatch();
   console.error("[dashboard-control] all passed");
 }

@@ -642,6 +642,24 @@ td code {
   color: var(--danger);
 }
 
+.mcp-status {
+  display: inline-block;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.mcp-status-on {
+  border-color: #6ee7a0;
+  color: #6ee7a0;
+  background: #1a3d2e;
+}
+
+.mcp-status-off {
+  border-color: var(--muted);
+  color: var(--muted);
+  background: var(--surface-raised);
+}
+
 .marketplace-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

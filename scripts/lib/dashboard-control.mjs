@@ -77,48 +77,117 @@ export function loadMcpDisabled(path = mcpDisabledStorePath()) {
   }
 }
 
+const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
+
+function loadBackendsMap(configPath) {
+  if (!configPath || !existsSync(configPath)) return {};
+  try {
+    const raw = JSON.parse(readFileSync(configPath, "utf8"));
+    return raw.backends ?? raw;
+  } catch {
+    return {};
+  }
+}
+
+function resolveBackendsForServer(paths = {}) {
+  const global = loadBackendsMap(paths.globalConfigPath);
+  const local = loadBackendsMap(paths.configPath);
+  return { ...global, ...local };
+}
+
+function backendDisabledMarker(backendCfg) {
+  const marker = { _costgate_backend: true };
+  if (backendCfg?.command) marker.command = backendCfg.command;
+  if (backendCfg?.url) marker.url = backendCfg.url;
+  if (backendCfg?.args) marker.args = backendCfg.args;
+  return marker;
+}
+
+function isMcpServerConfig(cfg) {
+  return Boolean(cfg && (cfg.command || cfg.url));
+}
+
 export function saveMcpDisabled(store, path = mcpDisabledStorePath()) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(store, null, 2)}\n`, "utf8");
 }
 
 /**
- * Enable or disable an MCP server in mcp.json.
- * Disabled configs are preserved in ~/.costgate/mcp-disabled.json.
+ * Enable or disable an MCP server.
+ * Direct MCPs: mcp.json + mcp-disabled.json.
+ * Gate backends (backends.json only): mcp-disabled.json only — mcp.json is not modified.
  */
 export function setMcpServerEnabled(name, enabled, paths = {}) {
+  if (GATE_MCP_NAMES.has(name)) {
+    throw new Error(`cannot enable/disable Gate MCP "${name}" from dashboard`);
+  }
+
   const mcpPath = paths.mcpPath ?? cursorMcpPath();
   const disabledPath = paths.disabledPath ?? mcpDisabledStorePath();
+  const backends = resolveBackendsForServer(paths);
   const config = loadMcpJson(mcpPath);
   const disabled = loadMcpDisabled(disabledPath);
   config.mcpServers ??= {};
 
-  const backup = `${mcpPath}.bak`;
-  copyFileSync(mcpPath, backup);
+  const inMcp = Object.hasOwn(config.mcpServers, name);
+  const inBackends = Object.hasOwn(backends, name);
+  const inDisabled = Object.hasOwn(disabled, name);
 
-  if (enabled) {
-    if (disabled[name]) {
-      config.mcpServers[name] = disabled[name];
-      delete disabled[name];
-    } else if (!config.mcpServers[name]) {
-      throw new Error(`no stored config to enable MCP "${name}"`);
-    }
-  } else {
-    if (config.mcpServers[name]) {
-      disabled[name] = config.mcpServers[name];
-      delete config.mcpServers[name];
-    }
+  if (!inMcp && !inBackends && !inDisabled) {
+    throw new Error(`unknown MCP server "${name}"`);
   }
 
-  writeFileSync(mcpPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
-  saveMcpDisabled(disabled, disabledPath);
+  const updated = { mcp_json: false, mcp_disabled: false };
+  const backup = `${mcpPath}.bak`;
+  let mcpBackupCreated = false;
+
+  if (enabled) {
+    if (inDisabled) {
+      const stored = disabled[name];
+      delete disabled[name];
+      updated.mcp_disabled = true;
+      if (isMcpServerConfig(stored)) {
+        copyFileSync(mcpPath, backup);
+        mcpBackupCreated = true;
+        config.mcpServers[name] = stored;
+        updated.mcp_json = true;
+      }
+    } else if (!inMcp && !inBackends) {
+      throw new Error(`no stored config to enable MCP "${name}"`);
+    }
+  } else if (inMcp) {
+    copyFileSync(mcpPath, backup);
+    mcpBackupCreated = true;
+    disabled[name] = config.mcpServers[name];
+    delete config.mcpServers[name];
+    updated.mcp_json = true;
+    updated.mcp_disabled = true;
+  } else if (inBackends) {
+    disabled[name] = backendDisabledMarker(backends[name]);
+    updated.mcp_disabled = true;
+  } else {
+    throw new Error(`MCP "${name}" is already disabled`);
+  }
+
+  if (updated.mcp_json) {
+    writeFileSync(mcpPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  }
+  if (updated.mcp_disabled) {
+    saveMcpDisabled(disabled, disabledPath);
+  }
+
+  const role = inBackends && !inMcp ? "backend" : "direct";
 
   return {
-    backup,
+    backup: mcpBackupCreated ? backup : null,
     mcp_path: mcpPath,
+    disabled_path: disabledPath,
     enabled,
     name,
-    requires_cursor_restart: true,
+    role,
+    updated,
+    requires_cursor_restart: updated.mcp_json,
+    requires_gate_reload: updated.mcp_disabled && (inBackends || role === "backend"),
     servers: Object.keys(config.mcpServers ?? {}),
   };
 }
