@@ -86,7 +86,7 @@
     <section id="panel-tools" class="panel">
       <header class="panel-header">
         <h2 class="panel-title" data-i18n="tools.title">Tools</h2>
-        <p class="panel-desc" data-i18n="tools.desc">Gate-tracked tools with tier, call history, and hide/unhide actions.</p>
+        <p class="panel-desc" data-i18n="tools.desc">Tools per connected Gate backend. List/exclude controls Gate tools/list (tool schemas for the model).</p>
       </header>
       <div id="tools-blind" class="banner hidden"></div>
       <div id="tools-no-catalog" class="banner banner-info hidden"></div>
@@ -110,7 +110,7 @@
             <option value="B">B</option>
             <option value="C">C</option>
             <option value="unset" data-i18n="tools.tierUnset">Unclassified</option>
-            <option value="hidden" data-i18n="tools.tierHidden">Forced hidden</option>
+            <option value="hidden" data-i18n="tools.tierHidden">Excluded</option>
           </select>
         </label>
         <label>
@@ -123,7 +123,10 @@
             <option value="list_tokens" data-i18n="tools.sortListTokens">List tokens</option>
           </select>
         </label>
-        <span id="tools-count" class="toolbar-count"></span>
+      </div>
+      <div id="tools-summary" class="tools-summary">
+        <span id="tools-count" class="tools-summary-item"></span>
+        <span id="tools-token-summary" class="tools-summary-item"></span>
       </div>
       <div id="tools-tier-tabs" class="marketplace-categories"></div>
       <div class="filter-group tools-filters">

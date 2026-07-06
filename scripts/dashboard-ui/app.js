@@ -757,6 +757,42 @@ function renderToolRow(tool) {
   return tr;
 }
 
+function summarizeListTokens(tools) {
+  let total = 0;
+  let count = 0;
+  let listed = 0;
+  let listedCount = 0;
+  for (const tool of tools ?? []) {
+    const tok = tool.estimated_list_tokens;
+    if (tok == null) continue;
+    total += tok;
+    count += 1;
+    if (tool.tier !== "hidden") {
+      listed += tok;
+      listedCount += 1;
+    }
+  }
+  return { total, count, listed, listedCount };
+}
+
+function renderToolsTokenSummary(filtered, all) {
+  const el = document.getElementById("tools-token-summary");
+  if (!el) return;
+  const summary = summarizeListTokens(filtered);
+  if (!summary.count) {
+    el.innerHTML = t("tools.tokenSummaryNone");
+    return;
+  }
+  const key =
+    filtered.length === all.length ? "tools.tokenSummary" : "tools.tokenSummaryFiltered";
+  el.innerHTML = `<strong>${t(key, {
+    total: fmt(summary.total),
+    count: summary.count,
+    listed: fmt(summary.listed),
+    listedCount: summary.listedCount,
+  })}</strong>`;
+}
+
 function renderToolsTable() {
   if (!toolsData) return;
   const all = toolsData.tools ?? [];
@@ -777,6 +813,7 @@ function renderToolsTable() {
         ? t("tools.countAll", { total: all.length })
         : t("tools.count", { shown: filtered.length, total: all.length });
   }
+  renderToolsTokenSummary(filtered, all);
 }
 
 function renderTools(data) {
