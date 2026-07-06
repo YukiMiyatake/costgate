@@ -24,6 +24,10 @@ import {
   patchGateSettings,
 } from "./lib/gate-settings.mjs";
 import { buildMcpTrustApiPayload, patchMcpTrust } from "./lib/mcp-trust.mjs";
+import {
+  buildShieldPromptApiPayload,
+  sanitizePromptApiBody,
+} from "./lib/shield-prompt.mjs";
 import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
@@ -229,7 +233,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   }
 
   const wsMatch = pathname.match(
-    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust))?$/
+    /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust|shield-prompt))?$/
   );
   if (!wsMatch) return false;
 
@@ -278,6 +282,8 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
     } else if (section === "mcp-trust") {
       json(res, 200, buildMcpTrustApiPayload(mcpTrustOpts(paths)));
+    } else if (section === "shield-prompt") {
+      json(res, 200, buildShieldPromptApiPayload({ dir: paths.shieldPromptBlockDir }));
     } else {
       apiNotFound(res, pathname);
     }
@@ -344,6 +350,28 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     try {
       const result = patchMcpTrust(body, mcpTrustPatchOpts(paths));
       json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsTrustPatch[1]), ...result });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
+    return true;
+  }
+
+  const wsSanitize = pathname.match(/^\/api\/workspaces\/([^/]+)\/shield-prompt\/sanitize$/);
+  if (method === "POST" && wsSanitize) {
+    let workspaceCtx;
+    try {
+      workspaceCtx = resolveWorkspace(decodeURIComponent(wsSanitize[1]), {
+        globalFallback: defaultPaths(),
+      });
+    } catch (e) {
+      json(res, 404, { error: e.message ?? String(e) });
+      return true;
+    }
+    const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
+    const body = await readBody(req);
+    try {
+      const result = sanitizePromptApiBody(body, { dir: paths.shieldPromptBlockDir });
+      json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsSanitize[1]), ...result });
     } catch (e) {
       json(res, 400, { error: e.message ?? String(e) });
     }
@@ -458,6 +486,11 @@ function createDashboardServer(options = {}) {
           json(res, 200, buildMcpTrustApiPayload(mcpTrustOpts(paths)));
           return;
         }
+        if (pathname === "/api/shield-prompt") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          json(res, 200, buildShieldPromptApiPayload({ dir: paths.shieldPromptBlockDir }));
+          return;
+        }
         if (pathname === "/api/marketplace") {
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
           json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
@@ -484,6 +517,18 @@ function createDashboardServer(options = {}) {
       }
 
       if (method === "POST") {
+        if (pathname === "/api/shield-prompt/sanitize") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const body = await readBody(req);
+          try {
+            const result = sanitizePromptApiBody(body, { dir: paths.shieldPromptBlockDir });
+            json(res, 200, { ok: true, ...result });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
+          return;
+        }
+
         if (!authorizeWrite(req)) {
           json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
           return;

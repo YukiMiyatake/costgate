@@ -1,6 +1,9 @@
 {
   "name": "costgate",
   "private": true,
+  "bin": {
+    "costgate": "./scripts/costgate.mjs"
+  },
   "description": "Gate your MCP. Cut your bill.",
   "workspaces": [
     "packages/schema",
@@ -30,6 +33,7 @@
 
     "dashboard": "node scripts/dashboard-server.mjs",
     "dashboard:test": "node test/run-dashboard.mjs",
+    "shield:sanitize-prompt": "node scripts/costgate.mjs shield sanitize-prompt",
 
     "eval": "node test/eval/run.mjs",
     "eval:live": "node test/eval/run.mjs --live --tasks test/eval/tasks-live.json",
@@ -71,6 +75,7 @@
     "test:cursor:shield-mcp": "node test/cursor-shield-mcp-hook.test.mjs",
     "test:cursor:shield-read": "node test/cursor-shield-read-hook.test.mjs",
     "test:cursor:shield-prompt": "node test/cursor-shield-prompt-hook.test.mjs",
+    "test:cursor:shield-33b": "node test/shield-prompt-33b.test.mjs",
     "test:cursor:shield-32b": "node test/shield-trust-32b.test.mjs",
 
     "test:dashboard": "node test/dashboard-api.test.mjs",

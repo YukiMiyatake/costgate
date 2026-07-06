@@ -10,8 +10,11 @@ import {
 } from "../scripts/cursor-shield-prompt-hook.mjs";
 import {
   inferSecrets,
+  promptInferMode,
+  shieldPromptAggressive,
   shieldPromptEnabled,
   shieldPromptFailOpen,
+  Mode,
 } from "../scripts/lib/shield-redact.mjs";
 
 function assert(cond, msg) {
@@ -152,6 +155,19 @@ function testAwsAndBearer() {
   console.error("[shield-prompt-hook] aws/bearer ok");
 }
 
+function testAggressiveEnv() {
+  withEnv({ COSTGATE_SHIELD_PROMPT_AGGRESSIVE: undefined }, () => {
+    assert(promptInferMode() === Mode.Secrets, "default secrets");
+    assert(!shieldPromptAggressive(), "aggressive off");
+  });
+  withEnv({ COSTGATE_SHIELD_PROMPT_AGGRESSIVE: "1" }, () => {
+    assert(promptInferMode() === Mode.Aggressive, "aggressive mode");
+    const email = inferSecrets("contact me at user@example.com", { mode: promptInferMode() });
+    assert(email.some((f) => f.kind === "EMAIL"), "email in aggressive");
+  });
+  console.error("[shield-prompt-hook] aggressive env ok");
+}
+
 function main() {
   testInferSecrets();
   testExtractPrompt();
@@ -163,6 +179,7 @@ function main() {
   testBlockMessageMultipleKinds();
   testFailOpenEnv();
   testAwsAndBearer();
+  testAggressiveEnv();
   console.error("[shield-prompt-hook] all passed");
 }
 

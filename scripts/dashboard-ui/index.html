@@ -42,6 +42,19 @@
         <p class="panel-desc">Token usage, fixed-cost share, and blind spots for the selected workspace.</p>
       </header>
       <div id="overview-cards" class="cards"></div>
+      <div id="shield-prompt-panel" class="shield-prompt-panel hidden">
+        <h3 class="subsection-title">Prompt Shield — blocked submit</h3>
+        <p class="note" id="shield-prompt-note"></p>
+        <div id="shield-prompt-findings" class="shield-findings"></div>
+        <label class="shield-sanitize-label">
+          Sanitized prompt (copy into Cursor chat)
+          <textarea id="shield-prompt-sanitized" class="shield-sanitize-text" rows="6" readonly></textarea>
+        </label>
+        <div class="shield-prompt-actions">
+          <button type="button" id="shield-prompt-copy" class="btn-sm btn-primary">Copy sanitized</button>
+          <button type="button" id="shield-prompt-refresh" class="btn-sm">Refresh</button>
+        </div>
+      </div>
       <p class="note panel-note" id="overview-note"></p>
     </section>
 
