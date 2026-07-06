@@ -1,18 +1,20 @@
 # Release guide
 
-CostGate OSS 配布手順（**@costgate/cli** + Probe npm + Gate GitHub Releases）。
+> **Languages:** English (this file) · [日本語](./ja/RELEASE.md)
 
-## ユーザー向け導線（推奨）
+CostGate OSS distribution: **@costgate/cli** + Probe npm + Gate GitHub Releases.
+
+## User install (recommended)
 
 ```bash
 npx @costgate/cli@latest init
 ```
 
-`init` が Gate バイナリ（GitHub Releases）と `mcp.json` / `hooks.json` を設定します。
+`init` downloads the Gate binary (GitHub Releases) and configures `mcp.json` / `hooks.json`.
 
-## リリース（メンテナ）
+## Release (maintainers)
 
-**前提:** GitHub repo secret `NPM_TOKEN`（npm automation token）
+**Prerequisite:** GitHub secret `NPM_TOKEN` (npm automation token)
 
 ```bash
 npm ci && npm run build && npm run publish:check
@@ -22,19 +24,19 @@ git tag v0.6.0
 git push origin v0.6.0
 ```
 
-tag `v*` push で CI が並行実行:
+Tag `v*` triggers CI in parallel:
 
-| Workflow | 成果物 |
+| Workflow | Output |
 |----------|--------|
-| `release.yml` | `costgate-gate` バイナリ（GitHub Releases） |
+| `release.yml` | `costgate-gate` binaries (GitHub Releases) |
 | `npm-publish.yml` | `@costgate/schema`, `@costgate/probe`, `@costgate/cli` |
 
 ## @costgate/cli — npm publish
 
-- `packages/cli` の `prepublishOnly` で `scripts/` + `catalog/` を `runtime/` にコピー
-- CLI の `postinstall` は **なし**（バイナリ取得は `init` / `update` で明示実行）
+- `prepublishOnly` copies `scripts/` + `catalog/` into `runtime/`
+- **No postinstall** — binary fetch is explicit via `init` / `update`
 
-ローカル dry-run:
+Local dry-run:
 
 ```bash
 npm run build -w @costgate/cli
@@ -45,40 +47,40 @@ npm pack -w @costgate/cli
 
 ```bash
 npm run build:gate
-goreleaser release --clean   # tag push で CI release.yml も可
+goreleaser release --clean   # or CI release.yml on tag push
 ```
 
-バイナリのみ（Dashboard なし）:
+Binary only (no Dashboard):
 
 ```bash
 ./scripts/install-gate.sh
-# または costgate init が ~/.costgate/bin/ に配置
+# or costgate init → ~/.costgate/bin/
 ```
 
 ## Probe — npm
 
 ```bash
-npx @costgate/probe   # 計測専用
+npx @costgate/probe   # measurement only
 ```
 
-## バージョン整合
+## Version alignment
 
 ```bash
 npm run publish:check
 ```
 
-`@costgate/schema` / `@costgate/probe` / `@costgate/cli` の version が一致すること。
+`@costgate/schema`, `@costgate/probe`, and `@costgate/cli` versions must match.
 
-## 開発者向け Cursor 切替（clone）
+## Developer Cursor switch (clone)
 
 ```bash
 npm run docker:update
-# または
+# or
 npm run build:gate && npm run cursor:production
 ```
 
-## リリース後
+## After release
 
-1. [docs/benchmarks.md](./benchmarks.md) に計測値が変われば追記
-2. `npm run eval -- --out test/eval/baseline.json` で baseline 更新
-3. Release notes に Gate バイナリ + npm パッケージ版本を記載
+1. Update [docs/benchmarks.md](./benchmarks.md) if numbers change
+2. `npm run eval -- --out test/eval/baseline.json` when adding tasks
+3. Release notes: Gate binary + npm package versions

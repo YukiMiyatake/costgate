@@ -1,5 +1,7 @@
 # CostGate distribution & Gate releases
 
+> **Languages:** English (this file) · [日本語](./ja/releases.md)
+
 ## Recommended install (`@costgate/cli`)
 
 **One command** for Gate binary + Dashboard + Cursor hooks:

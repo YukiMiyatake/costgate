@@ -1,69 +1,71 @@
 # Docker development
 
-CostGate uses Docker for **toolchain isolation** (Node + Go). Cursor still runs MCP on the **host** — the binary path in `mcp.json` is always a host path.
+> **Languages:** English (this file) · [日本語](./ja/docker.md)
+
+CostGate uses Docker for **toolchain isolation** (Node + Go). Cursor still runs MCP on the **host** — paths in `mcp.json` are always host paths.
 
 ## Quick start (Docker only — no host Node/Go)
 
 ```bash
 cd costgate
 
-# 初回セットアップ（install + build + gate）
+# First-time setup (install + build + gate)
 chmod +x docker.sh
 ./docker.sh npm install
 ./docker.sh npm run build
 ./docker.sh npm run build:gate
 
-# または npm がある場合
+# or if npm is on the host
 npm run docker:setup
 ```
 
-Cursor 用 MCP 設定:
+Cursor MCP configuration:
 
 ```bash
 ./docker.sh node scripts/cursor-mcp.mjs production
 # Reload Window
 ```
 
-## 日常コマンド
+## Daily commands
 
-| ホスト Node あり | Docker のみ |
-|------------------|-------------|
+| Host has Node | Docker only |
+|---------------|-------------|
 | `npm run build` | `./docker.sh npm run build` |
 | `npm run build:gate` | `./docker.sh npm run build:gate` |
 | `npm run compare` | `./docker.sh npm run compare` |
-| `npm run cursor:update` | `npm run docker:update`（いずれもローカル再ビルド） |
+| `npm run cursor:update` | `npm run docker:update` (rebuild locally) |
 
-汎用ラッパー:
+Generic wrapper:
 
 ```bash
 ./docker.sh npm run test:tokens
-npm run docker -- npm run compress-report   # ホストに npm がある場合
+npm run docker -- npm run compress-report   # when npm is on host
 ```
 
-## toolchain サービス
+## Toolchain service
 
-`docker-compose.dev.yml` の `toolchain` = **Node 22 + Go 1.25**（`.docker/Dockerfile`）。
+`docker-compose.dev.yml` **`toolchain`** = **Node 22 + Go 1.25** (`.docker/Dockerfile`).
 
-マウント:
+Mounts:
 
-| ホスト | 用途 |
-|--------|------|
-| リポジトリ `./` | ソース・ビルド成果物 |
-| `~/.costgate` | backends.json / Probe ログ |
-| `~/.cursor` | `cursor:production` が `mcp.json` を更新 |
+| Host | Purpose |
+|------|---------|
+| Repository `./` | Source and build artifacts |
+| `~/.costgate` | backends.json / Probe logs |
+| `~/.cursor` | `cursor:production` updates `mcp.json` |
 
-環境変数 `COSTGATE_HOST_ROOT=${PWD}` により、コンテナ内から `cursor:production` しても **ホスト絶対パス** が `mcp.json` に書き込まれます。
+`COSTGATE_HOST_ROOT=${PWD}` ensures `cursor:production` from inside the container writes **host absolute paths** to `mcp.json`.
 
 ## What Docker is NOT for
 
-- MCP プロセス自体を Compose 常駐させること（Cursor はホストから stdio spawn）
-- `feat:ship` / `gh`（ホストの git 認証が必要。ビルド・計測は Docker で OK）
+- Running MCP processes as long-lived Compose services (Cursor spawns stdio on the host)
+- `feat:ship` / `gh` (needs host git credentials; builds and benchmarks in Docker are fine)
 
 ## Dev Container
 
 Command Palette → **Dev Containers: Reopen in Container**
 
-`.devcontainer/` + `toolchain` イメージ。コンテナ内ターミナルでは通常の `npm run build` がそのまま使えます。
+`.devcontainer/` + `toolchain` image. Use normal `npm run build` inside the container terminal.
 
 ## Legacy
 
@@ -71,4 +73,4 @@ Command Palette → **Dev Containers: Reopen in Container**
 docker compose -f docker-compose.dev.yml run --rm toolchain bash
 ```
 
-`dev` / `go` サービス名は `toolchain` のエイリアスです。
+`dev` / `go` service names are aliases for `toolchain`.

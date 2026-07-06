@@ -1,5 +1,7 @@
 # Contributing to CostGate
 
+> **Languages:** English (this file) · [日本語](docs/ja/CONTRIBUTING.md)
+
 ## Monorepo layout
 
 | Path | Language | Publish |
@@ -28,7 +30,7 @@ npm install
 npm run build
 ```
 
-### Option B — Docker（ホスト Node/Go 不要・推奨）
+### Option C — Docker (no host Node/Go required)
 
 ```bash
 chmod +x docker.sh
@@ -38,11 +40,11 @@ chmod +x docker.sh
 ./docker.sh node scripts/cursor-mcp.mjs production
 ```
 
-または `npm run docker:setup`（ホストに npm がある場合）。
+Or `npm run docker:setup` when npm is on the host.
 
-更新（ローカル再ビルド）: `npm run docker:update` — 詳細は [docs/docker.md](./docs/docker.md)
+Updates: `npm run docker:update` — see [docs/docker.md](./docs/docker.md)
 
-### Option C — Dev Container (Cursor / VS Code)
+### Option D — Dev Container (Cursor / VS Code)
 
 Command Palette → **Dev Containers: Reopen in Container**
 
@@ -63,132 +65,91 @@ npm run build:gate
 
 ## npm scripts
 
-一覧は `npm run help` で確認できます。
+Run `npm run help` for the full list.
 
-| 用途 | コマンド |
-|------|----------|
-| 本番導入 | `npx @costgate/cli init` |
-| ビルド | `npm run build` / `build:gate` / `build:cli` |
-| Cursor 本番 | `cursor:production` / `cursor:measurement` |
-| Dashboard | `dashboard`（手動） / Gate 起動時は自動 |
+| Purpose | Command |
+|---------|---------|
+| Production install | `npx @costgate/cli init` |
+| Build | `npm run build` / `build:gate` / `build:cli` |
+| Cursor production | `cursor:production` / `cursor:measurement` |
+| Dashboard | `dashboard` (manual) / auto on Gate start |
 | Registry hook | `cursor:registry` |
-| レポート | `compare` / `compress-report` / `session-report` |
-| CI 同等テスト | `npm test` または `npm run test:ci` |
-| ローカル全テスト | `npm run test:local` |
-| PR 送付 | `npm run feat:ship -- -m "…"` |
+| Reports | `compare` / `compress-report` / `session-report` |
+| CI-equivalent tests | `npm test` or `npm run test:ci` |
+| Full local tests | `npm run test:local` |
+| Ship PR | `npm run feat:ship -- -m "…"` |
 
-旧名エイリアス（互換）: `registry:install-cursor-hook` → `cursor:registry`、`test:dashboard:all` → `dashboard:test`
+Legacy aliases: `registry:install-cursor-hook` → `cursor:registry`, `test:dashboard:all` → `dashboard:test`
 
 ## Branch policy
 
 | Branch | Role |
 |--------|------|
-| `main` | デフォルト・安定版。feature PR のマージ先 |
-| `feat/*`, `fix/*`, `docs/*`, `chore/*` | 機能ブランチ。`main` 向け PR を 1 本ずつ |
+| `main` | Default stable branch; merge target for feature PRs |
+| `feat/*`, `fix/*`, `docs/*`, `chore/*` | Feature branches; one PR each to `main` |
 
-`develop` ブランチは **使わない**（PR #1 マージ後に廃止）。
+The `develop` branch is **not used**.
 
 ### Daily workflow
 
-**1 機能 = 1 ブランチ = 1 PR**（`main` 向け）。自動化スクリプトを使う:
+**One feature = one branch = one PR** to `main`. Use the automation scripts:
 
 ```bash
-# 初回: フックを有効化（main への直接 push を拒否）
+# First time: enable hooks (blocks direct push to main)
 npm run hooks:install
 
-# ブランチだけ作る
+# Create branch only
 npm run feat:start -- gate-filter-v2
 
-# コミット・push・PR・auto-merge・local main 同期を一括（main 上なら feat ブランチを自動作成）
+# Commit, push, PR, auto-merge, sync local main
 git add …
-npm run feat:ship -- --message "変更の説明"
-npm run feat:ship -- -m "…" --name fix/bug-name   # ブランチ名を指定
-npm run feat:ship -- -m "…" --draft               # 手動レビュー用ドラフト PR
-npm run feat:ship -- -m "…" --no-auto             # auto-merge しない
-npm run feat:ship -- -m "…" --no-wait             # マージ待ち・main 同期をスキップ
-npm run feat:sync                                 # 開いている PR のマージ待ち + main 同期
+npm run feat:ship -- --message "description of change"
+npm run feat:ship -- -m "…" --name fix/bug-name
+npm run feat:ship -- -m "…" --draft
+npm run feat:ship -- -m "…" --no-auto
+npm run feat:ship -- -m "…" --no-wait
+npm run feat:sync
 ```
 
-手動で行う場合:
+Manual workflow:
 
 ```bash
-git checkout main
-git pull origin main
-
+git checkout main && git pull origin main
 git checkout -b feat/short-description
-# … 作業・git add …
-
+# … work …
 git push -u origin feat/short-description
 gh pr create --base main --head feat/short-description
-gh pr merge --auto --squash   # CI 通過後に自動マージ（任意）
 ```
 
-### PR 自動レビュー・マージ
-
-GitHub Actions（`.github/workflows/`）:
-
-| Workflow | 役割 |
-|----------|------|
-| `ci.yml` | build + go test |
-| `pr-automation.yml` | 自動レビューコメント + CI 通過後 squash auto-merge |
-
-**初回のみ** GitHub リポジトリ設定:
-
-1. Settings → General → **Allow auto-merge** を ON
-2. （任意）Settings → Branches → `main` に **Require status checks** → `CI / build-and-test` を必須化
-
-`npm run feat:ship` はデフォルトで **ready PR → 自動レビュー（CI）→ auto-merge → ローカル `main` 同期** まで実行します。
-
-| ステップ | 担当 |
-|----------|------|
-| commit / push / PR 作成 | `feat:ship` |
-| 自動レビューコメント + auto-merge キュー | `pr-automation.yml` |
-| CI | `ci.yml` |
-| squash merge | GitHub auto-merge |
-| マージ待ち + `main` pull | `feat:ship`（`--no-wait` でスキップ） |
-
-タイムアウト時は `npm run feat:sync` で再開できます。
-
-マージ後（`feat:ship` / `feat:sync` が自動実行。手動の場合）:
-
-```bash
-git checkout main && git pull
-git branch -d feat/short-description
-git push origin --delete feat/short-description   # 任意
-```
-
-**`main` への直接 push はしない**（PR 経由）。
+**Do not push directly to `main`** — use PRs.
 
 ### Branch naming
 
 | Prefix | Use |
 |--------|-----|
-| `feat/` | 新機能 |
-| `fix/` | バグ修正 |
-| `docs/` | ドキュメントのみ |
-| `chore/` | ビルド・CI・依存関係 |
+| `feat/` | New feature |
+| `fix/` | Bug fix |
+| `docs/` | Documentation only |
+| `chore/` | Build, CI, dependencies |
+
+## Documentation i18n
+
+- **English** is canonical at `docs/` and `README.md`
+- **Japanese** mirrors live under `docs/ja/` and `README.ja.md`
+- See [docs/i18n.md](./docs/i18n.md)
 
 ## Log schema changes
 
 1. Edit `packages/schema/log-event.schema.json` (source of truth)
-2. Update `docs/log-schema.md` (human docs)
+2. Update `docs/log-schema.md`
 3. Rebuild `@costgate/schema` and consumers
 
 ## npm publish (maintainers)
 
-Tag push `v*` triggers `.github/workflows/npm-publish.yml` (requires `NPM_TOKEN` secret):
+Tag push `v*` triggers `.github/workflows/npm-publish.yml` (requires `NPM_TOKEN`):
 
 1. `@costgate/schema`
 2. `@costgate/probe`
+3. `@costgate/cli`
 
-Manual dry-run via workflow_dispatch with a version input.
-
-Local publish (discouraged — use CI):
-
-```bash
-npm run build -w @costgate/schema && npm run build -w @costgate/probe
-npm publish -w @costgate/schema --access public
-npm publish -w @costgate/probe --access public
-```
-
-Gate binaries use goreleaser — see [docs/releases.md](./docs/releases.md).
+See [docs/RELEASE.md](./docs/RELEASE.md). Gate binaries use goreleaser — [docs/releases.md](./docs/releases.md).

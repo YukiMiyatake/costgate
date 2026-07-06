@@ -1,53 +1,55 @@
 # @costgate/cli
 
-CostGate の **npm 入口パッケージ**。Go 製 `costgate-gate` バイナリを GitHub Releases から取得し、Dashboard・Cursor Hooks と合わせて配布します。
+CostGate **npm entry package**. Downloads the Go `costgate-gate` binary from GitHub Releases and bundles Dashboard + Cursor Hooks.
 
-## クイックスタート
+> **Languages:** English (this file) · [日本語](README.ja.md)
+
+## Quick start
 
 ```bash
 npx @costgate/cli@latest init
-# Cursor を再起動（MCP 再接続）
+# Restart Cursor (reconnect MCP)
 ```
 
-`init` が行うこと:
+What `init` does:
 
-1. `costgate-gate` を `~/.costgate/bin/` に配置（GitHub Releases から取得）
-2. `~/.costgate/backends.json` テンプレート作成（未存在時）
-3. `~/.cursor/mcp.json` を本番モード（`npx @costgate/cli gate`）に更新
-4. `~/.cursor/hooks.json` に Shield / prompt-intent 等をマージ
+1. Install `costgate-gate` to `~/.costgate/bin/` (from GitHub Releases)
+2. Create `~/.costgate/backends.json` template (if missing)
+3. Update `~/.cursor/mcp.json` for production (`npx @costgate/cli gate`)
+4. Merge Shield / prompt-intent hooks into `~/.cursor/hooks.json`
 
-## コマンド
+## Commands
 
-| コマンド | 説明 |
-|----------|------|
-| `costgate init` | 初回セットアップ一式 |
-| `costgate gate` | Cursor MCP エントリ（Dashboard 自動起動 + Gate） |
-| `costgate dashboard` | Dashboard 手動起動 |
-| `costgate registry` | Cursor Hooks のみ再登録 |
-| `costgate update` | Gate バイナリ再取得 + hooks 更新 |
-| `costgate shield sanitize-prompt` | プロンプトサニタイズ（CLI） |
+| Command | Description |
+|---------|-------------|
+| `costgate init` | Full first-time setup |
+| `costgate gate` | Cursor MCP entry (Dashboard + Gate) |
+| `costgate dashboard` | Start dashboard manually |
+| `costgate registry` | Re-install Cursor hooks only |
+| `costgate update` | Re-download Gate binary + refresh hooks |
+| `costgate shield sanitize-prompt` | Sanitize prompt (CLI) |
 
-## 配布モデル
+## Distribution model
 
-| 層 | 配布 | 備考 |
-|----|------|------|
-| **Gate** | GitHub Releases（Go バイナリ） | `init` / `update` が取得 |
-| **CLI** | npm（本パッケージ） | runtime に scripts / catalog を同梱 |
-| **Probe** | npm `@costgate/probe` | 計測専用（別パッケージ） |
+| Layer | Distribution | Notes |
+|-------|--------------|-------|
+| **Gate** | GitHub Releases (Go binary) | Fetched by `init` / `update` |
+| **CLI** | npm (this package) | Bundles `scripts/` + `catalog/` in `runtime/` |
+| **Probe** | npm `@costgate/probe` | Measurement only (separate package) |
 
-## 開発（monorepo）
+## Development (monorepo)
 
 ```bash
-npm run build -w @costgate/cli   # runtime/ に scripts をコピー
+npm run build -w @costgate/cli   # copy scripts into runtime/
 node packages/cli/bin/costgate.mjs init --force-gate
 ```
 
-リポジトリ clone 時は `packages/gate/bin/costgate-gate` があれば Release ダウンロードをスキップします。
+When cloned, uses `packages/gate/bin/costgate-gate` if present instead of downloading.
 
-## 環境変数
+## Environment variables
 
-| Variable | 説明 |
-|----------|------|
-| `COSTGATE_BIN_DIR` | Gate バイナリ配置先（既定 `~/.costgate/bin`） |
-| `COSTGATE_RUNTIME_ROOT` | runtime ルート（自動設定） |
-| `COSTGATE_GATE_BIN` | Gate バイナリパス（自動設定） |
+| Variable | Description |
+|----------|-------------|
+| `COSTGATE_BIN_DIR` | Gate binary install dir (default `~/.costgate/bin`) |
+| `COSTGATE_RUNTIME_ROOT` | Runtime root (set automatically) |
+| `COSTGATE_GATE_BIN` | Gate binary path (set automatically) |
