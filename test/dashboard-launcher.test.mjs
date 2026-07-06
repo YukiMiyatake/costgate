@@ -3,7 +3,9 @@ import { existsSync } from "node:fs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 import {
   ensureDashboard,
-  probeDashboardHealth,
+  fetchDashboardHealth,
+  isDashboardFresh,
+  isStaleDashboardCapabilities,
   isStaleDashboardHealth,
   dashboardServerScript,
   isDashboardAutoEnabled,
@@ -28,8 +30,8 @@ async function withServer(fn) {
 
 async function testProbe() {
   await withServer(async (port) => {
-    assert(await probeDashboardHealth({ host: "127.0.0.1", port }), "health ok");
-    assert(!(await probeDashboardHealth({ host: "127.0.0.1", port: port + 1 })), "wrong port");
+    assert(await isDashboardFresh({ host: "127.0.0.1", port }), "fresh ok");
+    assert(!(await isDashboardFresh({ host: "127.0.0.1", port: port + 1 })), "wrong port");
   });
   console.error("[dashboard-launcher] probe ok");
 }
@@ -45,7 +47,7 @@ async function testEnsureStartsAndReuses() {
     COSTGATE_DASHBOARD_AUTO_OPEN: "0",
   };
 
-  assert(!(await probeDashboardHealth({ host, port })), "port free");
+  assert(!(await fetchDashboardHealth({ host, port })).ok, "port free");
 
   let spawnedPid = null;
   try {
@@ -81,6 +83,18 @@ function testStaleHealth() {
   assert(isStaleDashboardHealth({ status: "ok" }), "missing ui is stale");
   assert(!isStaleDashboardHealth({ status: "ok", ui: { settings: {} } }), "ui present is fresh");
   assert(!isStaleDashboardHealth(null), "null not stale");
+  assert(
+    isStaleDashboardCapabilities({ status: "ok", ui: { settings: {} }, capabilities: { shield_settings: false } }),
+    "missing shield_settings capability is stale"
+  );
+  assert(
+    !isStaleDashboardCapabilities({
+      status: "ok",
+      ui: { settings: {} },
+      capabilities: { shield_settings: true },
+    }),
+    "shield_settings capability is fresh"
+  );
   console.error("[dashboard-launcher] stale health ok");
 }
 
