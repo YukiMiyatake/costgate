@@ -11,6 +11,10 @@ import {
   mockGateEnv,
   probeJs,
 } from "../scripts/lib/paths.mjs";
+import {
+  testGateMultiFilter,
+  testGateMultiTransparent,
+} from "./gate-multi-backend.mjs";
 
 const MOCK_TOOLS = 16;
 
@@ -114,6 +118,8 @@ async function main() {
   await testProbeMock();
   await testGateTransparentMock();
   await testGateFilterMock();
+  await testGateMultiTransparent();
+  await testGateMultiFilter();
   console.error("[integration] all passed");
 }
 
