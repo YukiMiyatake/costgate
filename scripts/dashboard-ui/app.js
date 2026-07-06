@@ -266,6 +266,144 @@ function mcpStatusBadge(enabled) {
     : badge(t("mcps.badgeEnabled"), true, "mcp-status mcp-status-on");
 }
 
+const DEFAULT_BACKEND_CONFIG = `{
+  "always": true,
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
+}`;
+
+let mcpJsonDialogMode = "add";
+let mcpJsonEditingName = null;
+
+function parseMcpJsonEditor(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(t("mcps.jsonInvalid"));
+  }
+}
+
+function mcpCrudSavedMessage(result) {
+  let msg = t("mcps.jsonSaved");
+  if (result.requires_cursor_restart) {
+    msg += ` ${t("marketplace.savedRestart").trim()}`;
+  }
+  if (result.requires_gate_reload) {
+    msg += ` ${t("mcps.jsonGateReload")}`;
+  }
+  return msg;
+}
+
+async function openMcpJsonDialog(mode, serverName = null) {
+  mcpJsonDialogMode = mode;
+  mcpJsonEditingName = serverName;
+  const dialog = document.getElementById("mcp-json-dialog");
+  const nameInput = document.getElementById("mcp-json-name");
+  const targetSelect = document.getElementById("mcp-json-target");
+  const editor = document.getElementById("mcp-json-editor");
+  const title = document.getElementById("mcp-json-title");
+  const pathNote = document.getElementById("mcp-json-path");
+
+  title.textContent = mode === "edit" ? t("mcps.jsonEditTitle") : t("mcps.jsonAddTitle");
+  pathNote.textContent = "";
+
+  if (mode === "edit" && serverName) {
+    const detail = await fetchJson(apiPath(`mcps/${encodeURIComponent(serverName)}`));
+    nameInput.value = detail.name;
+    nameInput.readOnly = true;
+    targetSelect.value = detail.target ?? detail.storage;
+    targetSelect.disabled = true;
+    editor.value = JSON.stringify(detail.config, null, 2);
+    if (detail.config_path) {
+      pathNote.textContent = t("mcps.jsonPath", { path: detail.config_path });
+    }
+  } else {
+    nameInput.value = "";
+    nameInput.readOnly = false;
+    targetSelect.disabled = false;
+    targetSelect.value = "backend";
+    editor.value = DEFAULT_BACKEND_CONFIG;
+  }
+
+  dialog.showModal();
+}
+
+async function submitMcpJsonDialog(event) {
+  event.preventDefault();
+  const nameInput = document.getElementById("mcp-json-name");
+  const targetSelect = document.getElementById("mcp-json-target");
+  const editor = document.getElementById("mcp-json-editor");
+  const name = nameInput.value.trim();
+  const target = targetSelect.value;
+  const config = parseMcpJsonEditor(editor.value);
+
+  try {
+    let result;
+    if (mcpJsonDialogMode === "edit" && mcpJsonEditingName) {
+      result = await fetchJson(apiPath(`mcps/${encodeURIComponent(mcpJsonEditingName)}`), {
+        method: "PUT",
+        body: JSON.stringify({ target, config }),
+      });
+    } else {
+      result = await fetchJson(apiPath("mcps"), {
+        method: "POST",
+        body: JSON.stringify({ name, target, config }),
+      });
+    }
+    document.getElementById("mcp-json-dialog")?.close();
+    await reload();
+    showToast(mcpCrudSavedMessage(result), { kind: "success" });
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function deleteMcpServer(serverName) {
+  if (!confirm(t("mcps.deleteConfirm", { name: serverName }))) return;
+  try {
+    const result = await fetchJson(apiPath(`mcps/${encodeURIComponent(serverName)}`), {
+      method: "DELETE",
+    });
+    await reload();
+    showToast(mcpCrudSavedMessage(result) || t("mcps.jsonDeleted"), { kind: "success" });
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+function setupMcpJsonCrud() {
+  document.getElementById("mcp-add-json-btn")?.addEventListener("click", () => {
+    openMcpJsonDialog("add").catch((e) => showToast(e.message));
+  });
+  document.getElementById("mcp-json-cancel")?.addEventListener("click", () => {
+    document.getElementById("mcp-json-dialog")?.close();
+  });
+  document.getElementById("mcp-json-form")?.addEventListener("submit", submitMcpJsonDialog);
+  document.getElementById("mcp-raw-submit")?.addEventListener("click", async () => {
+    const name = document.getElementById("mcp-raw-name")?.value.trim();
+    const target = document.getElementById("mcp-raw-target")?.value ?? "backend";
+    const text = document.getElementById("mcp-raw-config")?.value ?? "";
+    if (!name) {
+      showToast(t("mcps.rawName"));
+      return;
+    }
+    try {
+      const config = parseMcpJsonEditor(text);
+      const result = await fetchJson(apiPath("mcps"), {
+        method: "POST",
+        body: JSON.stringify({ name, target, config }),
+      });
+      document.getElementById("mcp-raw-name").value = "";
+      await reload();
+      showToast(mcpCrudSavedMessage(result), { kind: "success" });
+    } catch (e) {
+      showToast(e.message);
+    }
+  });
+  const rawConfig = document.getElementById("mcp-raw-config");
+  if (rawConfig && !rawConfig.value) rawConfig.value = DEFAULT_BACKEND_CONFIG;
+}
+
 function trustBadge(trust, origin) {
   const level = (trust ?? "—").toLowerCase();
   const label = origin && origin !== "default" && origin !== "config" ? `${trust} (${origin})` : (trust ?? "—");
@@ -851,6 +989,26 @@ function renderMcps(data) {
       };
       actionCell.appendChild(document.createTextNode(" "));
       actionCell.appendChild(toggle);
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn-sm";
+      editBtn.textContent = t("mcps.editJson");
+      editBtn.onclick = () => {
+        openMcpJsonDialog("edit", s.name).catch((e) => showToast(e.message));
+      };
+      actionCell.appendChild(document.createTextNode(" "));
+      actionCell.appendChild(editBtn);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn-sm btn-disable";
+      deleteBtn.textContent = t("mcps.deleteMcp");
+      deleteBtn.onclick = () => {
+        deleteMcpServer(s.name).catch((e) => showToast(e.message));
+      };
+      actionCell.appendChild(document.createTextNode(" "));
+      actionCell.appendChild(deleteBtn);
     }
     tr.innerHTML = `
       <td>${s.name}</td>
@@ -1353,6 +1511,7 @@ async function main() {
   setupGateSettings();
   setupShieldSettings();
   setupShieldPromptPanel();
+  setupMcpJsonCrud();
   try {
     const uiData = await loadUiSettingsFromApi(fetchJson);
     setupPreferences(uiData);
