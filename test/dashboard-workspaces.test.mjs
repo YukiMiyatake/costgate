@@ -2,7 +2,7 @@
 /**
  * Phase 28: workspace registry + scoped dashboard API tests.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -109,12 +109,33 @@ async function testHttpScopedApi() {
   setupWorkspace(ws);
   pinWorkspace(ws, regPath);
   const wsId = encodeWorkspaceId(ws);
+  const mcpPath = join(ws, ".cursor", "mcp.json");
+  mkdirSync(join(ws, ".cursor"), { recursive: true });
+  writeFileSync(
+    mcpPath,
+    JSON.stringify(
+      {
+        mcpServers: {
+          filesystem: { command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", ws] },
+          "costgate-gate": { command: "/bin/gate" },
+        },
+      },
+      null,
+      2
+    )
+  );
 
   const server = createDashboardServer({
     dataOptions: {
       logDir: join(base, "logs"),
       usagePath: join(base, "usage.json"),
       windowDays: 30,
+      mcpPath,
+      disabledPath: join(ws, ".costgate", "mcp-disabled.json"),
+    },
+    controlPaths: {
+      mcpPath,
+      disabledPath: join(ws, ".costgate", "mcp-disabled.json"),
     },
   });
 
@@ -145,6 +166,33 @@ async function testHttpScopedApi() {
     const body = await post.json();
     assert(body.backend === "filesystem", "filesystem added");
     assert(body.workspace_path === ws, "workspace path echoed");
+
+    const disable = await fetch(`${origin}/api/workspaces/${wsId}/mcps/filesystem`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: false }),
+    });
+    assert(disable.ok, `scoped PATCH disable mcp ${disable.status}`);
+    const disabled = await disable.json();
+    assert(disabled.ok === true, "disable ok");
+    const cfgOff = JSON.parse(readFileSync(mcpPath, "utf8"));
+    assert(!cfgOff.mcpServers.filesystem, "filesystem removed from project mcp.json");
+
+    const enable = await fetch(`${origin}/api/workspaces/${wsId}/mcps/filesystem`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true }),
+    });
+    assert(enable.ok, `scoped PATCH enable mcp ${enable.status}`);
+    const cfgOn = JSON.parse(readFileSync(mcpPath, "utf8"));
+    assert(cfgOn.mcpServers.filesystem?.command === "npx", "filesystem restored");
+
+    const toolPatch = await fetch(`${origin}/api/workspaces/${wsId}/tools/fork_repository`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force_tier: "hidden" }),
+    });
+    assert(toolPatch.ok, `scoped PATCH tool ${toolPatch.status}`);
 
     const health = await fetch(`${origin}/api/health`).then((r) => r.json());
     assert(health.version === "31a", "dashboard health version");

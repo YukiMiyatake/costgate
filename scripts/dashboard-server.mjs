@@ -247,10 +247,96 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     return true;
   }
 
+  function resolveWorkspaceRequest(wsIdRaw, res) {
+    try {
+      const wsId = decodeURIComponent(wsIdRaw);
+      const workspaceCtx = resolveWorkspace(wsId, { globalFallback: defaultPaths() });
+      const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
+      return { wsId, workspaceCtx, paths };
+    } catch (e) {
+      json(res, 404, { error: e.message ?? String(e) });
+      return null;
+    }
+  }
+
+  const mcpPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcps\/([^/]+)$/);
+  if (method === "PATCH" && mcpPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const resolved = resolveWorkspaceRequest(mcpPatch[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const name = decodeURIComponent(mcpPatch[2]);
+    const body = await readBody(req);
+    if (typeof body.enabled !== "boolean") {
+      json(res, 400, { error: "enabled (boolean) required" });
+      return true;
+    }
+    const result = setMcpServerEnabled(name, body.enabled, {
+      mcpPath: paths.mcpPath,
+      disabledPath: paths.disabledPath,
+    });
+    json(res, 200, { ok: true, workspace_id: wsId, ...result });
+    return true;
+  }
+
+  const toolPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/tools\/([^/]+)$/);
+  if (method === "PATCH" && toolPatch) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const resolved = resolveWorkspaceRequest(toolPatch[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const name = decodeURIComponent(toolPatch[2]);
+    const body = await readBody(req);
+    const forceTier =
+      body.force_tier ??
+      (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
+    if (!forceTier) {
+      json(res, 400, { error: "force_tier or enabled required" });
+      return true;
+    }
+    const data = setToolForceTier(name, forceTier, paths.overridesPath);
+    json(res, 200, {
+      ok: true,
+      workspace_id: wsId,
+      tool: name,
+      force_tier: forceTier === "default" ? null : forceTier,
+      requires_gate_restart: true,
+      overrides: data,
+    });
+    return true;
+  }
+
+  const wsSanitize = pathname.match(/^\/api\/workspaces\/([^/]+)\/shield-prompt\/sanitize$/);
+  if (method === "POST" && wsSanitize) {
+    const resolved = resolveWorkspaceRequest(wsSanitize[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const body = await readBody(req);
+    try {
+      const result = sanitizePromptApiBody(body, { dir: paths.shieldPromptBlockDir });
+      json(res, 200, { ok: true, workspace_id: wsId, ...result });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
+    return true;
+  }
+
   const wsMatch = pathname.match(
     /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust|shield-prompt|shield-settings))?$/
   );
-  if (!wsMatch) return false;
+  if (!wsMatch) {
+    if (pathname.startsWith("/api/workspaces/")) {
+      apiNotFound(res, pathname);
+      return true;
+    }
+    return false;
+  }
 
   const wsId = decodeURIComponent(wsMatch[1]);
   const section = wsMatch[2];
@@ -390,75 +476,6 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     } catch (e) {
       json(res, 400, { error: e.message ?? String(e) });
     }
-    return true;
-  }
-
-  const wsSanitize = pathname.match(/^\/api\/workspaces\/([^/]+)\/shield-prompt\/sanitize$/);
-  if (method === "POST" && wsSanitize) {
-    let workspaceCtx;
-    try {
-      workspaceCtx = resolveWorkspace(decodeURIComponent(wsSanitize[1]), {
-        globalFallback: defaultPaths(),
-      });
-    } catch (e) {
-      json(res, 404, { error: e.message ?? String(e) });
-      return true;
-    }
-    const paths = scopedDataOptions(workspaceCtx, dataOptions, controlPaths);
-    const body = await readBody(req);
-    try {
-      const result = sanitizePromptApiBody(body, { dir: paths.shieldPromptBlockDir });
-      json(res, 200, { ok: true, workspace_id: decodeURIComponent(wsSanitize[1]), ...result });
-    } catch (e) {
-      json(res, 400, { error: e.message ?? String(e) });
-    }
-    return true;
-  }
-
-  const toolPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/tools\/([^/]+)$/);
-  if (method === "PATCH" && toolPatch) {
-    if (!authorizeWrite(req)) {
-      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
-      return true;
-    }
-    const name = decodeURIComponent(toolPatch[2]);
-    const body = await readBody(req);
-    const forceTier =
-      body.force_tier ??
-      (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
-    if (!forceTier) {
-      json(res, 400, { error: "force_tier or enabled required" });
-      return true;
-    }
-    const data = setToolForceTier(name, forceTier, paths.overridesPath);
-    json(res, 200, {
-      ok: true,
-      workspace_id: wsId,
-      tool: name,
-      force_tier: forceTier === "default" ? null : forceTier,
-      requires_gate_restart: true,
-      overrides: data,
-    });
-    return true;
-  }
-
-  const mcpPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcps\/([^/]+)$/);
-  if (method === "PATCH" && mcpPatch) {
-    if (!authorizeWrite(req)) {
-      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
-      return true;
-    }
-    const name = decodeURIComponent(mcpPatch[2]);
-    const body = await readBody(req);
-    if (typeof body.enabled !== "boolean") {
-      json(res, 400, { error: "enabled (boolean) required" });
-      return true;
-    }
-    const result = setMcpServerEnabled(name, body.enabled, {
-      mcpPath: paths.mcpPath,
-      disabledPath: paths.disabledPath,
-    });
-    json(res, 200, { ok: true, workspace_id: wsId, ...result });
     return true;
   }
 
