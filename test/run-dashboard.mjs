@@ -14,6 +14,7 @@ const TESTS = [
   "dashboard-marketplace.test.mjs",
   "dashboard-project-recommend.test.mjs",
   "dashboard-routes.test.mjs",
+  "dashboard-ui-settings.test.mjs",
   "dashboard-workspaces.test.mjs",
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",

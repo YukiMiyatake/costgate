@@ -45,13 +45,15 @@ h1 {
 }
 
 .workspace-bar,
+.prefs-bar,
 .token-bar {
   padding: 0.55rem 1.5rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
 }
 
-.workspace-bar {
+.workspace-bar,
+.prefs-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -67,6 +69,7 @@ h1 {
 }
 
 .workspace-bar select,
+.prefs-bar select,
 .token-bar input,
 .panel-toolbar input[type="search"],
 .panel-toolbar select,
@@ -83,7 +86,8 @@ h1 {
   font-size: 0.85rem;
 }
 
-.workspace-bar select { min-width: 12rem; }
+.workspace-bar select,
+.prefs-bar select { min-width: 12rem; }
 
 #workspace-path {
   flex: 1;
@@ -736,7 +740,8 @@ footer {
   }
 
   .app-header { background: #fff; }
-  .workspace-bar { background: #eef2f7; }
+  .workspace-bar,
+  .prefs-bar { background: #eef2f7; }
   tbody tr:hover td { background: rgba(37, 99, 235, 0.05); }
 
   .badge-installed { background: #dcfce7; color: #15803d; }

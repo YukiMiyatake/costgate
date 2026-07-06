@@ -92,6 +92,7 @@ async function testGetRoutes() {
       "/api/gate-settings",
       "/api/mcp-trust",
       "/api/shield-prompt",
+      "/api/ui-settings",
       "/api/marketplace",
       "/api/marketplace?q=browser",
       "/api/marketplace?q=github",
@@ -178,11 +179,44 @@ async function testMissingCatalog() {
   }
 }
 
+async function testUiSettingsRoutes() {
+  const { base, close } = await startServer();
+  try {
+    const get = await expectJson(base, "/api/ui-settings");
+    assert(get.settings?.locale === "en", "default locale in GET");
+    assert(Array.isArray(get.common_timezones), "common_timezones array");
+    assert(get.common_timezones.includes("UTC"), "UTC in common_timezones");
+
+    const health = await expectJson(base, "/api/health");
+    assert(health.ui?.settings?.locale === "en", "health includes ui payload");
+
+    const patched = await expectJson(base, "/api/ui-settings", {
+      method: "PATCH",
+      body: { locale: "ja", timezone: "Asia/Tokyo" },
+    });
+    assert(patched.ok === true, "PATCH ok");
+    assert(patched.settings.locale === "ja", "PATCH locale applied");
+    assert(patched.settings.timezone === "Asia/Tokyo", "PATCH timezone applied");
+
+    const badLocale = await fetch(`${base}/api/ui-settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: "fr" }),
+    });
+    assert(badLocale.status === 400, "unsupported locale 400");
+
+    console.error("[routes] ui-settings ok");
+  } finally {
+    await close();
+  }
+}
+
 async function main() {
   testNormalizePathname();
   await testGetRoutes();
   await testPostAndPatch();
   await testMissingCatalog();
+  await testUiSettingsRoutes();
   console.error("[routes] all passed");
 }
 

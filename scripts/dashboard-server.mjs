@@ -37,6 +37,10 @@ import {
   resolveWorkspace,
   registryPath,
 } from "./lib/dashboard-workspaces.mjs";
+import {
+  buildUiSettingsApiPayload,
+  patchUiSettings,
+} from "./lib/dashboard-ui-settings.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -48,6 +52,7 @@ const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
@@ -450,7 +455,14 @@ function createDashboardServer(options = {}) {
 
       if (method === "GET") {
         if (pathname === "/api/health") {
-          json(res, 200, buildHealth({ writeTokenRequired: Boolean(WRITE_TOKEN) }));
+          json(res, 200, {
+            ...buildHealth({ writeTokenRequired: Boolean(WRITE_TOKEN) }),
+            ui: buildUiSettingsApiPayload(),
+          });
+          return;
+        }
+        if (pathname === "/api/ui-settings") {
+          json(res, 200, buildUiSettingsApiPayload());
           return;
         }
         if (pathname === "/api/overview") {
@@ -562,6 +574,17 @@ function createDashboardServer(options = {}) {
       }
 
       if (method === "PATCH") {
+        if (pathname === "/api/ui-settings") {
+          const body = await readBody(req);
+          try {
+            const result = patchUiSettings(body);
+            json(res, 200, { ok: true, ...buildUiSettingsApiPayload(), settings: result.settings });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
+          return;
+        }
+
         if (!authorizeWrite(req)) {
           json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
           return;
