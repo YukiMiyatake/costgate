@@ -2,8 +2,10 @@
 
 **Gate your MCP. Cut your bill.**
 
-CostGate reduces AI token consumption by optimizing MCP tool definitions and responses.
+CostGate reduces AI token consumption by optimizing MCP tool definitions and responses.  
 Cursor-first, compatible with Claude Desktop and other MCP clients.
+
+> **Languages:** English (this file) · [日本語](README.ja.md)
 
 ## Repository layout (monorepo)
 
@@ -12,7 +14,7 @@ costgate/
 ├── packages/
 │   ├── schema/     @costgate/schema   — shared log schema
 │   ├── probe/      @costgate/probe    — measurement MCP (npm)
-│   ├── cli/        @costgate/cli       — npm entry (launcher, Dashboard, hooks)
+│   ├── cli/        @costgate/cli      — npm entry (launcher, Dashboard, hooks)
 │   └── gate/       costgate-gate      — gateway MCP (Go binary)
 ├── docs/
 ├── examples/
@@ -30,48 +32,48 @@ See [docs/structure.md](./docs/structure.md) for why Probe and Gate share one re
 | [costgate-gate](./packages/gate/) | GitHub Releases | Gateway MCP (Go) — filtered tools, Shield, cost reduction |
 | [@costgate/schema](./packages/schema/) | workspace | Shared JSON Schema for logs |
 
-## Quick start（本番・推奨）
+## Quick start (production — recommended)
 
-**Node のみ**で導入できます（Go のビルド不要）。Gate バイナリは `init` が GitHub Releases から取得します。
+Install with **Node only** (no Go build). `init` downloads the Gate binary from GitHub Releases.
 
 ```bash
 npx @costgate/cli@latest init
-# Cursor を再起動（MCP 再接続）
+# Restart Cursor (reconnect MCP)
 ```
 
-`init` の内容:
+What `init` does:
 
-- `~/.costgate/bin/costgate-gate` — Go バイナリ配置
-- `~/.cursor/mcp.json` — `npx @costgate/cli gate`（Dashboard 自動起動込み）
-- `~/.cursor/hooks.json` — Shield / prompt-intent 等
-- `~/.costgate/backends.json` — テンプレート（未存在時）
+- `~/.costgate/bin/costgate-gate` — Go binary
+- `~/.cursor/mcp.json` — `npx @costgate/cli gate` (Dashboard auto-start)
+- `~/.cursor/hooks.json` — Shield, prompt-intent, etc.
+- `~/.costgate/backends.json` — template (if missing)
 
-更新: `npx @costgate/cli update`
+Update: `npx @costgate/cli update`
 
-詳細: [packages/cli/README.md](./packages/cli/README.md) · [docs/releases.md](./docs/releases.md)
+Details: [packages/cli/README.md](./packages/cli/README.md) · [docs/releases.md](./docs/releases.md)
 
-### グローバルインストール（任意）
+### Global install (optional)
 
 ```bash
 npm install -g @costgate/cli
 costgate init
 ```
 
-## Quick start（開発者・リポジトリ clone）
+## Quick start (developers — clone repo)
 
 ```bash
 git clone https://github.com/YukiMiyatake/costgate.git
 cd costgate
 npm install
-npm run build:gate          # または ./scripts/install-gate.sh
+npm run build:gate          # or ./scripts/install-gate.sh
 cp examples/backends.github.json ~/.costgate/backends.json
-npm run cursor:production   # ローカルパスで mcp.json 更新
-npm run cursor:registry     # hooks 登録
+npm run cursor:production   # update mcp.json with local paths
+npm run cursor:registry     # install hooks
 ```
 
-Docker のみ: [docs/docker.md](./docs/docker.md)
+Docker only: [docs/docker.md](./docs/docker.md)
 
-## Quick start (Probe — 計測のみ)
+## Quick start (Probe — measurement only)
 
 ### Option A — npx (published)
 
@@ -105,18 +107,18 @@ npm run build:probe
 
 See [examples/cursor/](./examples/cursor/) for measurement configuration.
 
-## Gate（上級者向け・バイナリのみ）
+## Gate (advanced — binary only)
 
-Go バイナリだけ使う最小構成（Dashboard / Hooks なし）:
+Minimal setup without Dashboard or hooks:
 
 ```bash
 ./scripts/install-gate.sh          # → ~/.local/bin/costgate-gate
 costgate-gate --version
 ```
 
-`~/.cursor/mcp.json` 例: [examples/cursor/mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)
+Example `~/.cursor/mcp.json`: [examples/cursor/mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)
 
-リポジトリからビルド: `npm run build:gate`（Go 1.25+）
+Build from repo: `npm run build:gate` (Go 1.25+)
 
 Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · [docs/RELEASE.md](./docs/RELEASE.md)
 
@@ -136,20 +138,19 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 
 | Plan | Scope |
 |------|-------|
-| **Free (OSS)** | Probe + Gate + Dashboard — Phase 16–22 ✅ / **23–27 予定** |
-| **Pro** | ホスト型 Dashboard — **Phase 30+**（OSS Dashboard 拡張） |
-| **Team** | Billing / policies — **Phase 32+ 後回し** |
-
-OSS 機能を先に完成させ、cloud は MVP（手動 upload）を維持したまま凍結。詳細は [docs/roadmap.md](./docs/roadmap.md#development-priority2026-07)。
+| **Free (OSS)** | Probe + Gate + Dashboard — Phases 16–33 ✅ |
+| **Pro** | Hosted Dashboard — Phase 30+ (OSS Dashboard extension) |
+| **Team** | Billing / policies — deferred |
 
 See [docs/roadmap.md](./docs/roadmap.md) for phase details.
 
 ## Documentation
 
+- [Documentation languages](./docs/i18n.md)
 - [Development roadmap](./docs/roadmap.md)
-- [MCP Dashboard（利用者向け）](./docs/dashboard.md)
-- [MCP トークン削減調査](./docs/mcp-reduction-survey.md)
-- [MCP Dashboard（開発者向け）](./docs/dev/dashboard.md)
+- [MCP Dashboard (users)](./docs/dashboard.md) · [日本語](./docs/ja/dashboard.md)
+- [MCP token reduction survey](./docs/mcp-reduction-survey.md)
+- [MCP Dashboard (developers)](./docs/dev/dashboard.md)
 - [Benchmarks & verification](./docs/benchmarks.md)
 - [Repository structure](./docs/structure.md)
 - [Docker / Dev Container](./docs/docker.md)
