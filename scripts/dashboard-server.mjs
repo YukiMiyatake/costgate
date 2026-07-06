@@ -11,7 +11,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildDashboardData, buildHealth } from "./lib/dashboard-data.mjs";
+import { buildDashboardData, buildHealth, buildToolsPayload, defaultPaths } from "./lib/dashboard-data.mjs";
 import {
   loadToolOverrides,
   setToolForceTier,
@@ -43,7 +43,6 @@ import {
   loadBackendsJson,
 } from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
-import { defaultPaths } from "./lib/dashboard-data.mjs";
 import {
   listWorkspaces,
   pinWorkspace,
@@ -435,7 +434,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     }
     const data = buildDashboardData(paths);
     if (section === "overview") json(res, 200, data.overview);
-    else if (section === "tools") json(res, 200, data.tools);
+    else if (section === "tools") json(res, 200, await buildToolsPayload(paths));
     else if (section === "mcps") json(res, 200, data.mcps);
     else if (section === "recommendations") json(res, 200, data.recommendations);
     else if (section === "overrides") {
@@ -594,7 +593,7 @@ function createDashboardServer(options = {}) {
           return;
         }
         if (pathname === "/api/tools") {
-          json(res, 200, buildDashboardData(dataOptions).tools);
+          json(res, 200, await buildToolsPayload(dataOptions));
           return;
         }
         if (pathname === "/api/mcps") {
