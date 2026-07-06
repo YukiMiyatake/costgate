@@ -12,6 +12,35 @@ import {
   shieldSettingHint,
 } from "./i18n.mjs";
 
+function showToast(message, { kind = "error" } = {}) {
+  const root = document.getElementById("toast-root");
+  if (!root || !message) return;
+  const toast = document.createElement("div");
+  toast.className = `toast${kind === "success" ? " toast--success" : ""}`;
+  const icon = document.createElement("span");
+  icon.className = "toast__icon";
+  icon.textContent = kind === "success" ? "✓" : "!";
+  const body = document.createElement("div");
+  body.className = "toast__body";
+  body.textContent = message;
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "toast__close";
+  close.textContent = "×";
+  close.addEventListener("click", () => {
+    root.removeChild(toast);
+  });
+  toast.appendChild(icon);
+  toast.appendChild(body);
+  toast.appendChild(close);
+  root.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement === root) {
+      root.removeChild(toast);
+    }
+  }, 5000);
+}
+
 function globalLabel() {
   return t("workspace.global");
 }
@@ -185,7 +214,7 @@ function setupWorkspaces() {
       await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   });
   refreshBtn?.addEventListener("click", async () => {
@@ -195,7 +224,7 @@ function setupWorkspaces() {
       await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   });
   pinBtn?.addEventListener("click", async () => {
@@ -212,7 +241,7 @@ function setupWorkspaces() {
       }
       await reload();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   });
 }
@@ -258,7 +287,7 @@ function trustSelect(server) {
       await reload();
     } catch (e) {
       select.value = prev;
-      alert(e.message);
+      showToast(e.message);
     } finally {
       select.disabled = false;
       saving = false;
@@ -392,14 +421,14 @@ function setupShieldPromptPanel() {
   document.getElementById("shield-prompt-copy")?.addEventListener("click", async () => {
     const text = document.getElementById("shield-prompt-sanitized")?.value ?? "";
     if (!text.trim()) {
-      alert(t("overview.shieldCopyEmpty"));
+      showToast(t("overview.shieldCopyEmpty"));
       return;
     }
     try {
       await navigator.clipboard.writeText(text);
-      alert(t("overview.shieldCopyOk"));
+      showToast(t("overview.shieldCopyOk"), { kind: "success" });
     } catch (e) {
-      alert(e.message ?? t("overview.shieldCopyFail"));
+      showToast(e.message ?? t("overview.shieldCopyFail"));
     }
   });
   document.getElementById("shield-prompt-refresh")?.addEventListener("click", async () => {
@@ -522,9 +551,9 @@ function renderToolRow(tool) {
         }),
       });
       await reload();
-      alert(t("tools.savedOverride"));
+      showToast(t("tools.savedOverride"), { kind: "success" });
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   };
   const listData = isToolMeasured(tool) ? badge(t("tools.measured"), true) : badge(t("tools.unmeasured"));
@@ -677,9 +706,9 @@ function setupGateSettings() {
         body: JSON.stringify({ settings }),
       });
       await loadGateSettings();
-      alert(t("mcps.gateSaved"));
+      showToast(t("mcps.gateSaved"), { kind: "success" });
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   });
 }
@@ -746,9 +775,9 @@ function setupShieldSettings() {
         body: JSON.stringify({ settings }),
       });
       await loadShieldSettings();
-      alert(t("shield.saved"));
+      showToast(t("shield.saved"), { kind: "success" });
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   });
   document.getElementById("shield-settings-form")?.addEventListener("change", (e) => {
@@ -795,9 +824,9 @@ function renderMcps(data) {
           body: JSON.stringify({ enabled: enable }),
         });
         await reload();
-        alert(t("mcps.mcpUpdated"));
+        showToast(t("mcps.mcpUpdated"), { kind: "success" });
       } catch (e) {
-        alert(e.message);
+        showToast(e.message);
       }
     };
     tr.innerHTML = `
@@ -854,7 +883,7 @@ async function openAddMcpTab(templateId) {
     );
     if (match) openWizard(match);
   } catch (e) {
-    alert(e.message);
+    showToast(e.message);
   }
 }
 
@@ -999,7 +1028,7 @@ function renderCategoryTabs(categories, activeId) {
   allBtn.textContent = t("marketplace.categoryAll");
   allBtn.onclick = () => {
     marketplaceCategory = "";
-    loadMarketplace().catch((e) => alert(e.message));
+    loadMarketplace().catch((e) => showToast(e.message));
   };
   container.appendChild(allBtn);
   for (const cat of categories ?? []) {
@@ -1009,7 +1038,7 @@ function renderCategoryTabs(categories, activeId) {
     btn.textContent = `${cat.label} (${cat.count})`;
     btn.onclick = () => {
       marketplaceCategory = cat.id;
-      loadMarketplace().catch((e) => alert(e.message));
+      loadMarketplace().catch((e) => showToast(e.message));
     };
     container.appendChild(btn);
   }
@@ -1151,7 +1180,7 @@ async function loadMarketplace(query) {
 function setupWizard() {
   const searchInput = document.getElementById("marketplace-search");
   const searchBtn = document.getElementById("marketplace-search-btn");
-  const runSearch = () => loadMarketplace().catch((e) => alert(e.message));
+  const runSearch = () => loadMarketplace().catch((e) => showToast(e.message));
   searchBtn.onclick = runSearch;
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -1169,7 +1198,7 @@ function setupWizard() {
   document.getElementById("wizard-confirm").onclick = async () => {
     if (!selectedTemplate) return;
     if (selectedTemplate.install_target === "builtin") {
-      alert(selectedTemplate.builtin_hint ?? t("marketplace.builtinHint"));
+      showToast(selectedTemplate.builtin_hint ?? t("marketplace.builtinHint"));
       return;
     }
     const env = {};
@@ -1187,12 +1216,12 @@ function setupWizard() {
         msg += t("marketplace.savedEstimate", { estimate: renderCompareEstimate(result.compare_estimate) });
       }
       if (result.requires_cursor_restart) msg += t("marketplace.savedRestart");
-      alert(msg);
+      showToast(msg, { kind: "success" });
       closeWizard();
       await reload();
       await loadMarketplace();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   };
 }
@@ -1286,7 +1315,7 @@ function setupPreferences(uiData) {
       await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message);
     }
   };
   localeSelect.addEventListener("change", onChange);
