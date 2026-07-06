@@ -238,6 +238,9 @@ function tierForTool(name, backend, catalogs, defaultBackend) {
   const b = backend ?? defaultBackend;
   const cat = b ? catalogs[b] : null;
   if (cat?.overrides?.[name]) return cat.overrides[name];
+  for (const catalog of Object.values(catalogs)) {
+    if (catalog?.overrides?.[name]) return catalog.overrides[name];
+  }
   return null;
 }
 
@@ -255,14 +258,43 @@ function percentile(values, p) {
   return sorted[Math.max(0, idx)];
 }
 
-function mergeToolStats(probeByTool, usage, catalogs, defaultBackend, now, overrides = {}) {
-  const names = new Set([...probeByTool.keys(), ...Object.keys(usage)]);
+function resolveToolBackend(name, probeBackend, catalogs, backends) {
+  if (probeBackend && backends[probeBackend]) return probeBackend;
+  if (name.includes("/")) {
+    const [backend] = name.split("/", 2);
+    if (backends[backend] || catalogs[backend]) return backend;
+  }
+  for (const [backend, catalog] of Object.entries(catalogs)) {
+    if (catalog?.overrides?.[name] && backends[backend]) return backend;
+  }
+  return null;
+}
+
+function catalogToolNames(backends, catalogs) {
+  const names = new Set();
+  for (const backend of Object.keys(backends)) {
+    const overrides = catalogs[backend]?.overrides;
+    if (!overrides) continue;
+    for (const name of Object.keys(overrides)) {
+      names.add(name);
+    }
+  }
+  return names;
+}
+
+function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, now, overrides = {}) {
+  const names = new Set([
+    ...probeByTool.keys(),
+    ...Object.keys(usage),
+    ...catalogToolNames(backends, catalogs),
+  ]);
   const tools = [];
 
   for (const name of names) {
     const probe = probeByTool.get(name);
     const u = usage[name];
-    const backend = probe?.backend ?? defaultBackend;
+    const backend =
+      resolveToolBackend(name, probe?.backend, catalogs, backends) ?? defaultBackend;
     const callCount = Math.max(probe?.call_count ?? 0, u?.call_count ?? 0);
     let lastUsed = probe?.last_used ?? null;
     if (u?.last_used) {
@@ -272,11 +304,13 @@ function mergeToolStats(probeByTool, usage, catalogs, defaultBackend, now, overr
     }
     const tier = overrides[name]?.force_tier ?? tierForTool(name, backend, catalogs, defaultBackend);
     const forced = Boolean(overrides[name]?.force_tier);
+    const inCatalog = Boolean(tierForTool(name, backend, catalogs, defaultBackend));
     tools.push({
       name,
       backend,
       tier,
       forced_tier: forced,
+      in_catalog: inCatalog,
       call_count: callCount,
       last_used: lastUsed,
       estimated_list_tokens: probe?.estimated_list_tokens
@@ -441,7 +475,15 @@ export function buildDashboardData(options = {}) {
   const g = logs.global;
   const overrides = effective.overrides;
   const disabledStore = effective.disabledStore;
-  const tools = mergeToolStats(byTool, usage, catalogs, defaultBackend, now, overrides);
+  const tools = mergeToolStats(
+    byTool,
+    usage,
+    catalogs,
+    backends,
+    defaultBackend,
+    now,
+    overrides
+  );
   const deleteRecommendations = scoreRecommendations(
     tools,
     listTokenSamples,
@@ -519,6 +561,10 @@ export function buildDashboardData(options = {}) {
     tools: {
       tools,
       blind_spots: mcps.blind_spots,
+      backends: Object.keys(backends).sort(),
+      backends_without_catalog: Object.keys(backends)
+        .filter((b) => !catalogs[b]?.overrides)
+        .sort(),
     },
     mcps,
     recommendations: {

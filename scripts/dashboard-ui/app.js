@@ -609,12 +609,20 @@ function toolMatchesTierFilter(tool) {
   return true;
 }
 
+function toolMatchesTierLetter(tool) {
+  const letter = document.getElementById("tools-tier-filter")?.value ?? "";
+  if (!letter) return true;
+  if (letter === "unset") return !tool.tier || tool.tier === "default";
+  return (tool.tier ?? "").toUpperCase() === letter;
+}
+
 function filterTools(tools) {
   const q = document.getElementById("tools-search")?.value.trim().toLowerCase() ?? "";
   const backend = document.getElementById("tools-backend-filter")?.value ?? "";
   const measured = document.getElementById("tools-measured-filter")?.value ?? "";
   const recOnly = document.getElementById("tools-rec-only")?.checked ?? false;
   const forcedOnly = document.getElementById("tools-forced-only")?.checked ?? false;
+  const catalogOnly = document.getElementById("tools-catalog-only")?.checked ?? false;
 
   return (tools ?? []).filter((t) => {
     if (q) {
@@ -623,8 +631,10 @@ function filterTools(tools) {
     }
     if (backend && (t.backend ?? "") !== backend) return false;
     if (!toolMatchesTierFilter(t)) return false;
+    if (!toolMatchesTierLetter(t)) return false;
     if (recOnly && !t.recommendation) return false;
     if (forcedOnly && !t.forced_tier) return false;
+    if (catalogOnly && !t.in_catalog) return false;
     if (measured === "measured" && !isToolMeasured(t)) return false;
     if (measured === "unmeasured" && isToolMeasured(t)) return false;
     return true;
@@ -636,6 +646,9 @@ function sortTools(tools) {
   const sorted = [...tools];
   sorted.sort((a, b) => {
     if (sortKey === "name") return a.name.localeCompare(b.name);
+    if (sortKey === "backend") {
+      return (a.backend ?? "").localeCompare(b.backend ?? "") || a.name.localeCompare(b.name);
+    }
     if (sortKey === "call_count") {
       return b.call_count - a.call_count || a.name.localeCompare(b.name);
     }
@@ -676,11 +689,13 @@ function renderToolsTierTabs() {
   }
 }
 
-function populateToolsBackendFilter(tools) {
+function populateToolsBackendFilter(data) {
   const select = document.getElementById("tools-backend-filter");
   if (!select) return;
   const prev = select.value;
-  const backends = [...new Set((tools ?? []).map((t) => t.backend).filter(Boolean))].sort();
+  const configured = data.backends ?? [];
+  const fromTools = [...new Set((data.tools ?? []).map((t) => t.backend).filter(Boolean))];
+  const backends = [...new Set([...configured, ...fromTools])].sort();
   select.innerHTML = `<option value="">${t("tools.allBackends")}</option>`;
   for (const b of backends) {
     const opt = document.createElement("option");
@@ -691,13 +706,23 @@ function populateToolsBackendFilter(tools) {
   if (prev && backends.includes(prev)) select.value = prev;
 }
 
+function toolVisibilityBadge(tool) {
+  const hidden = tool.tier === "hidden";
+  return badge(
+    hidden ? t("tools.visibilityHidden") : t("tools.visibilityVisible"),
+    !hidden,
+    hidden ? "tool-visibility tool-visibility-off" : "tool-visibility tool-visibility-on"
+  );
+}
+
 function renderToolRow(tool) {
   const tr = document.createElement("tr");
   const flag = tool.recommendation ? badge(tool.recommendation) : document.createTextNode(t("common.dash"));
   const hideBtn = document.createElement("button");
   hideBtn.type = "button";
   hideBtn.className = tool.tier === "hidden" ? "btn-sm btn-enable" : "btn-sm btn-disable";
-  hideBtn.textContent = tool.tier === "hidden" ? t("tools.unhide") : t("tools.hide");
+  hideBtn.title = t("tools.hideHint");
+  hideBtn.textContent = tool.tier === "hidden" ? t("tools.unhideAction") : t("tools.hideAction");
   hideBtn.onclick = async () => {
     try {
       await fetchJson(apiPath(`tools/${encodeURIComponent(tool.name)}`), {
@@ -722,11 +747,13 @@ function renderToolRow(tool) {
     <td>${fmtDate(tool.last_used)}</td>
     <td>${tool.estimated_list_tokens != null ? `~${fmt(tool.estimated_list_tokens)}` : t("common.dash")}</td>
     <td></td>
+    <td></td>
     <td></td>`;
   tr.children[2].appendChild(tierBadge(tool.tier, tool.forced_tier));
   tr.children[3].appendChild(listData);
-  tr.children[7].appendChild(flag);
-  tr.children[8].appendChild(hideBtn);
+  tr.children[7].appendChild(toolVisibilityBadge(tool));
+  tr.children[8].appendChild(flag);
+  tr.children[9].appendChild(hideBtn);
   return tr;
 }
 
@@ -761,7 +788,18 @@ function renderTools(data) {
   } else {
     blind.classList.add("hidden");
   }
-  populateToolsBackendFilter(data.tools);
+  const noCatalog = document.getElementById("tools-no-catalog");
+  if (data.backends_without_catalog?.length) {
+    noCatalog?.classList.remove("hidden");
+    if (noCatalog) {
+      noCatalog.textContent = t("tools.noCatalogBanner", {
+        list: data.backends_without_catalog.join(", "),
+      });
+    }
+  } else {
+    noCatalog?.classList.add("hidden");
+  }
+  populateToolsBackendFilter(data);
   renderToolsTierTabs();
   renderToolsTable();
 }
@@ -770,9 +808,10 @@ function setupToolsControls() {
   const rerender = () => renderToolsTable();
   document.getElementById("tools-search")?.addEventListener("input", rerender);
   document.getElementById("tools-backend-filter")?.addEventListener("change", rerender);
+  document.getElementById("tools-tier-filter")?.addEventListener("change", rerender);
   document.getElementById("tools-sort")?.addEventListener("change", rerender);
   document.getElementById("tools-measured-filter")?.addEventListener("change", rerender);
-  for (const id of ["tools-rec-only", "tools-forced-only"]) {
+  for (const id of ["tools-rec-only", "tools-forced-only", "tools-catalog-only"]) {
     document.getElementById(id)?.addEventListener("change", rerender);
   }
 }

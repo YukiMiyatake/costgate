@@ -89,6 +89,7 @@
         <p class="panel-desc" data-i18n="tools.desc">Gate-tracked tools with tier, call history, and hide/unhide actions.</p>
       </header>
       <div id="tools-blind" class="banner hidden"></div>
+      <div id="tools-no-catalog" class="banner banner-info hidden"></div>
       <div class="panel-toolbar tools-toolbar">
         <label>
           <span data-i18n="tools.search">Search</span>
@@ -101,10 +102,22 @@
           </select>
         </label>
         <label>
+          <span data-i18n="tools.tierLetter">Tier</span>
+          <select id="tools-tier-filter">
+            <option value="" data-i18n="tools.tierLetterAll">All tiers</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="unset" data-i18n="tools.tierUnset">Unclassified</option>
+            <option value="hidden" data-i18n="tools.tierHidden">Forced hidden</option>
+          </select>
+        </label>
+        <label>
           <span data-i18n="tools.sort">Sort</span>
           <select id="tools-sort">
             <option value="call_count" data-i18n="tools.sortCallCount">Call count</option>
             <option value="name" data-i18n="tools.sortName">Name</option>
+            <option value="backend" data-i18n="tools.sortBackend">Backend</option>
             <option value="last_used" data-i18n="tools.sortLastUsed">Last used</option>
             <option value="list_tokens" data-i18n="tools.sortListTokens">List tokens</option>
           </select>
@@ -121,6 +134,7 @@
             <option value="unmeasured" data-i18n="tools.unmeasured">No list data</option>
           </select>
         </label>
+        <label><input type="checkbox" id="tools-catalog-only" /> <span data-i18n="tools.catalogOnly">Catalog only</span></label>
         <label><input type="checkbox" id="tools-rec-only" /> <span data-i18n="tools.hasRec">Has recommendation</span></label>
         <label><input type="checkbox" id="tools-forced-only" /> <span data-i18n="tools.forcedOnly">Forced tier only</span></label>
       </div>
@@ -135,6 +149,7 @@
               <th data-i18n="tools.colCalls">Calls</th>
               <th data-i18n="tools.colLastUsed">Last used</th>
               <th data-i18n="tools.colListTokens">List tokens</th>
+              <th data-i18n="tools.colVisibility">Visibility</th>
               <th data-i18n="tools.colFlag">Flag</th>
               <th data-i18n="tools.colAction">Action</th>
             </tr>
