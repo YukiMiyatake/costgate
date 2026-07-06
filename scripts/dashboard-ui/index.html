@@ -56,6 +56,15 @@
         <p class="panel-desc" data-i18n="overview.desc">Token usage, fixed-cost share, and blind spots for the selected workspace.</p>
       </header>
       <div id="overview-cards" class="cards"></div>
+      <div id="shield-settings-panel" class="shield-settings-panel">
+        <h3 class="subsection-title" data-i18n="shield.settingsTitle">Prompt Shield settings</h3>
+        <p class="note" id="shield-settings-note"></p>
+        <form id="shield-settings-form" class="shield-settings-form filter-group"></form>
+        <div class="shield-settings-actions">
+          <button type="button" id="shield-settings-save" class="btn-sm btn-primary" data-i18n="shield.save">Save Shield settings</button>
+          <span id="shield-settings-path" class="note"></span>
+        </div>
+      </div>
       <div id="shield-prompt-panel" class="shield-prompt-panel hidden">
         <h3 class="subsection-title" data-i18n="overview.shieldTitle">Prompt Shield — blocked submit</h3>
         <p class="note" id="shield-prompt-note"></p>

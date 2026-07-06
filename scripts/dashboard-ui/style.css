@@ -230,7 +230,8 @@ main {
   cursor: pointer;
 }
 
-.gate-settings-panel {
+.gate-settings-panel,
+.shield-settings-panel {
   margin-bottom: 1rem;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
@@ -243,7 +244,8 @@ main {
   font-size: 0.95rem;
 }
 
-.gate-settings-form label {
+.gate-settings-form label,
+.shield-settings-form label {
   min-width: 12rem;
 }
 
@@ -253,7 +255,8 @@ main {
   min-width: 10rem;
 }
 
-.gate-settings-actions {
+.gate-settings-actions,
+.shield-settings-actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;

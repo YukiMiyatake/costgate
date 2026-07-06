@@ -25,6 +25,7 @@ const TESTS = [
   "cursor-shield-read-hook.test.mjs",
   "prompt-intent.test.mjs",
   "gate-settings.test.mjs",
+  "shield-settings.test.mjs",
   "mcp-trust.test.mjs",
   "shield-prompt-33b.test.mjs",
   "costgate-gate-launch.test.mjs",

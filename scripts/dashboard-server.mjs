@@ -41,6 +41,11 @@ import {
   buildUiSettingsApiPayload,
   patchUiSettings,
 } from "./lib/dashboard-ui-settings.mjs";
+import {
+  buildShieldSettingsApiPayload,
+  patchShieldSettings,
+} from "./lib/shield-settings.mjs";
+import { defaultHooksPath } from "./lib/cursor-hooks.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -503,6 +508,10 @@ function createDashboardServer(options = {}) {
           json(res, 200, buildShieldPromptApiPayload({ dir: paths.shieldPromptBlockDir }));
           return;
         }
+        if (pathname === "/api/shield-settings") {
+          json(res, 200, buildShieldSettingsApiPayload(defaultHooksPath()));
+          return;
+        }
         if (pathname === "/api/marketplace") {
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
           json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
@@ -635,6 +644,17 @@ function createDashboardServer(options = {}) {
           const body = await readBody(req);
           const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
           json(res, 200, { ok: true, ...result });
+          return;
+        }
+
+        if (pathname === "/api/shield-settings") {
+          const body = await readBody(req);
+          try {
+            const result = patchShieldSettings(body.settings ?? body, defaultHooksPath());
+            json(res, 200, { ...result, ...buildShieldSettingsApiPayload(defaultHooksPath()) });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
           return;
         }
 

@@ -219,4 +219,27 @@ export default {
     no: "いいえ",
     dash: "—",
   },
+  shield: {
+    settingsTitle: "Prompt Shield 設定",
+    save: "Shield 設定を保存",
+    saved: "Shield 設定を保存しました。Cursor を再起動してください。",
+    note: "~/.costgate/shield-settings.json と ~/.cursor/hooks.json（beforeSubmitPrompt）を更新します。",
+    hooksOutOfSync: "hooks.json が保存設定と一致していません — 保存して反映してください。",
+    installed: "フック有効",
+    notInstalled: "フック無効",
+  },
+  shieldSetting: {
+    prompt_block: {
+      label: "プロンプト送信時にシークレットをブロック",
+      hint: "beforeSubmitPrompt フックで API キー等を検出して送信を止めます",
+    },
+    aggressive: {
+      label: "積極的検出",
+      hint: "メール・電話・パス・環境変数形式もブロック対象にします",
+    },
+    fail_open: {
+      label: "フックエラー時は送信を許可（fail-open）",
+      hint: "オフ（既定）のときフックエラーで送信をブロックします（fail-closed）",
+    },
+  },
 };

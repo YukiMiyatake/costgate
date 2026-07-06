@@ -8,6 +8,8 @@ import {
   saveUiSettingsToApi,
   gateSettingLabel,
   gateSettingHint,
+  shieldSettingLabel,
+  shieldSettingHint,
 } from "./i18n.mjs";
 
 function globalLabel() {
@@ -682,6 +684,84 @@ function setupGateSettings() {
   });
 }
 
+function renderShieldSettings(data) {
+  const form = document.getElementById("shield-settings-form");
+  const note = document.getElementById("shield-settings-note");
+  const pathEl = document.getElementById("shield-settings-path");
+  if (!form || !data?.settings) return;
+  form.innerHTML = "";
+  for (const def of data.defs ?? []) {
+    const label = document.createElement("label");
+    label.title = shieldSettingHint(def.key, def.hint ?? "");
+    const val = data.settings[def.key];
+    const labelText = shieldSettingLabel(def.key, def.label);
+    if (def.type === "boolean") {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = def.key;
+      input.checked = Boolean(val);
+      input.disabled = def.key !== "prompt_block" && !data.settings.prompt_block;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(` ${labelText}`));
+    }
+    form.appendChild(label);
+  }
+  if (note) {
+    let text = t("shield.note");
+    if (data.hooks_in_sync === false) {
+      text += ` ${t("shield.hooksOutOfSync")}`;
+    }
+    note.textContent = text;
+  }
+  if (pathEl) {
+    const hookStatus = data.prompt_block_installed
+      ? t("shield.installed")
+      : t("shield.notInstalled");
+    pathEl.textContent = `${data.hooks_path ?? ""} · ${hookStatus}`;
+  }
+}
+
+function collectShieldSettingsForm() {
+  const form = document.getElementById("shield-settings-form");
+  if (!form) return {};
+  const out = {};
+  for (const el of form.querySelectorAll("[name]")) {
+    if (el.type === "checkbox") out[el.name] = el.checked;
+  }
+  return out;
+}
+
+async function loadShieldSettings() {
+  const data = await fetchJson(apiPath("shield-settings"));
+  renderShieldSettings(data);
+  return data;
+}
+
+function setupShieldSettings() {
+  document.getElementById("shield-settings-save")?.addEventListener("click", async () => {
+    try {
+      const settings = collectShieldSettingsForm();
+      await fetchJson(apiPath("shield-settings"), {
+        method: "PATCH",
+        body: JSON.stringify({ settings }),
+      });
+      await loadShieldSettings();
+      alert(t("shield.saved"));
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  document.getElementById("shield-settings-form")?.addEventListener("change", (e) => {
+    if (e.target?.name !== "prompt_block") return;
+    const form = document.getElementById("shield-settings-form");
+    const enabled = e.target.checked;
+    for (const el of form?.querySelectorAll("[name=aggressive],[name=fail_open]") ?? []) {
+      el.disabled = !enabled;
+      if (!enabled) el.checked = false;
+    }
+  });
+}
+
 function renderMcps(data) {
   const body = document.getElementById("mcps-body");
   const empty = document.getElementById("mcps-empty");
@@ -1219,6 +1299,7 @@ async function main() {
   setupWizard();
   setupWorkspaces();
   setupGateSettings();
+  setupShieldSettings();
   setupShieldPromptPanel();
   try {
     const uiData = await loadUiSettingsFromApi(fetchJson);
@@ -1234,6 +1315,7 @@ async function main() {
     await loadWorkspaces();
     await reload();
     await loadGateSettings();
+    await loadShieldSettings();
     await loadMarketplace();
   } catch (err) {
     document.getElementById("health-status").textContent = t("app.error", { message: err.message });
