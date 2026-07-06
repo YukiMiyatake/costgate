@@ -8,6 +8,16 @@ MCP 経由の機密漏洩防止（Shield）と MCP ごとの信頼度（Trust）
 | **目的** | 悪意・過剰権限 MCP や LLM プロバイダへの機密送信を低減 |
 | **非目的（初期）** | チャット UI の自動復元、LLM 学習の法的保証、Cloud Agent |
 | **前提** | Gate filter、Dashboard MCP 制御、Phase 28 prompt-intent |
+| **実装状況** | Phase 31–33 **完了**（PR #63–#72）。Phase 34–35 は Cursor API 待ち |
+
+### 有効化
+
+```bash
+npm run cursor:registry   # beforeMCPExecution / preToolUse Read / beforeSubmitPrompt を hooks.json に登録
+# hooks には COSTGATE_SHIELD=1, COSTGATE_SHIELD_SESSION=cursor が設定される
+```
+
+Gate 側 redact は `COSTGATE_SHIELD=1`（`costgate-gate-launch.mjs` 経由でも可）。
 
 ---
 
@@ -106,11 +116,12 @@ flowchart TB
 
 **解決順:** `servers[name]` → Marketplace（`official`）→ `defaults` → `restricted`
 
-### 3.3 Dashboard
+### 3.3 Dashboard（実装済み）
 
-- MCP タブ: Trust 列（dropdown）
-- 初回 install 既定: `restricted`（ゼロトラスト寄り）
-- Overview: restricted 以下の MCP 件数
+- MCP タブ: Trust 列（dropdown、PATCH `/api/mcp-trust`）
+- 初回 install 既定: `restricted`（community）、`standard`（official）
+- Overview: restricted 以下の MCP 件数、Prompt Shield ブロック件数・最終ブロック
+- Prompt Shield パネル: 検出種別・マスク済みスニペット、サニタイズ版コピー（`POST /api/shield-prompt/sanitize`）
 
 ---
 
@@ -145,13 +156,19 @@ flowchart TB
 - `.env` 値、connection strings
 - `~/.costgate/redact-rules.json` カスタム
 
-### 4.4 環境変数（案）
+### 4.4 環境変数
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COSTGATE_SHIELD` | `0` | Gate redact 有効化 |
+| `COSTGATE_SHIELD` | `0` | Gate / Hook redact 有効化 |
 | `COSTGATE_SHIELD_DIR` | `~/.costgate/vault` | Vault ディレクトリ |
-| `COSTGATE_TRUST_PATH` | `~/.costgate/mcp-trust.json` | Trust 設定 |
+| `COSTGATE_SHIELD_SESSION` | `COSTGATE_CLIENT` → `"default"` | JS/Go vault 共有セッション ID |
+| `COSTGATE_TRUST_PATH` | `~/.costgate/mcp-trust.json` | Trust 設定（Go） |
+| `COSTGATE_SHIELD_PROMPT` | — | `1` で prompt block のみ有効（`COSTGATE_SHIELD` でも可） |
+| `COSTGATE_SHIELD_PROMPT_FAIL_OPEN` | — | `1` で prompt block を fail-open |
+| `COSTGATE_SHIELD_PROMPT_AGGRESSIVE` | — | `1` で email/phone/path も prompt block 対象 |
+| `COSTGATE_SHIELD_PROMPT_DIR` | `~/.costgate/shield-prompt/` | ブロックイベント保存先 |
+| `COSTGATE_MARKETPLACE_DIR` | — | Go 側 official 判定用 catalog |
 
 ---
 
@@ -159,11 +176,11 @@ flowchart TB
 
 | 経路 | 隠匿 | Agent 復元 | UI 復元 | 実装 |
 |------|------|-----------|---------|------|
-| MCP `tools/call` | ◎ | ◎ Gate | △ | **31b** |
-| Agent `Read` | ◎ | ◎ path 差替 | △ | **32a** |
-| User prompt | △ block | — | — | **33a** |
+| MCP `tools/call` | ◎ | ◎ Gate | △ | ✅ **31b** (#64) |
+| Agent `Read` | ◎ | ◎ path 差替 | △ | ✅ **32a–c** (#68–#70) |
+| User prompt | △ block | — | △ Dashboard コピー | ✅ **33a–b** (#71–#72) |
 | Shell 出力 | ✗ | ✗ | ✗ | 対象外 |
-| Agent 応答 | ✗ | ✗ | ✗ | Cursor API 待ち **35** |
+| Agent 応答 | ✗ | ✗ | ✗ | ⏸ Cursor API 待ち **35** |
 
 ---
 
@@ -184,61 +201,95 @@ flowchart TB
 
 ## 7. 実装フェーズ & タスク
 
-### Phase 31 — Shield + Trust（MCP 境界）
+### Phase 31 — Shield + Trust（MCP 境界） ✅
 
-| PR | タスク | 成果物 |
-|----|--------|--------|
-| **31a** | Trust スキーマ + Dashboard 読取 | `mcp-trust.json`, API overview |
-| **31b** | Gate redact/unredact + vault | `packages/gate/internal/shield/`, env |
-| **31c** | Dashboard Trust 編集 UI | MCP タブ dropdown, PATCH API |
-| **31d** | Hook `beforeMCPExecution` × trust | `cursor-shield-mcp-hook.mjs` |
-| **31e** | Marketplace 既定 trust + eval | `tasks.json`, baseline |
+| PR | タスク | 成果物 | 状態 |
+|----|--------|--------|------|
+| **31a** | Trust スキーマ + Dashboard 読取 | `mcp-trust.json`, API overview | ✅ #63 |
+| **31b** | Gate redact/unredact + vault | `packages/gate/internal/shield/`, env | ✅ #64 |
+| **31c** | Dashboard Trust 編集 UI | MCP タブ dropdown, PATCH API | ✅ #65 |
+| **31d** | Hook `beforeMCPExecution` × trust | `cursor-shield-mcp-hook.mjs` | ✅ #66 |
+| **31e** | Marketplace 既定 trust + eval | `tasks.json`, baseline | ✅ #67 |
 
 **31a 詳細タスク:**
-- [ ] `scripts/lib/mcp-trust.mjs` — load/merge/resolve
-- [ ] `buildDashboardData` に trust 列追加
-- [ ] `test/mcp-trust.test.mjs`
+- [x] `scripts/lib/mcp-trust.mjs` — load/merge/resolve
+- [x] `buildDashboardData` に trust 列追加
+- [x] `test/mcp-trust.test.mjs`
 
 **31b 詳細タスク:**
-- [ ] `shield/redact.go` — pattern + JSON field walk
-- [ ] `shield/vault.go` — read/write TTL map
-- [ ] `proxy/forward.go` — tools/call 前後に挿入
-- [ ] `COSTGATE_SHIELD=1` で有効化
-- [ ] Go tests + eval `shield_redacts_github_token`
+- [x] `shield/redact.go` — pattern + JSON field walk
+- [x] `shield/vault.go` — read/write TTL map
+- [x] `proxy/forward.go` — tools/call 前後に挿入
+- [x] `COSTGATE_SHIELD=1` で有効化
+- [x] Go tests + eval `shield_redacts_github_token`
+
+**31c 詳細タスク:**
+- [x] `PATCH /api/mcp-trust` + workspace 版
+- [x] MCP タブ Trust dropdown（save-on-change）
+- [x] trust バリデーション + テスト
+
+**31d 詳細タスク:**
+- [x] `cursor-shield-mcp-hook.mjs` — trust matrix (allow/ask/deny)
+- [x] `install-cursor-registry-hook.mjs` 登録
+- [x] `test/cursor-shield-mcp-hook.test.mjs`
+
+**31e 詳細タスク:**
+- [x] Marketplace install 既定 trust（official→standard, community→restricted）
+- [x] Go `IsOfficialMarketplace` catalog 連動
+- [x] eval `shield_trust_blocks_untrusted_mcp`
 
 ---
 
-### Phase 32 — Read Sanitizer（コード隠匿）
+### Phase 32 — Read Sanitizer（コード隠匿） ✅
 
-| PR | タスク | 成果物 |
-|----|--------|--------|
-| **32a** | `preToolUse` Read path 差替 | `cursor-shield-read-hook.mjs` |
-| **32b** | サニタイズ cache + vault 共有 | `.costgate/sanitized/` |
-| **32c** | `npm run cursor:registry` 統合 | hooks.json merge |
+| PR | タスク | 成果物 | 状態 |
+|----|--------|--------|------|
+| **32a** | `preToolUse` Read path 差替 | `cursor-shield-read-hook.mjs` | ✅ #68 |
+| **32b** | サニタイズ cache + vault 共有 | `.costgate/sanitized/` | ✅ #69 |
+| **32c** | `npm run cursor:registry` 統合 | hooks.json merge | ✅ #70 |
 
 **32a 詳細タスク:**
-- [ ] Read `preToolUse` matcher
-- [ ] 原文 → redact → shadow file 書込
-- [ ] `updated_input.path` を shadow に差替
-- [ ] `test/cursor-shield-read-hook.test.mjs`
+- [x] Read `preToolUse` matcher
+- [x] 原文 → redact → shadow file 書込
+- [x] `updated_input.path` を shadow に差替
+- [x] `test/cursor-shield-read-hook.test.mjs`
+
+**32b 詳細タスク:**
+- [x] `shield-cache.mjs` — mtime/hash キャッシュ（`.cgmeta.json`）
+- [x] JS/Go vault セッション共有（`COSTGATE_SHIELD_SESSION`）
+- [x] trust → redact mode（`shield-trust.mjs`）
+- [x] バイナリ skip（`shield-binary.mjs`）
+- [x] `.gitignore` に `.costgate/sanitized/`
+
+**32c 詳細タスク:**
+- [x] `preToolUse` Read を `cursor:registry` に登録
+- [x] Shield env 共有（`COSTGATE_SHIELD=1`, `COSTGATE_SHIELD_SESSION=cursor`）
+- [x] `test/install-cursor-registry-hook.test.mjs`
 
 ---
 
-### Phase 33 — Prompt 保護（ブロック + UX）
+### Phase 33 — Prompt 保護（ブロック + UX） ✅
 
-| PR | タスク | 成果物 |
-|----|--------|--------|
-| **33a** | `beforeSubmitPrompt` secret 検出 block | `cursor-shield-prompt-hook.mjs` |
-| **33b** | Dashboard: ブロック理由 + サニタイズ版提案 | UI modal / CLI |
+| PR | タスク | 成果物 | 状態 |
+|----|--------|--------|------|
+| **33a** | `beforeSubmitPrompt` secret 検出 block | `cursor-shield-prompt-hook.mjs` | ✅ #71 |
+| **33b** | Dashboard: ブロック理由 + サニタイズ版提案 | UI / CLI | ✅ #72 |
 
 **33a 詳細タスク:**
-- [ ] `inferSecrets(prompt)` — shield と共有ルール
-- [ ] `{ continue: false, user_message }` 
-- [ ] fail-open しない（設定で切替）
+- [x] `inferSecrets(prompt)` — `shield-redact.mjs` 共有ルール
+- [x] `{ continue: false, user_message }`
+- [x] fail-closed 既定（`COSTGATE_SHIELD_PROMPT_FAIL_OPEN=1` で切替）
+
+**33b 詳細タスク:**
+- [x] ブロックイベント保存（`shield-prompt.mjs`）
+- [x] Dashboard Overview + ブロックパネル（種別・スニペット・サニタイズ版）
+- [x] `GET /api/shield-prompt`, `POST /api/shield-prompt/sanitize`
+- [x] CLI `npm run shield:sanitize-prompt`
+- [x] `COSTGATE_SHIELD_PROMPT_AGGRESSIVE` 対応
 
 ---
 
-### Phase 34 — Cursor API 待ち（プロンプト自動 redact）
+### Phase 34 — Cursor API 待ち（プロンプト自動 redact） ⏸
 
 | 条件 | タスク |
 |------|--------|
@@ -247,7 +298,7 @@ flowchart TB
 
 ---
 
-### Phase 35 — 応答復元（Cursor API 待ち）
+### Phase 35 — 応答復元（Cursor API 待ち） ⏸
 
 | 条件 | タスク |
 |------|--------|
