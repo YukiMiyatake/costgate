@@ -20,6 +20,12 @@ import {
   toolOverridesPath,
 } from "./lib/dashboard-control.mjs";
 import {
+  addMcpServerRaw,
+  deleteMcpServer,
+  getMcpServerDetail,
+  updateMcpServerConfig,
+} from "./lib/mcp-crud.mjs";
+import {
   buildGateSettingsApiPayload,
   patchGateSettings,
 } from "./lib/gate-settings.mjs";
@@ -28,7 +34,14 @@ import {
   buildShieldPromptApiPayload,
   sanitizePromptApiBody,
 } from "./lib/shield-prompt.mjs";
-import { searchMarketplace, addMcpFromTemplate, suggestAllowedPaths, buildCategorySummary, parseMarketplaceOptions, loadBackendsJson } from "./lib/dashboard-marketplace.mjs";
+import {
+  searchMarketplace,
+  addMcpFromTemplate,
+  suggestAllowedPaths,
+  buildCategorySummary,
+  parseMarketplaceOptions,
+  loadBackendsJson,
+} from "./lib/dashboard-marketplace.mjs";
 import { resolveEffectiveConfig } from "./lib/dashboard-config-merge.mjs";
 import { defaultPaths } from "./lib/dashboard-data.mjs";
 import {
@@ -137,6 +150,16 @@ function resolveMarketplaceDir(controlPaths, dataOptions) {
     dataOptions.marketplaceDir ??
     defaultPaths().marketplaceDir
   );
+}
+
+function mcpCrudOpts(paths) {
+  return {
+    mcpPath: paths.mcpPath,
+    disabledPath: paths.disabledPath,
+    configPath: paths.configPath,
+    globalConfigPath: paths.globalPaths?.configPath ?? defaultPaths().configPath,
+    scoped: Boolean(paths.scoped),
+  };
 }
 
 function scopedDataOptions(workspaceCtx, dataOptions, controlPaths) {
@@ -257,6 +280,43 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       json(res, 404, { error: e.message ?? String(e) });
       return null;
     }
+  }
+
+  const mcpByName = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcps\/([^/]+)$/);
+  if (mcpByName && method === "GET") {
+    const resolved = resolveWorkspaceRequest(mcpByName[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const name = decodeURIComponent(mcpByName[2]);
+    try {
+      json(res, 200, { workspace_id: wsId, ...getMcpServerDetail(name, mcpCrudOpts(paths)) });
+    } catch (e) {
+      json(res, 404, { error: e.message ?? String(e) });
+    }
+    return true;
+  }
+  if (mcpByName && (method === "PUT" || method === "DELETE")) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const resolved = resolveWorkspaceRequest(mcpByName[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const name = decodeURIComponent(mcpByName[2]);
+    try {
+      if (method === "PUT") {
+        const body = await readBody(req);
+        const result = updateMcpServerConfig(name, body, mcpCrudOpts(paths));
+        json(res, 200, { workspace_id: wsId, ...result });
+      } else {
+        const result = deleteMcpServer(name, mcpCrudOpts(paths));
+        json(res, 200, { workspace_id: wsId, ...result });
+      }
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
+    return true;
   }
 
   const mcpPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/mcps\/([^/]+)$/);
@@ -405,8 +465,17 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       return true;
     }
     const body = await readBody(req);
+    if (body.name && body.config) {
+      try {
+        const result = addMcpServerRaw(body, mcpCrudOpts(paths));
+        json(res, 200, { ...result, workspace_id: wsId, workspace_path: paths.projectRoot });
+      } catch (e) {
+        json(res, 400, { error: e.message ?? String(e) });
+      }
+      return true;
+    }
     if (!body.template) {
-      json(res, 400, { error: "template required" });
+      json(res, 400, { error: "template or name+config required" });
       return true;
     }
     const result = addMcpFromTemplate(body.template, body.env ?? {}, {
@@ -567,6 +636,17 @@ function createDashboardServer(options = {}) {
           json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
           return;
         }
+        const mcpDetail = pathname.match(/^\/api\/mcps\/([^/]+)$/);
+        if (method === "GET" && mcpDetail) {
+          const name = decodeURIComponent(mcpDetail[1]);
+          try {
+            const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+            json(res, 200, getMcpServerDetail(name, mcpCrudOpts(paths)));
+          } catch (e) {
+            json(res, 404, { error: e.message ?? String(e) });
+          }
+          return;
+        }
         const mcpPreview = pathname.match(/^\/api\/mcps\/([^/]+)\/preview$/);
         if (mcpPreview) {
           const name = decodeURIComponent(mcpPreview[1]);
@@ -607,17 +687,26 @@ function createDashboardServer(options = {}) {
 
         if (pathname === "/api/mcps") {
           const body = await readBody(req);
-          const template = body.template;
-          if (!template) {
-            json(res, 400, { error: "template required" });
-            return;
-          }
           const paths = {
             ...defaultPaths(),
             ...dataOptions,
             ...controlPaths,
             marketplaceDir: marketplaceDirPath,
           };
+          if (body.name && body.config) {
+            try {
+              const result = addMcpServerRaw(body, mcpCrudOpts(paths));
+              json(res, 200, result);
+            } catch (e) {
+              json(res, 400, { error: e.message ?? String(e) });
+            }
+            return;
+          }
+          const template = body.template;
+          if (!template) {
+            json(res, 400, { error: "template or name+config required" });
+            return;
+          }
           const result = addMcpFromTemplate(template, body.env ?? {}, paths);
           json(res, 200, result);
           return;
@@ -630,6 +719,45 @@ function createDashboardServer(options = {}) {
         res.writeHead(404);
         res.end("Not found");
         return;
+      }
+
+      if (method === "PUT") {
+        if (!authorizeWrite(req)) {
+          json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+          return;
+        }
+        const mcpPut = pathname.match(/^\/api\/mcps\/([^/]+)$/);
+        if (mcpPut) {
+          const name = decodeURIComponent(mcpPut[1]);
+          const body = await readBody(req);
+          try {
+            const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+            const result = updateMcpServerConfig(name, body, mcpCrudOpts(paths));
+            json(res, 200, result);
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
+          return;
+        }
+      }
+
+      if (method === "DELETE") {
+        if (!authorizeWrite(req)) {
+          json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+          return;
+        }
+        const mcpDel = pathname.match(/^\/api\/mcps\/([^/]+)$/);
+        if (mcpDel) {
+          const name = decodeURIComponent(mcpDel[1]);
+          try {
+            const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+            const result = deleteMcpServer(name, mcpCrudOpts(paths));
+            json(res, 200, result);
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
+          return;
+        }
       }
 
       if (method === "PATCH") {

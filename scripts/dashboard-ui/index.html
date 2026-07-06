@@ -149,6 +149,9 @@
       <header class="panel-header">
         <h2 class="panel-title" data-i18n="mcps.title">MCPs</h2>
         <p class="panel-desc" data-i18n="mcps.desc">Registered MCP servers, Gate feature toggles, and enable/disable actions.</p>
+        <div class="panel-toolbar">
+          <button type="button" id="mcp-add-json-btn" class="btn-sm" data-i18n="mcps.addJson">JSON で追加</button>
+        </div>
       </header>
       <div id="gate-settings-panel" class="gate-settings-panel">
         <h3 class="subsection-title" data-i18n="mcps.gateSettingsTitle">costgate-gate settings</h3>
@@ -216,6 +219,28 @@
         </div>
         <div id="marketplace-results" class="marketplace-grid"></div>
       </div>
+      <details id="mcp-raw-add" class="mcp-raw-add">
+        <summary data-i18n="mcps.rawAddTitle">JSON で直接追加</summary>
+        <p class="note" data-i18n="mcps.rawAddDesc">マーケット以外の MCP を backends.json または mcp.json に追加します。</p>
+        <div class="mcp-json-form">
+          <label class="mcp-json-label">
+            <span data-i18n="mcps.rawName">名前</span>
+            <input type="text" id="mcp-raw-name" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="mcp-json-label">
+            <span data-i18n="mcps.rawTarget">保存先</span>
+            <select id="mcp-raw-target">
+              <option value="backend" data-i18n="mcps.targetBackend">Gate backend (backends.json)</option>
+              <option value="direct" data-i18n="mcps.targetDirect">直接 MCP (mcp.json)</option>
+            </select>
+          </label>
+          <label class="mcp-json-label mcp-json-label-full">
+            <span data-i18n="mcps.rawConfig">設定 JSON</span>
+            <textarea id="mcp-raw-config" rows="10" spellcheck="false"></textarea>
+          </label>
+          <button type="button" id="mcp-raw-submit" class="btn-sm btn-primary" data-i18n="mcps.rawSubmit">追加</button>
+        </div>
+      </details>
       <div id="wizard-form" class="wizard-form hidden">
         <h2 id="wizard-title"></h2>
         <p id="wizard-desc" class="note"></p>
@@ -229,6 +254,32 @@
       </div>
     </section>
   </main>
+
+  <dialog id="mcp-json-dialog" class="mcp-json-dialog">
+    <form method="dialog" id="mcp-json-form" class="mcp-json-form">
+      <h3 id="mcp-json-title" class="subsection-title"></h3>
+      <p id="mcp-json-path" class="note"></p>
+      <label class="mcp-json-label">
+        <span data-i18n="mcps.rawName">名前</span>
+        <input type="text" id="mcp-json-name" autocomplete="off" spellcheck="false" />
+      </label>
+      <label class="mcp-json-label">
+        <span data-i18n="mcps.rawTarget">保存先</span>
+        <select id="mcp-json-target">
+          <option value="backend" data-i18n="mcps.targetBackend">Gate backend (backends.json)</option>
+          <option value="direct" data-i18n="mcps.targetDirect">直接 MCP (mcp.json)</option>
+        </select>
+      </label>
+      <label class="mcp-json-label mcp-json-label-full">
+        <span data-i18n="mcps.rawConfig">設定 JSON</span>
+        <textarea id="mcp-json-editor" rows="14" spellcheck="false"></textarea>
+      </label>
+      <div class="wizard-actions">
+        <button type="button" id="mcp-json-cancel" class="btn-sm" data-i18n="common.cancel">キャンセル</button>
+        <button type="submit" id="mcp-json-save" class="btn-sm btn-primary" data-i18n="common.save">保存</button>
+      </div>
+    </form>
+  </dialog>
 
   <footer>
     <span id="health-status">Loading…</span>
