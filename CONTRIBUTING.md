@@ -6,13 +6,20 @@
 |------|----------|---------|
 | `packages/schema` | TypeScript | workspace only (for now) |
 | `packages/probe` | TypeScript | npm `@costgate/probe` |
+| `packages/cli` | JavaScript | npm `@costgate/cli` |
 | `packages/gate` | Go | GitHub Releases binary |
 
 **One repository is enough.** npm and Go binary are published from different paths in the same repo.
 
 ## Development setup
 
-### Option A — Host (Node 20+, Go 1.22+ optional)
+### Option A — End user (`@costgate/cli`)
+
+```bash
+npx @costgate/cli@latest init
+```
+
+### Option B — Host (Node 20+, Go 1.22+ optional)
 
 ```bash
 git clone https://github.com/YukiMiyatake/costgate.git
@@ -60,7 +67,8 @@ npm run build:gate
 
 | 用途 | コマンド |
 |------|----------|
-| ビルド | `npm run build` / `build:gate` |
+| 本番導入 | `npx @costgate/cli init` |
+| ビルド | `npm run build` / `build:gate` / `build:cli` |
 | Cursor 本番 | `cursor:production` / `cursor:measurement` |
 | Dashboard | `dashboard`（手動） / Gate 起動時は自動 |
 | Registry hook | `cursor:registry` |

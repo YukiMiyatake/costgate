@@ -39,7 +39,7 @@ jobs:
           node -e "
             const fs = require('fs');
             const ver = '${{ steps.ver.outputs.version }}';
-            for (const pkg of ['packages/schema/package.json', 'packages/probe/package.json']) {
+            for (const pkg of ['packages/schema/package.json', 'packages/probe/package.json', 'packages/cli/package.json']) {
               const j = JSON.parse(fs.readFileSync(pkg, 'utf8'));
               j.version = ver;
               fs.writeFileSync(pkg, JSON.stringify(j, null, 2) + '\n');
@@ -52,7 +52,7 @@ jobs:
       - run: npm ci
 
       - name: Build publishable packages
-        run: npm run build -w @costgate/schema && npm run build -w @costgate/probe
+        run: npm run build -w @costgate/schema && npm run build -w @costgate/probe && npm run build -w @costgate/cli
 
       - name: Publish @costgate/schema
         run: npm publish -w @costgate/schema --access public
@@ -61,5 +61,10 @@ jobs:
 
       - name: Publish @costgate/probe
         run: npm publish -w @costgate/probe --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @costgate/cli
+        run: npm publish -w @costgate/cli --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

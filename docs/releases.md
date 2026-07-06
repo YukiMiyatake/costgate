@@ -1,26 +1,48 @@
-# Gate releases
+# CostGate distribution & Gate releases
 
-`costgate-gate` is distributed as **GitHub Release binaries** (no Go required on the host).
+## Recommended install (`@costgate/cli`)
 
-## Install
+**One command** for Gate binary + Dashboard + Cursor hooks:
+
+```bash
+npx @costgate/cli@latest init
+# Restart Cursor MCP
+```
+
+| Command | Description |
+|---------|-------------|
+| `costgate init` | Full setup |
+| `costgate gate` | MCP entry (used by Cursor via npx) |
+| `costgate update` | Re-download Gate + refresh hooks |
+| `costgate registry` | Hooks only |
+
+Global install: `npm install -g @costgate/cli && costgate init`
+
+See [packages/cli/README.md](../packages/cli/README.md).
+
+---
+
+## Gate binary (GitHub Releases)
+
+`costgate-gate` is a **Go binary** on GitHub Releases. `@costgate/cli init` downloads to `~/.costgate/bin/` automatically.
+
+Manual install:
 
 ```bash
 chmod +x scripts/install-gate.sh
-./scripts/install-gate.sh              # latest
-./scripts/install-gate.sh v0.4.0       # specific tag
+./scripts/install-gate.sh              # latest → ~/.local/bin
+./scripts/install-gate.sh v0.6.0       # specific tag
 INSTALL_DIR=/usr/local/bin ./scripts/install-gate.sh
 ```
 
-Add `~/.local/bin` to `PATH` if needed.
-
-## Verify
+Verify:
 
 ```bash
 costgate-gate --version
-# costgate-gate 0.4.0 (abc1234)
+# costgate-gate 0.6.0 (abc1234)
 ```
 
-## Platforms
+### Platforms
 
 | OS | Arch | Archive |
 |----|------|---------|
@@ -28,56 +50,64 @@ costgate-gate --version
 | darwin | amd64, arm64 | `.tar.gz` |
 | windows | amd64, arm64 | `.zip` |
 
-Asset name: `costgate-gate_{version}_{os}_{arch}.{tar.gz|zip}`
+Asset: `costgate-gate_{version}_{os}_{arch}.{tar.gz|zip}`
+
+---
 
 ## Maintainer: cut a release
 
-1. Merge changes to `main`
-2. Tag and push:
-
 ```bash
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.6.0
+git push origin v0.6.0
 ```
 
-3. GitHub Actions runs:
-   - **`release.yml`** — goreleaser → Gate binaries
-   - **`npm-publish.yml`** — `@costgate/schema` + `@costgate/probe` to npm (requires `NPM_TOKEN`)
+GitHub Actions:
 
-Local dry-run (requires [goreleaser](https://goreleaser.com/) installed):
+| Workflow | Output |
+|----------|--------|
+| `release.yml` | Gate binaries (goreleaser) |
+| `npm-publish.yml` | `@costgate/schema`, `@costgate/probe`, `@costgate/cli` |
 
-```bash
-npm run release:check    # goreleaser check
-goreleaser release --snapshot --clean
-# dist/ にバイナリ（GitHub には upload しない）
-```
-
-## npm (Probe)
-
-Same tag `v*` publishes `@costgate/probe` and `@costgate/schema` to npm.
+Requires **`NPM_TOKEN`** secret.
 
 ```bash
-npx @costgate/probe@latest
+npm run publish:check
+npm run release:check
 ```
 
-Set repository secret **`NPM_TOKEN`** (npm automation token with publish scope).
+---
 
-## Cursor setup
+## npm packages
 
-After install, point `~/.cursor/mcp.json` at the binary:
+| Package | Use |
+|---------|-----|
+| `@costgate/cli` | Production entry — `init`, launcher, Dashboard |
+| `@costgate/probe` | Measurement only — `npx @costgate/probe` |
+
+---
+
+## Cursor setup options
+
+### A — CLI (recommended)
+
+`npx @costgate/cli init` writes:
 
 ```json
 {
   "mcpServers": {
     "costgate-gate": {
-      "command": "/home/you/.local/bin/costgate-gate",
-      "env": {
-        "COSTGATE_CONFIG": "/home/you/.costgate/backends.json",
-        "COSTGATE_COMPRESS": "1"
-      }
+      "command": "npx",
+      "args": ["-y", "@costgate/cli@0.6.0", "gate"],
+      "env": { "COSTGATE_CONFIG": "${workspaceFolder}/.costgate/backends.json", ... }
     }
   }
 }
 ```
 
-Or use `npm run cursor:production` when building from a cloned repo.
+### B — Binary only (minimal)
+
+[examples/cursor/mcp-gate-github.json](../examples/cursor/mcp-gate-github.json)
+
+### C — From cloned repo (developers)
+
+`npm run cursor:production`

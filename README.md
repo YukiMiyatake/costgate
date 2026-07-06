@@ -12,6 +12,7 @@ costgate/
 ├── packages/
 │   ├── schema/     @costgate/schema   — shared log schema
 │   ├── probe/      @costgate/probe    — measurement MCP (npm)
+│   ├── cli/        @costgate/cli       — npm entry (launcher, Dashboard, hooks)
 │   └── gate/       costgate-gate      — gateway MCP (Go binary)
 ├── docs/
 ├── examples/
@@ -24,11 +25,53 @@ See [docs/structure.md](./docs/structure.md) for why Probe and Gate share one re
 
 | Package | Dist | Description |
 |---------|------|-------------|
+| [@costgate/cli](./packages/cli/) | npm | **Recommended entry** — `init`, Gate launcher, Dashboard, Cursor hooks |
 | [@costgate/probe](./packages/probe/) | npm | Measurement MCP — baseline token usage, call stats, JSONL logs |
-| [costgate-gate](./packages/gate/) | binary | Gateway MCP — filtered tool exposure, delegation, cost reduction |
+| [costgate-gate](./packages/gate/) | GitHub Releases | Gateway MCP (Go) — filtered tools, Shield, cost reduction |
 | [@costgate/schema](./packages/schema/) | workspace | Shared JSON Schema for logs |
 
-## Quick start (Probe)
+## Quick start（本番・推奨）
+
+**Node のみ**で導入できます（Go のビルド不要）。Gate バイナリは `init` が GitHub Releases から取得します。
+
+```bash
+npx @costgate/cli@latest init
+# Cursor を再起動（MCP 再接続）
+```
+
+`init` の内容:
+
+- `~/.costgate/bin/costgate-gate` — Go バイナリ配置
+- `~/.cursor/mcp.json` — `npx @costgate/cli gate`（Dashboard 自動起動込み）
+- `~/.cursor/hooks.json` — Shield / prompt-intent 等
+- `~/.costgate/backends.json` — テンプレート（未存在時）
+
+更新: `npx @costgate/cli update`
+
+詳細: [packages/cli/README.md](./packages/cli/README.md) · [docs/releases.md](./docs/releases.md)
+
+### グローバルインストール（任意）
+
+```bash
+npm install -g @costgate/cli
+costgate init
+```
+
+## Quick start（開発者・リポジトリ clone）
+
+```bash
+git clone https://github.com/YukiMiyatake/costgate.git
+cd costgate
+npm install
+npm run build:gate          # または ./scripts/install-gate.sh
+cp examples/backends.github.json ~/.costgate/backends.json
+npm run cursor:production   # ローカルパスで mcp.json 更新
+npm run cursor:registry     # hooks 登録
+```
+
+Docker のみ: [docs/docker.md](./docs/docker.md)
+
+## Quick start (Probe — 計測のみ)
 
 ### Option A — npx (published)
 
@@ -60,40 +103,24 @@ npm install
 npm run build:probe
 ```
 
-See [examples/cursor/](./examples/cursor/) for full configuration.
+See [examples/cursor/](./examples/cursor/) for measurement configuration.
 
-## Quick start (Gate)
+## Gate（上級者向け・バイナリのみ）
 
-Requires **Go 1.25+** to build from source, or install a release binary (no Go):
+Go バイナリだけ使う最小構成（Dashboard / Hooks なし）:
 
 ```bash
-# Option A — GitHub Release (recommended for end users)
 ./scripts/install-gate.sh          # → ~/.local/bin/costgate-gate
 costgate-gate --version
-
-# Option B — build from source
-npm run build:gate
-npm run test:gate   # smoke test (GitHub backend via ~/.costgate/backends.json)
 ```
 
-Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · see [docs/RELEASE.md](./docs/RELEASE.md)
+`~/.cursor/mcp.json` 例: [examples/cursor/mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)
 
-Add to Cursor `~/.cursor/mcp.json` (see [mcp-gate-github.json](./examples/cursor/mcp-gate-github.json)):
+リポジトリからビルド: `npm run build:gate`（Go 1.25+）
 
-```json
-{
-  "mcpServers": {
-    "costgate-gate": {
-      "command": "/path/to/costgate/packages/gate/bin/costgate-gate",
-      "env": {
-        "COSTGATE_CONFIG": "~/.costgate/backends.json"
-      }
-    }
-  }
-}
-```
+Releases: [GitHub Releases](https://github.com/YukiMiyatake/costgate/releases) · [docs/RELEASE.md](./docs/RELEASE.md)
 
-**Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. Set `COSTGATE_GATE_MODE=transparent` for pass-through baseline. See [packages/gate/README.md](./packages/gate/README.md).
+**Filter mode (default):** Tier A/B/C + `discover_tools` / `invoke_tool`. See [packages/gate/README.md](./packages/gate/README.md).
 
 Compare reduction: `npm run compare` (definitions) · `npm run compress-report` (definitions + tool results).
 
@@ -101,7 +128,7 @@ Session breakdown: `npm run session-report` (fixed + variable + overall % scenar
 
 Measured benchmarks: [docs/benchmarks.md](./docs/benchmarks.md)
 
-Production Cursor setup: `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
+Production Cursor setup (clone): `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
 
 Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud).
 

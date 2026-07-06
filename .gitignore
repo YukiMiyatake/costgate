@@ -15,6 +15,7 @@ test/fixtures/dashboard/.generated-logs/
 # Go
 packages/gate/bin/
 packages/gate/vendor/
+packages/cli/runtime/
 
 # IDE
 .idea/

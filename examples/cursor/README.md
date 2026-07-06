@@ -1,15 +1,19 @@
 # Cursor MCP examples
 
-## Production (daily use) — recommended
-
-**[mcp-production.json](./mcp-production.json)** — **costgate-gate** (GitHub filtered via `~/.costgate/backends.json`).
+## Production (recommended) — `@costgate/cli`
 
 ```bash
-npm run build:gate
-cp examples/backends.github.json ~/.costgate/backends.json   # if needed
-npm run cursor:production
+npx @costgate/cli@latest init
 # Restart Cursor MCP
 ```
+
+`init` configures `~/.cursor/mcp.json`, `~/.cursor/hooks.json`, Gate binary, and `~/.costgate/backends.json`.
+
+Update: `npx @costgate/cli update`
+
+## Production (from cloned repo)
+
+**[mcp-production.json](./mcp-production.json)** — local paths via `npm run cursor:production`.
 
 Docker のみ（ホスト Node/Go 不要）:
 
@@ -51,7 +55,8 @@ npm run cursor:measurement
 
 | File | Use |
 |------|-----|
-| [mcp-gate-github.json](./mcp-gate-github.json) | Gate 最小構成（パス差し替え用） |
+| [mcp-cli.json](./mcp-cli.json) | `@costgate/cli init` が書き込む構成の参考 |
+| [mcp-gate-github.json](./mcp-gate-github.json) | Gate 最小構成（バイナリのみ） |
 | [mcp-probe-github.json](./mcp-probe-github.json) | Probe 計測用テンプレート |
 
 ## Verify

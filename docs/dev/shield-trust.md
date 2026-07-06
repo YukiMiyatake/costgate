@@ -13,7 +13,8 @@ MCP 経由の機密漏洩防止（Shield）と MCP ごとの信頼度（Trust）
 ### 有効化
 
 ```bash
-npm run cursor:registry   # beforeMCPExecution / preToolUse Read / beforeSubmitPrompt を hooks.json に登録
+npx @costgate/cli@latest init    # mcp.json + hooks（Shield 含む）
+# または clone 後: npm run cursor:registry
 # hooks には COSTGATE_SHIELD=1, COSTGATE_SHIELD_SESSION=cursor が設定される
 ```
 

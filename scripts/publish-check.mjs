@@ -17,6 +17,7 @@ function readPkg(rel) {
 function main() {
   const schema = readPkg("packages/schema/package.json");
   const probe = readPkg("packages/probe/package.json");
+  const cli = readPkg("packages/cli/package.json");
   const errors = [];
 
   if (schema.version !== probe.dependencies["@costgate/schema"]) {
@@ -25,8 +26,16 @@ function main() {
     );
   }
 
+  if (schema.version !== cli.version) {
+    errors.push(`@costgate/cli version ${cli.version} != schema ${schema.version}`);
+  }
+
   if (!probe.name.startsWith("@costgate/")) {
     errors.push("probe package name unexpected");
+  }
+
+  if (cli.name !== "@costgate/cli") {
+    errors.push("cli package name unexpected");
   }
 
   if (errors.length) {
@@ -35,7 +44,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`[publish:check] ok — schema/probe @ ${schema.version}`);
+  console.log(`[publish:check] ok — schema/probe/cli @ ${schema.version}`);
 }
 
 main();
