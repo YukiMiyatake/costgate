@@ -53,6 +53,17 @@ const HOST = process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
 const PORT = Number(process.env.COSTGATE_DASHBOARD_PORT ?? "8787");
 const WRITE_TOKEN = process.env.COSTGATE_DASHBOARD_TOKEN ?? "";
 
+async function probeLocalDashboard(host = HOST, port = PORT) {
+  try {
+    const res = await fetch(`http://${host}:${port}/api/health`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -709,14 +720,33 @@ function createDashboardServer(options = {}) {
   });
 }
 
-function main() {
+async function main() {
   if (HOST !== "127.0.0.1" && HOST !== "::1" && HOST !== "localhost") {
     console.error(
       `[dashboard] warning: binding to ${HOST} exposes local MCP data. Use 127.0.0.1 unless intentional.`
     );
   }
 
+  if (await probeLocalDashboard()) {
+    console.log(`CostGate Dashboard already running`);
+    console.log(`  http://${HOST}:${PORT}`);
+    process.exit(0);
+  }
+
   const server = createDashboardServer();
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `[dashboard] port ${PORT} already in use (127.0.0.1:${PORT}).\n` +
+          `  Another Dashboard may be running (e.g. Gate auto-start).\n` +
+          `  Open http://${HOST}:${PORT} in your browser.\n` +
+          `  To restart: free port ${PORT} (e.g. fuser -k ${PORT}/tcp) and run again.`
+      );
+      process.exit(1);
+    }
+    console.error("[dashboard]", err.message ?? err);
+    process.exit(1);
+  });
   server.listen(PORT, HOST, () => {
     console.log(`CostGate Dashboard`);
     console.log(`  http://${HOST}:${PORT}`);
