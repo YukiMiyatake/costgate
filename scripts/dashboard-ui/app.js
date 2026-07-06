@@ -253,6 +253,19 @@ function setupWorkspaces() {
 
 const MCP_TRUST_LEVELS = ["trusted", "standard", "restricted", "untrusted"];
 
+function mcpUpdatedMessage(result) {
+  const updated = result?.updated ?? {};
+  if (updated.mcp_json && updated.mcp_disabled) return t("mcps.mcpUpdatedBoth");
+  if (updated.mcp_disabled && result?.role === "backend") return t("mcps.mcpUpdatedBackend");
+  return t("mcps.mcpUpdated");
+}
+
+function mcpStatusBadge(enabled) {
+  return enabled === false
+    ? badge(t("mcps.badgeDisabled"), false, "mcp-status mcp-status-off")
+    : badge(t("mcps.badgeEnabled"), true, "mcp-status mcp-status-on");
+}
+
 function trustBadge(trust, origin) {
   const level = (trust ?? "—").toLowerCase();
   const label = origin && origin !== "default" && origin !== "config" ? `${trust} (${origin})` : (trust ?? "—");
@@ -811,29 +824,34 @@ function renderMcps(data) {
   wrap?.classList.remove("hidden");
   for (const s of servers) {
     const tr = document.createElement("tr");
-    const measured = s.enabled === false
-      ? badge(t("mcps.badgeDisabled"))
-      : s.measured
-        ? badge(t("mcps.badgeMeasured"), true)
-        : badge(t("mcps.badgeBlind"));
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = s.enabled === false ? "btn-sm btn-enable" : "btn-sm btn-disable";
-    toggle.textContent = s.enabled === false ? t("mcps.enable") : t("mcps.disable");
-    toggle.onclick = async () => {
-      const enable = s.enabled === false;
-      if (!enable && !confirm(t("mcps.disableConfirm", { name: s.name }))) return;
-      try {
-        await fetchJson(apiPath(`mcps/${encodeURIComponent(s.name)}`), {
-          method: "PATCH",
-          body: JSON.stringify({ enabled: enable }),
-        });
-        await reload();
-        showToast(t("mcps.mcpUpdated"), { kind: "success" });
-      } catch (e) {
-        showToast(e.message);
-      }
-    };
+    const measured = s.measured
+      ? badge(t("mcps.badgeMeasured"), true)
+      : badge(t("mcps.badgeBlind"));
+    const actionCell = document.createElement("td");
+    actionCell.appendChild(mcpStatusBadge(s.enabled !== false));
+    const canToggle = s.role !== "gate" && s.role !== "probe";
+    if (canToggle) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = s.enabled === false ? "btn-sm btn-enable" : "btn-sm btn-disable";
+      toggle.textContent = s.enabled === false ? t("mcps.enable") : t("mcps.disable");
+      toggle.onclick = async () => {
+        const enable = s.enabled === false;
+        if (!enable && !confirm(t("mcps.disableConfirm", { name: s.name }))) return;
+        try {
+          const result = await fetchJson(apiPath(`mcps/${encodeURIComponent(s.name)}`), {
+            method: "PATCH",
+            body: JSON.stringify({ enabled: enable }),
+          });
+          await reload();
+          showToast(mcpUpdatedMessage(result), { kind: "success" });
+        } catch (e) {
+          showToast(e.message);
+        }
+      };
+      actionCell.appendChild(document.createTextNode(" "));
+      actionCell.appendChild(toggle);
+    }
     tr.innerHTML = `
       <td>${s.name}</td>
       <td></td>
@@ -858,7 +876,7 @@ function renderMcps(data) {
         : trustSelect(s)
     );
     tr.children[3].appendChild(measured);
-    tr.children[5].appendChild(toggle);
+    tr.children[5].replaceWith(actionCell);
     body.appendChild(tr);
   }
 }

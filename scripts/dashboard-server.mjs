@@ -274,11 +274,17 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
       json(res, 400, { error: "enabled (boolean) required" });
       return true;
     }
-    const result = setMcpServerEnabled(name, body.enabled, {
-      mcpPath: paths.mcpPath,
-      disabledPath: paths.disabledPath,
-    });
-    json(res, 200, { ok: true, workspace_id: wsId, ...result });
+    try {
+      const result = setMcpServerEnabled(name, body.enabled, {
+        mcpPath: paths.mcpPath,
+        disabledPath: paths.disabledPath,
+        configPath: paths.configPath,
+        globalConfigPath: paths.globalPaths?.configPath ?? defaultPaths().configPath,
+      });
+      json(res, 200, { ok: true, workspace_id: wsId, ...result });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
+    }
     return true;
   }
 
@@ -675,11 +681,18 @@ function createDashboardServer(options = {}) {
             json(res, 400, { error: "enabled (boolean) required" });
             return;
           }
-          const result = setMcpServerEnabled(name, body.enabled, {
-            mcpPath: controlPaths.mcpPath,
-            disabledPath: controlPaths.disabledPath,
-          });
-          json(res, 200, { ok: true, ...result });
+          try {
+            const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+            const result = setMcpServerEnabled(name, body.enabled, {
+              mcpPath: controlPaths.mcpPath,
+              disabledPath: controlPaths.disabledPath,
+              configPath: paths.configPath,
+              globalConfigPath: defaultPaths().configPath,
+            });
+            json(res, 200, { ok: true, ...result });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
+          }
           return;
         }
 

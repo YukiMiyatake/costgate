@@ -367,7 +367,8 @@ function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}, ba
   }
 
   for (const [name, cfg] of Object.entries(disabledStore)) {
-    if (seen.has(name)) continue;
+    if (seen.has(name) || backends[name]) continue;
+    seen.add(name);
     items.push({
       name,
       source: "mcp-disabled.json",
@@ -382,6 +383,7 @@ function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}, ba
 
   for (const backend of Object.keys(backends)) {
     if (seen.has(backend)) continue;
+    seen.add(backend);
     const stats = byBackend.get(backend);
     items.push({
       name: backend,
@@ -389,6 +391,7 @@ function buildMcps(mcpServers, backends, byBackend, mode, disabledStore = {}, ba
       role: "backend",
       measured: true,
       blind_spot: false,
+      enabled: !Object.hasOwn(disabledStore, backend),
       command: backends[backend]?.command ?? null,
       backends: [backend],
       call_count: stats?.call_count ?? 0,
