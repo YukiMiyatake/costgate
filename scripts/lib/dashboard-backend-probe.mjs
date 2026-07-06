@@ -12,7 +12,13 @@ import { summarizeTools } from "@costgate/probe/metrics";
 import { readJson } from "./read-json.mjs";
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
+const SERENA_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 20_000;
+
+const SERENA_PROBE_FLAGS = [
+  ["--open-web-dashboard", "false"],
+  ["--enable-gui-log-window", "false"],
+];
 
 export function backendToolsCachePath() {
   return (
@@ -33,6 +39,65 @@ function probeTimeoutMs() {
   if (raw == null || raw === "") return DEFAULT_TIMEOUT_MS;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_TIMEOUT_MS;
+}
+
+function backendProbeTtlMs(backendName) {
+  const envKey = `COSTGATE_BACKEND_PROBE_TTL_${String(backendName).toUpperCase()}_MS`;
+  const raw = process.env[envKey];
+  if (raw != null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  if (backendName === "serena") return SERENA_TTL_MS;
+  return cacheTtlMs();
+}
+
+function hasCliFlag(args, flag) {
+  return (args ?? []).some(
+    (arg, index) =>
+      arg === flag ||
+      arg.startsWith(`${flag}=`) ||
+      (index > 0 && args[index - 1] === flag)
+  );
+}
+
+function appendCliFlags(args, flagPairs) {
+  const next = [...(args ?? [])];
+  for (const [flag, value] of flagPairs) {
+    if (hasCliFlag(next, flag)) continue;
+    next.push(flag, value);
+  }
+  return next;
+}
+
+export function isSerenaBackend(name, config = {}) {
+  if (name === "serena") return true;
+  const args = config.args ?? [];
+  const joined = [config.command, ...args].filter(Boolean).join(" ");
+  return /\bserena\b/.test(joined) && /\bstart-mcp-server\b/.test(joined);
+}
+
+/** Probe-only overrides: no browser/GUI when spawning Serena for tools/list. */
+export function prepareProbeConfig(name, config = {}) {
+  if (!config.command) return { ...config };
+  if (!isSerenaBackend(name, config)) return { ...config };
+  return {
+    ...config,
+    args: appendCliFlags(config.args, SERENA_PROBE_FLAGS),
+  };
+}
+
+/** Prefer probe_url (reuse running HTTP MCP) over spawning stdio. */
+export function resolveProbeConfig(name, config = {}) {
+  const probeUrl = config.probe_url ?? config.probeUrl;
+  if (probeUrl) {
+    return {
+      url: probeUrl,
+      headers: config.probe_headers ?? config.headers ?? null,
+    };
+  }
+  if (config.url) return config;
+  return prepareProbeConfig(name, config);
 }
 
 export function backendConfigFingerprint(config = {}) {
@@ -65,7 +130,12 @@ export function isBackendCacheStale(cache, backendName, config) {
   if (!entry?.probed_at) return true;
   if (entry.fingerprint !== backendConfigFingerprint(config)) return true;
   const age = Date.now() - Date.parse(entry.probed_at);
-  return Number.isNaN(age) || age > cacheTtlMs();
+  return Number.isNaN(age) || age > backendProbeTtlMs(backendName);
+}
+
+export function isBackendCacheMissing(cache, backendName) {
+  const entry = cache?.backends?.[backendName];
+  return !entry?.tools?.length && !entry?.error;
 }
 
 export function backendsNeedingProbe(backends, catalogs) {
@@ -91,22 +161,23 @@ async function withTimeout(promise, timeoutMs, label) {
 
 export async function probeOneBackend(name, config, options = {}) {
   const timeoutMs = options.timeoutMs ?? probeTimeoutMs();
+  const probeConfig = resolveProbeConfig(name, config);
   const client = new Client(
     { name: "costgate-dashboard", version: "0.1.0" },
     { capabilities: {} }
   );
 
   let transport;
-  if (config.url) {
-    transport = new StreamableHTTPClientTransport(new URL(config.url), {
-      requestInit: config.headers ? { headers: config.headers } : undefined,
+  if (probeConfig.url) {
+    transport = new StreamableHTTPClientTransport(new URL(probeConfig.url), {
+      requestInit: probeConfig.headers ? { headers: probeConfig.headers } : undefined,
     });
-  } else if (config.command) {
+  } else if (probeConfig.command) {
     transport = new StdioClientTransport({
-      command: config.command,
-      args: config.args ?? [],
-      env: { ...process.env, ...(config.env ?? {}) },
-      cwd: config.cwd,
+      command: probeConfig.command,
+      args: probeConfig.args ?? [],
+      env: { ...process.env, ...(probeConfig.env ?? {}) },
+      cwd: probeConfig.cwd,
       stderr: "pipe",
     });
   } else {
@@ -142,9 +213,13 @@ export async function ensureBackendToolsCache(backends, catalogs, options = {}) 
   const cachePath = options.cachePath ?? backendToolsCachePath();
   const cache = loadBackendToolsCache(cachePath);
   const errors = {};
-  const targets = backendsNeedingProbe(backends, catalogs).filter((name) =>
-    options.force ? true : isBackendCacheStale(cache, name, backends[name])
-  );
+  const candidates = backendsNeedingProbe(backends, catalogs);
+  const only = options.only?.length ? new Set(options.only) : null;
+  const targets = candidates.filter((name) => {
+    if (only && !only.has(name)) return false;
+    if (options.force) return true;
+    return isBackendCacheStale(cache, name, backends[name]);
+  });
 
   if (!targets.length) {
     return { cache, errors };
