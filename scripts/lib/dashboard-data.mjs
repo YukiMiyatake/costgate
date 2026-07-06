@@ -555,5 +555,11 @@ export function buildHealth(extra = {}) {
       shield_prompt: existsSync(paths.shieldPromptBlockDir),
       mcp_trust: existsSync(paths.trustPath),
     },
+    capabilities: {
+      ui_settings: true,
+      shield_settings: true,
+      gate_settings: true,
+      mcp_trust: true,
+    },
   };
 }

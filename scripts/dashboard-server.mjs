@@ -46,23 +46,17 @@ import {
   patchShieldSettings,
 } from "./lib/shield-settings.mjs";
 import { defaultHooksPath } from "./lib/cursor-hooks.mjs";
+import {
+  fetchDashboardHealth,
+  isDashboardFresh,
+  killProcessOnPort,
+} from "./lib/dashboard-probe.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
 const HOST = process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
 const PORT = Number(process.env.COSTGATE_DASHBOARD_PORT ?? "8787");
 const WRITE_TOKEN = process.env.COSTGATE_DASHBOARD_TOKEN ?? "";
-
-async function probeLocalDashboard(host = HOST, port = PORT) {
-  try {
-    const res = await fetch(`http://${host}:${port}/api/health`, {
-      signal: AbortSignal.timeout(2000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -727,10 +721,17 @@ async function main() {
     );
   }
 
-  if (await probeLocalDashboard()) {
+  if (await isDashboardFresh({ host: HOST, port: PORT })) {
     console.log(`CostGate Dashboard already running`);
     console.log(`  http://${HOST}:${PORT}`);
     process.exit(0);
+  }
+
+  const existing = await fetchDashboardHealth({ host: HOST, port: PORT, timeoutMs: 2000 });
+  if (existing.ok) {
+    console.error(`[dashboard] stale dashboard on port ${PORT} — restarting with current code`);
+    await killProcessOnPort(PORT);
+    await new Promise((r) => setTimeout(r, 300));
   }
 
   const server = createDashboardServer();

@@ -18,6 +18,7 @@ const TESTS = [
   "dashboard-workspaces.test.mjs",
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",
+  "dashboard-probe.test.mjs",
   "cursor-registry-hook.test.mjs",
   "install-cursor-registry-hook.test.mjs",
   "cursor-prompt-intent-hook.test.mjs",
