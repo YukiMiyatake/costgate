@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/shield"
@@ -23,6 +24,18 @@ func newForwardContext(backendName string) (*forwardContext, error) {
 	return &forwardContext{backendName: backendName, shield: h}, nil
 }
 
+func newForwardContexts(registry *backend.Registry) (map[string]*forwardContext, error) {
+	fcs := make(map[string]*forwardContext, registry.Count())
+	for _, name := range registry.Names() {
+		fc, err := newForwardContext(name)
+		if err != nil {
+			return nil, err
+		}
+		fcs[name] = fc
+	}
+	return fcs, nil
+}
+
 func (fc *forwardContext) shieldHandler() *shield.Handler {
 	if fc == nil {
 		return nil
@@ -30,14 +43,18 @@ func (fc *forwardContext) shieldHandler() *shield.Handler {
 	return fc.shield
 }
 
-func callBackendFromRequest(ctx context.Context, backend *mcp.ClientSession, req *mcp.CallToolRequest, fc *forwardContext) (*mcp.CallToolResult, error) {
-	var h *shield.Handler
-	backendName := ""
-	if fc != nil {
-		h = fc.shield
-		backendName = fc.backendName
+func callBackendFromRequest(ctx context.Context, registry *backend.Registry, req *mcp.CallToolRequest, fcs map[string]*forwardContext) (*mcp.CallToolResult, error) {
+	session, backendName, rawTool, err := backend.ResolveRoute(registry, req.Params.Name)
+	if err != nil {
+		return nil, err
 	}
-	result, callMeta, err := shield.CallTool(ctx, backend, backendName, h, req.Params.Name, req.Params.Arguments)
+	var h *shield.Handler
+	if fcs != nil {
+		if fc := fcs[backendName]; fc != nil {
+			h = fc.shield
+		}
+	}
+	result, callMeta, err := shield.CallTool(ctx, session, backendName, h, rawTool, req.Params.Arguments)
 	if err == nil && !meta.IsMeta(req.Params.Name) {
 		gatelog.LogToolCall(req.Params.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
 	}

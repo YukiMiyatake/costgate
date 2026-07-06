@@ -67,6 +67,66 @@ export function mockBackendsConfigPath(backend = "mock", fixtureJs = mockMcpJs()
   return path;
 }
 
+/** Write backends.json with mock-mcp + mock-filesystem-mcp for multi-backend tests. */
+export function mockMultiBackendsConfigPath() {
+  const dir = join(ROOT, "test/fixtures/.generated");
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, "backends.multi.json");
+  writeFileSync(
+    path,
+    JSON.stringify(
+      {
+        backends: {
+          mock: {
+            always: true,
+            command: process.execPath,
+            args: [mockMcpJs()],
+          },
+          filesystem: {
+            always: true,
+            command: process.execPath,
+            args: [mockFilesystemMcpJs()],
+          },
+        },
+      },
+      null,
+      2
+    )
+  );
+  return path;
+}
+
+/** Base env for Gate with two mock backends. */
+export function mockMultiGateEnv(clientName, extra = {}) {
+  const paths = mockTestPaths(clientName);
+  mkdirSync(paths.vault, { recursive: true });
+  writeFileSync(
+    paths.trust,
+    `${JSON.stringify(
+      {
+        version: 1,
+        defaults: { gate_backend: "standard", direct_mcp: "restricted", unknown: "restricted" },
+        servers: {
+          "costgate-gate": { trust: "trusted", source: "builtin" },
+          mock: { trust: "standard" },
+          filesystem: { trust: "standard" },
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+  return baseGateEnv(clientName, {
+    COSTGATE_CONFIG: mockMultiBackendsConfigPath(),
+    COSTGATE_USAGE_PATH: paths.usage,
+    COSTGATE_PROBE_LOG_DIR: paths.logs,
+    COSTGATE_PROMPT_INTENT_DIR: paths.promptIntent,
+    COSTGATE_SHIELD_DIR: paths.vault,
+    COSTGATE_TRUST_PATH: paths.trust,
+    ...extra,
+  });
+}
+
 /** Isolated usage + log paths for integration tests. */
 export function mockTestPaths(prefix = "integration") {
   const base = join(tmpdir(), `costgate-${prefix}-${process.pid}`);

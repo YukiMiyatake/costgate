@@ -37,6 +37,24 @@ func LoadTierRules(backend string) (*TierRules, error) {
 	return &rules, nil
 }
 
+// ApplyForBackend overlays tier overrides using qualified tool names.
+func (r *TierRules) ApplyForBackend(classified map[string]filter.Tier, backend string) map[string]filter.Tier {
+	if r == nil || len(r.Overrides) == 0 {
+		return classified
+	}
+	out := make(map[string]filter.Tier, len(classified))
+	for name, tier := range classified {
+		out[name] = tier
+	}
+	for name, tierStr := range r.Overrides {
+		qualified := QualifyName(backend, name)
+		if tier, ok := parseTierLabel(tierStr); ok {
+			out[qualified] = tier
+		}
+	}
+	return out
+}
+
 // Apply overlays explicit tier overrides onto classified tiers.
 func (r *TierRules) Apply(classified map[string]filter.Tier) map[string]filter.Tier {
 	if r == nil || len(r.Overrides) == 0 {

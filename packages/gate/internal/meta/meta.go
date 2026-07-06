@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
@@ -37,7 +38,7 @@ var invokeSchema = json.RawMessage(`{
   "properties": {
     "name": {
       "type": "string",
-      "description": "Backend tool name to call"
+      "description": "Backend tool name to call (backend/tool when multiple backends)"
     },
     "arguments": {
       "type": "object",
@@ -53,11 +54,10 @@ func Register(
 	server *mcp.Server,
 	cat *catalog.Catalog,
 	tiers map[string]filter.Tier,
-	backend *mcp.ClientSession,
+	registry *backend.Registry,
 	onInvoke func(tool string),
 	isListed func(name string) bool,
-	backendName string,
-	shieldH *shield.Handler,
+	shields map[string]*shield.Handler,
 ) {
 	server.AddTool(&mcp.Tool{
 		Name:        ToolDiscover,
@@ -72,7 +72,7 @@ func Register(
 		Description: "Call any backend MCP tool by name. Use discover_tools when the tool is missing from tools/list.",
 		InputSchema: invokeSchema,
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return handleInvoke(ctx, cat, backend, backendName, shieldH, onInvoke, req.Params.Arguments)
+		return handleInvoke(ctx, cat, registry, shields, onInvoke, req.Params.Arguments)
 	})
 }
 
@@ -128,7 +128,7 @@ func handleDiscover(
 	}, nil
 }
 
-func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.ClientSession, backendName string, shieldHandler *shield.Handler, onInvoke func(string), raw json.RawMessage) (*mcp.CallToolResult, error) {
+func handleInvoke(ctx context.Context, cat *catalog.Catalog, registry *backend.Registry, shields map[string]*shield.Handler, onInvoke func(string), raw json.RawMessage) (*mcp.CallToolResult, error) {
 	var args struct {
 		Name      string          `json:"name"`
 		Arguments json.RawMessage `json:"arguments"`
@@ -142,7 +142,15 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, backend *mcp.Client
 	if _, ok := cat.Get(args.Name); !ok {
 		return nil, fmt.Errorf("unknown tool %q", args.Name)
 	}
-	result, callMeta, err := shield.CallTool(ctx, backend, backendName, shieldHandler, args.Name, args.Arguments)
+	session, backendName, rawTool, err := backend.ResolveRoute(registry, args.Name)
+	if err != nil {
+		return nil, err
+	}
+	var shieldH *shield.Handler
+	if shields != nil {
+		shieldH = shields[backendName]
+	}
+	result, callMeta, err := shield.CallTool(ctx, session, backendName, shieldH, rawTool, args.Arguments)
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
 	}

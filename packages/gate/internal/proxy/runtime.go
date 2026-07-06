@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/codemode"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
@@ -18,41 +19,44 @@ import (
 
 // filterRuntime manages dynamic tools/list exposure for filter mode.
 type filterRuntime struct {
-	server      *mcp.Server
-	cat         *catalog.Catalog
-	tiers       map[string]filter.Tier
-	backend     *mcp.ClientSession
-	store       *usage.Store
-	static      string
-	backendName string
-	fc          *forwardContext
-	live        map[string]bool
+	server   *mcp.Server
+	cat      *catalog.Catalog
+	tiers    map[string]filter.Tier
+	registry *backend.Registry
+	store    *usage.Store
+	static   string
+	fcs      map[string]*forwardContext
+	live     map[string]bool
 }
 
 func newFilterRuntime(
 	server *mcp.Server,
 	cat *catalog.Catalog,
 	tiers map[string]filter.Tier,
-	backend *mcp.ClientSession,
+	registry *backend.Registry,
 	store *usage.Store,
 	staticIntent string,
-	backendName string,
-	fc *forwardContext,
+	fcs map[string]*forwardContext,
 ) *filterRuntime {
 	r := &filterRuntime{
-		server:      server,
-		cat:         cat,
-		tiers:       tiers,
-		backend:     backend,
-		store:       store,
-		static:      staticIntent,
-		backendName: backendName,
-		fc:          fc,
-		live:        map[string]bool{},
+		server:   server,
+		cat:      cat,
+		tiers:    tiers,
+		registry: registry,
+		store:    store,
+		static:   staticIntent,
+		fcs:      fcs,
+		live:     map[string]bool{},
 	}
-	meta.Register(server, cat, tiers, backend, r.record, func(name string) bool {
+	shields := make(map[string]*shield.Handler, len(fcs))
+	for name, fc := range fcs {
+		if fc != nil {
+			shields[name] = fc.shieldHandler()
+		}
+	}
+	meta.Register(server, cat, tiers, registry, r.record, func(name string) bool {
 		return r.live[name]
-	}, r.backendName, r.fc.shieldHandler())
+	}, shields)
 	r.syncTools()
 	return r
 }
@@ -107,7 +111,7 @@ func (r *filterRuntime) syncTools() {
 		r.live[name] = true
 	}
 
-	gatelog.LogToolsList(r.backendName, len(desired), gatelog.EstimateListTokens(exposed))
+	gatelog.LogToolsList(r.registry.String(), len(desired), gatelog.EstimateListTokens(exposed))
 }
 
 func (r *filterRuntime) addTool(tool *mcp.Tool) {
@@ -117,7 +121,7 @@ func (r *filterRuntime) addTool(tool *mcp.Tool) {
 	}
 	name := tool.Name
 	r.server.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		result, err := callBackendFromRequest(ctx, r.backend, req, r.fc)
+		result, err := callBackendFromRequest(ctx, r.registry, req, r.fcs)
 		if err == nil {
 			r.record(name)
 		}
@@ -133,7 +137,7 @@ func (r *filterRuntime) logStartup() {
 	intentText := r.currentIntent()
 	a, b, c, h := filter.CountTiers(r.tiers)
 	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q dynamic=%v compress=%v codemode=%v shield=%v",
-		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(), shield.Enabled(),
+		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q dynamic=%v compress=%v codemode=%v shield=%v backends=[%s]",
+		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(), shield.Enabled(), r.registry.String(),
 	)
 }

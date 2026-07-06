@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 // BackendConfig describes a downstream MCP server process.
@@ -49,6 +50,16 @@ func Load() (GateConfig, error) {
 		return GateConfig{}, fmt.Errorf("no backends in %s", path)
 	}
 	return cfg, nil
+}
+
+// BackendNames returns sorted backend names from cfg.
+func BackendNames(cfg GateConfig) []string {
+	names := make([]string, 0, len(cfg.Backends))
+	for name := range cfg.Backends {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // PrimaryBackend returns github if present, otherwise the first backend.

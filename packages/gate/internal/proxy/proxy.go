@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
@@ -21,11 +22,11 @@ func GateModeLabel() string {
 }
 
 // Run starts the Gate MCP server. Mode is filter (default) or transparent.
-func Run(ctx context.Context, backend *mcp.ClientSession, backendName string) error {
+func Run(ctx context.Context, registry *backend.Registry) error {
 	if gateMode() == "transparent" {
-		return runTransparent(ctx, backend, backendName)
+		return runTransparent(ctx, registry)
 	}
-	return runFiltered(ctx, backend, backendName)
+	return runFiltered(ctx, registry)
 }
 
 func gateMode() string {
@@ -39,24 +40,24 @@ func intentKeywords() string {
 	return os.Getenv("COSTGATE_INTENT")
 }
 
-func runTransparent(ctx context.Context, backend *mcp.ClientSession, backendName string) error {
-	fc, err := newForwardContext(backendName)
+func runTransparent(ctx context.Context, registry *backend.Registry) error {
+	fcs, err := newForwardContexts(registry)
 	if err != nil {
 		return fmt.Errorf("shield init: %w", err)
 	}
-	cat, err := catalog.Load(ctx, backend, backendName)
+	cat, err := catalog.LoadMulti(ctx, registry)
 	if err != nil {
 		return err
 	}
 	server := newServer()
-	registerBackendTools(server, cat.Tools, backend, fc, nil)
-	log.Printf("[costgate-gate] transparent mode: %d tools from %s", len(cat.Tools), backendName)
-	gatelog.LogToolsList(backendName, len(cat.Tools), gatelog.EstimateListTokens(cat.Tools))
+	registerBackendTools(server, cat.Tools, registry, fcs, nil)
+	log.Printf("[costgate-gate] transparent mode: %d tools from [%s]", len(cat.Tools), registry.String())
+	gatelog.LogToolsList(registry.String(), len(cat.Tools), gatelog.EstimateListTokens(cat.Tools))
 	return serve(ctx, server)
 }
 
-func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName string) error {
-	cat, err := catalog.Load(ctx, backend, backendName)
+func runFiltered(ctx context.Context, registry *backend.Registry) error {
+	cat, err := catalog.LoadMulti(ctx, registry)
 	if err != nil {
 		return err
 	}
@@ -75,10 +76,19 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 	}
 
 	tiers := filter.Classify(cat.Tools, store)
-	if rules, err := catalog.LoadTierRules(backendName); err != nil {
-		return fmt.Errorf("load tier catalog: %w", err)
-	} else if rules != nil {
-		tiers = rules.Apply(tiers)
+	for _, backendName := range registry.Names() {
+		rules, err := catalog.LoadTierRules(backendName)
+		if err != nil {
+			return fmt.Errorf("load tier catalog: %w", err)
+		}
+		if rules == nil {
+			continue
+		}
+		if registry.Single() {
+			tiers = rules.Apply(tiers)
+		} else {
+			tiers = rules.ApplyForBackend(tiers, backendName)
+		}
 		log.Printf("[costgate-gate] tier catalog: %s (%d overrides)", backendName, len(rules.Overrides))
 	}
 	if ov, err := overrides.Load(); err != nil {
@@ -87,12 +97,12 @@ func runFiltered(ctx context.Context, backend *mcp.ClientSession, backendName st
 		tiers = ov.Apply(tiers)
 		log.Printf("[costgate-gate] tool overrides: %d entries", len(ov.Tools))
 	}
-	fc, err := newForwardContext(backendName)
+	fcs, err := newForwardContexts(registry)
 	if err != nil {
 		return fmt.Errorf("shield init: %w", err)
 	}
 	server := newServer()
-	rt := newFilterRuntime(server, cat, tiers, backend, store, intentKeywords(), backendName, fc)
+	rt := newFilterRuntime(server, cat, tiers, registry, store, intentKeywords(), fcs)
 	rt.logStartup()
 	return serve(ctx, server)
 }
@@ -104,7 +114,7 @@ func newServer() *mcp.Server {
 	}, nil)
 }
 
-func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.ClientSession, fc *forwardContext, onCall func(string)) {
+func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, registry *backend.Registry, fcs map[string]*forwardContext, onCall func(string)) {
 	for _, tool := range tools {
 		tool := tool
 		if tool.InputSchema == nil {
@@ -112,7 +122,7 @@ func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, backend *mcp.Cl
 			continue
 		}
 		server.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			result, err := callBackendFromRequest(ctx, backend, req, fc)
+			result, err := callBackendFromRequest(ctx, registry, req, fcs)
 			if err == nil && onCall != nil {
 				onCall(req.Params.Name)
 			}

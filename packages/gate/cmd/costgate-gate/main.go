@@ -32,24 +32,20 @@ func main() {
 		log.Fatalf("[costgate-gate] %v", err)
 	}
 
-	name, backendCfg, err := config.PrimaryBackend(cfg)
-	if err != nil {
-		log.Fatalf("[costgate-gate] %v", err)
-	}
-
 	configPath := config.ResolveConfigPath()
-	log.Printf("[costgate-gate] v%s backend=%s config=%s mode=%s", version.Version, name, configPath, proxy.GateModeLabel())
+	backendNames := config.BackendNames(cfg)
+	log.Printf("[costgate-gate] v%s backends=%v config=%s mode=%s", version.Version, backendNames, configPath, proxy.GateModeLabel())
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	session, err := backend.Connect(ctx, name, backendCfg)
+	registry, err := backend.ConnectAll(ctx, cfg)
 	if err != nil {
 		log.Fatalf("[costgate-gate] %v", err)
 	}
-	defer session.Close()
+	defer registry.Close()
 
-	if err := proxy.Run(ctx, session, name); err != nil {
+	if err := proxy.Run(ctx, registry); err != nil {
 		log.Fatalf("[costgate-gate] %v", err)
 	}
 }
