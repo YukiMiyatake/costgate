@@ -560,6 +560,7 @@ export function buildHealth(extra = {}) {
       shield_settings: true,
       gate_settings: true,
       mcp_trust: true,
+      workspace_deep_routes: true,
     },
   };
 }

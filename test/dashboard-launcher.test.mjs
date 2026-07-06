@@ -91,9 +91,9 @@ function testStaleHealth() {
     !isStaleDashboardCapabilities({
       status: "ok",
       ui: { settings: {} },
-      capabilities: { shield_settings: true },
+      capabilities: { shield_settings: true, workspace_deep_routes: true },
     }),
-    "shield_settings capability is fresh"
+    "full capabilities is fresh"
   );
   console.error("[dashboard-launcher] stale health ok");
 }

@@ -26,14 +26,14 @@ export function cliRuntimeRoot() {
     return process.env.COSTGATE_RUNTIME_ROOT;
   }
 
-  const bundled = join(CLI_PKG, "runtime");
-  if (existsSync(join(bundled, "scripts", "costgate-gate-launch.mjs"))) {
-    return bundled;
-  }
-
   const monorepo = join(CLI_PKG, "..", "..");
   if (existsSync(join(monorepo, "scripts", "costgate-gate-launch.mjs"))) {
     return monorepo;
+  }
+
+  const bundled = join(CLI_PKG, "runtime");
+  if (existsSync(join(bundled, "scripts", "costgate-gate-launch.mjs"))) {
+    return bundled;
   }
 
   throw new Error(

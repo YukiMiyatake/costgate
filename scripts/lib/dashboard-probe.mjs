@@ -56,16 +56,50 @@ export function isStaleDashboardCapabilities(data) {
   if (!data || data.status !== "ok") return false;
   if (isStaleDashboardHealth(data)) return true;
   if (data.capabilities?.shield_settings === false) return true;
+  if (data.capabilities?.workspace_deep_routes === false) return true;
   return false;
 }
 
-/** Health ok and shield-settings API available. */
+/** PATCH workspace mcps/:name is routed (not apiNotFound) on current dashboard builds. */
+export async function probeWorkspaceDeepRoutes(options = {}) {
+  const host = options.host ?? process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
+  const port = Number(options.port ?? process.env.COSTGATE_DASHBOARD_PORT ?? 8787);
+  const timeoutMs = options.timeoutMs ?? 400;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(
+      `${dashboardUrl(host, port)}/api/workspaces/__costgate_probe__/mcps/__probe__`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: true }),
+        signal: controller.signal,
+      }
+    );
+    const body = await res.json().catch(() => ({}));
+    return body.error !== "not_found";
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Health ok and required dashboard APIs available. */
 export async function isDashboardFresh(options = {}) {
   const { ok, data } = await fetchDashboardHealth(options);
   if (!ok || !data) return false;
   if (isStaleDashboardCapabilities(data)) return false;
-  if (data.capabilities?.shield_settings === true) return true;
-  return probeDashboardApi(options, "/api/shield-settings");
+  if (
+    data.capabilities?.shield_settings === true &&
+    data.capabilities?.workspace_deep_routes === true
+  ) {
+    return true;
+  }
+  const shield = await probeDashboardApi(options, "/api/shield-settings");
+  if (!shield) return false;
+  return probeWorkspaceDeepRoutes(options);
 }
 
 export function killProcessOnPort(port) {
