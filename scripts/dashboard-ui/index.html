@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,51 +8,65 @@
 </head>
 <body>
   <header class="app-header">
-    <h1>CostGate Dashboard</h1>
-    <p class="subtitle">localhost · Phase 29 · <span id="write-mode">…</span></p>
+    <h1 data-i18n="app.title">CostGate Dashboard</h1>
+    <p class="subtitle" id="app-subtitle">localhost · Phase 29 · <span id="write-mode">…</span></p>
   </header>
+
+  <div id="prefs-bar" class="prefs-bar">
+    <label>
+      <span data-i18n="prefs.language">Language</span>
+      <select id="locale-select" aria-label="Language">
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
+    </label>
+    <label>
+      <span data-i18n="prefs.timezone">Timezone</span>
+      <select id="timezone-select" aria-label="Timezone"></select>
+    </label>
+  </div>
 
   <div id="workspace-bar" class="workspace-bar">
     <label>
-      Workspace
+      <span data-i18n="workspace.label">Workspace</span>
       <select id="workspace-select"></select>
     </label>
-    <button type="button" id="workspace-pin-btn" class="btn-sm">Pin folder</button>
-    <button type="button" id="workspace-refresh-btn" class="btn-sm">Refresh</button>
+    <button type="button" id="workspace-pin-btn" class="btn-sm" data-i18n="workspace.pin">Pin folder</button>
+    <button type="button" id="workspace-refresh-btn" class="btn-sm" data-i18n="workspace.refresh">Refresh</button>
     <span id="workspace-path" class="note"></span>
     <p id="workspace-help" class="note workspace-help"></p>
   </div>
 
   <div id="token-bar" class="token-bar hidden">
-    <label>Write token <input type="password" id="dash-token" placeholder="COSTGATE_DASHBOARD_TOKEN" /></label>
+    <label><span data-i18n="token.label">Write token</span> <input type="password" id="dash-token" data-i18n-placeholder="token.placeholder" placeholder="COSTGATE_DASHBOARD_TOKEN" /></label>
   </div>
 
   <nav id="tabs" class="tab-nav">
-    <button type="button" data-tab="overview" class="active">Overview</button>
-    <button type="button" data-tab="tools">Tools</button>
-    <button type="button" data-tab="mcps">MCPs</button>
-    <button type="button" data-tab="recommendations">Recommendations</button>
-    <button type="button" data-tab="add-mcp">Add MCP</button>
+    <button type="button" data-tab="overview" class="active" data-i18n="tabs.overview">Overview</button>
+    <button type="button" data-tab="tools" data-i18n="tabs.tools">Tools</button>
+    <button type="button" data-tab="mcps" data-i18n="tabs.mcps">MCPs</button>
+    <button type="button" data-tab="recommendations" data-i18n="tabs.recommendations">Recommendations</button>
+    <button type="button" data-tab="add-mcp" data-i18n="tabs.addMcp">Add MCP</button>
   </nav>
 
   <main>
     <section id="panel-overview" class="panel active">
       <header class="panel-header">
-        <h2 class="panel-title">Overview</h2>
-        <p class="panel-desc">Token usage, fixed-cost share, and blind spots for the selected workspace.</p>
+        <h2 class="panel-title" data-i18n="overview.title">Overview</h2>
+        <p class="panel-desc" data-i18n="overview.desc">Token usage, fixed-cost share, and blind spots for the selected workspace.</p>
       </header>
       <div id="overview-cards" class="cards"></div>
       <div id="shield-prompt-panel" class="shield-prompt-panel hidden">
-        <h3 class="subsection-title">Prompt Shield — blocked submit</h3>
+        <h3 class="subsection-title" data-i18n="overview.shieldTitle">Prompt Shield — blocked submit</h3>
         <p class="note" id="shield-prompt-note"></p>
         <div id="shield-prompt-findings" class="shield-findings"></div>
         <label class="shield-sanitize-label">
-          Sanitized prompt (copy into Cursor chat)
+          <span data-i18n="overview.shieldSanitizeLabel">Sanitized prompt (copy into Cursor chat)</span>
           <textarea id="shield-prompt-sanitized" class="shield-sanitize-text" rows="6" readonly></textarea>
         </label>
         <div class="shield-prompt-actions">
-          <button type="button" id="shield-prompt-copy" class="btn-sm btn-primary">Copy sanitized</button>
-          <button type="button" id="shield-prompt-refresh" class="btn-sm">Refresh</button>
+          <button type="button" id="shield-prompt-copy" class="btn-sm btn-primary" data-i18n="overview.shieldCopy">Copy sanitized</button>
+          <button type="button" id="shield-prompt-refresh" class="btn-sm" data-i18n="overview.shieldRefresh">Refresh</button>
         </div>
       </div>
       <p class="note panel-note" id="overview-note"></p>
@@ -60,28 +74,28 @@
 
     <section id="panel-tools" class="panel">
       <header class="panel-header">
-        <h2 class="panel-title">Tools</h2>
-        <p class="panel-desc">Gate-tracked tools with tier, call history, and hide/unhide actions.</p>
+        <h2 class="panel-title" data-i18n="tools.title">Tools</h2>
+        <p class="panel-desc" data-i18n="tools.desc">Gate-tracked tools with tier, call history, and hide/unhide actions.</p>
       </header>
       <div id="tools-blind" class="banner hidden"></div>
       <div class="panel-toolbar tools-toolbar">
         <label>
-          Search
-          <input type="search" id="tools-search" placeholder="tool or backend…" />
+          <span data-i18n="tools.search">Search</span>
+          <input type="search" id="tools-search" data-i18n-placeholder="tools.searchPlaceholder" placeholder="tool or backend…" />
         </label>
         <label>
-          Backend
+          <span data-i18n="tools.backend">Backend</span>
           <select id="tools-backend-filter">
-            <option value="">All backends</option>
+            <option value="" data-i18n="tools.allBackends">All backends</option>
           </select>
         </label>
         <label>
-          Sort
+          <span data-i18n="tools.sort">Sort</span>
           <select id="tools-sort">
-            <option value="call_count">Call count</option>
-            <option value="name">Name</option>
-            <option value="last_used">Last used</option>
-            <option value="list_tokens">List tokens</option>
+            <option value="call_count" data-i18n="tools.sortCallCount">Call count</option>
+            <option value="name" data-i18n="tools.sortName">Name</option>
+            <option value="last_used" data-i18n="tools.sortLastUsed">Last used</option>
+            <option value="list_tokens" data-i18n="tools.sortListTokens">List tokens</option>
           </select>
         </label>
         <span id="tools-count" class="toolbar-count"></span>
@@ -89,48 +103,48 @@
       <div id="tools-tier-tabs" class="marketplace-categories"></div>
       <div class="filter-group tools-filters">
         <label>
-          List data
+          <span data-i18n="tools.listData">List data</span>
           <select id="tools-measured-filter">
-            <option value="">All</option>
-            <option value="measured">Measured</option>
-            <option value="unmeasured">No list data</option>
+            <option value="" data-i18n="tools.all">All</option>
+            <option value="measured" data-i18n="tools.measured">Measured</option>
+            <option value="unmeasured" data-i18n="tools.unmeasured">No list data</option>
           </select>
         </label>
-        <label><input type="checkbox" id="tools-rec-only" /> Has recommendation</label>
-        <label><input type="checkbox" id="tools-forced-only" /> Forced tier only</label>
+        <label><input type="checkbox" id="tools-rec-only" /> <span data-i18n="tools.hasRec">Has recommendation</span></label>
+        <label><input type="checkbox" id="tools-forced-only" /> <span data-i18n="tools.forcedOnly">Forced tier only</span></label>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Tool</th>
-              <th>Backend</th>
-              <th>Tier</th>
-              <th>List data</th>
-              <th>Calls</th>
-              <th>Last used</th>
-              <th>List tokens</th>
-              <th>Flag</th>
-              <th>Action</th>
+              <th data-i18n="tools.colTool">Tool</th>
+              <th data-i18n="tools.colBackend">Backend</th>
+              <th data-i18n="tools.colTier">Tier</th>
+              <th data-i18n="tools.colListData">List data</th>
+              <th data-i18n="tools.colCalls">Calls</th>
+              <th data-i18n="tools.colLastUsed">Last used</th>
+              <th data-i18n="tools.colListTokens">List tokens</th>
+              <th data-i18n="tools.colFlag">Flag</th>
+              <th data-i18n="tools.colAction">Action</th>
             </tr>
           </thead>
           <tbody id="tools-body"></tbody>
         </table>
       </div>
-      <p id="tools-empty" class="empty-state hidden">No tools match your filters.</p>
+      <p id="tools-empty" class="empty-state hidden" data-i18n="tools.empty">No tools match your filters.</p>
     </section>
 
     <section id="panel-mcps" class="panel">
       <header class="panel-header">
-        <h2 class="panel-title">MCPs</h2>
-        <p class="panel-desc">Registered MCP servers, Gate feature toggles, and enable/disable actions.</p>
+        <h2 class="panel-title" data-i18n="mcps.title">MCPs</h2>
+        <p class="panel-desc" data-i18n="mcps.desc">Registered MCP servers, Gate feature toggles, and enable/disable actions.</p>
       </header>
       <div id="gate-settings-panel" class="gate-settings-panel">
-        <h3 class="subsection-title">costgate-gate settings</h3>
+        <h3 class="subsection-title" data-i18n="mcps.gateSettingsTitle">costgate-gate settings</h3>
         <p class="note" id="gate-settings-note"></p>
         <form id="gate-settings-form" class="gate-settings-form filter-group"></form>
         <div class="gate-settings-actions">
-          <button type="button" id="gate-settings-save" class="btn-sm">Save Gate settings</button>
+          <button type="button" id="gate-settings-save" class="btn-sm" data-i18n="mcps.gateSave">Save Gate settings</button>
           <span id="gate-settings-path" class="note"></span>
         </div>
       </div>
@@ -138,56 +152,56 @@
         <table>
           <thead>
             <tr>
-              <th>Server</th>
-              <th>Role</th>
-              <th>Trust</th>
-              <th>Measured</th>
-              <th>Command</th>
-              <th>Action</th>
+              <th data-i18n="mcps.colServer">Server</th>
+              <th data-i18n="mcps.colRole">Role</th>
+              <th data-i18n="mcps.colTrust">Trust</th>
+              <th data-i18n="mcps.colMeasured">Measured</th>
+              <th data-i18n="mcps.colCommand">Command</th>
+              <th data-i18n="mcps.colAction">Action</th>
             </tr>
           </thead>
           <tbody id="mcps-body"></tbody>
         </table>
       </div>
-      <p id="mcps-empty" class="empty-state hidden">No MCP servers registered.</p>
+      <p id="mcps-empty" class="empty-state hidden" data-i18n="mcps.empty">No MCP servers registered.</p>
     </section>
 
     <section id="panel-recommendations" class="panel">
       <header class="panel-header">
-        <h2 class="panel-title">Recommendations</h2>
-        <p class="panel-desc">Add, switch, or remove MCPs and tools based on usage and project signals.</p>
+        <h2 class="panel-title" data-i18n="rec.title">Recommendations</h2>
+        <p class="panel-desc" data-i18n="rec.desc">Add, switch, or remove MCPs and tools based on usage and project signals.</p>
       </header>
       <div id="rec-sections"></div>
       <ul id="rec-list" class="rec-list"></ul>
-      <p id="rec-empty" class="empty-state hidden">No recommendations for the current window.</p>
+      <p id="rec-empty" class="empty-state hidden" data-i18n="rec.empty">No recommendations for the current window.</p>
     </section>
 
     <section id="panel-add-mcp" class="panel">
       <header class="panel-header">
-        <h2 class="panel-title">Add MCP</h2>
-        <p class="panel-desc">Browse the marketplace catalog and run the setup wizard.</p>
+        <h2 class="panel-title" data-i18n="marketplace.title">Add MCP</h2>
+        <p class="panel-desc" data-i18n="marketplace.desc">Browse the marketplace catalog and run the setup wizard.</p>
       </header>
       <div id="marketplace-browse">
         <div class="panel-toolbar wizard-toolbar">
           <label>
-            Search
-            <input type="search" id="marketplace-search" placeholder="browser, github, postgres…" />
+            <span data-i18n="marketplace.search">Search</span>
+            <input type="search" id="marketplace-search" data-i18n-placeholder="marketplace.searchPlaceholder" placeholder="browser, github, postgres…" />
           </label>
-          <button type="button" id="marketplace-search-btn" class="btn-sm">Search</button>
+          <button type="button" id="marketplace-search-btn" class="btn-sm" data-i18n="marketplace.searchBtn">Search</button>
           <label>
-            Sort
+            <span data-i18n="marketplace.sort">Sort</span>
             <select id="marketplace-sort">
-              <option value="name">Name</option>
-              <option value="popularity">Popularity</option>
-              <option value="reduction">Reduction %</option>
+              <option value="name" data-i18n="marketplace.sortName">Name</option>
+              <option value="popularity" data-i18n="marketplace.sortPopularity">Popularity</option>
+              <option value="reduction" data-i18n="marketplace.sortReduction">Reduction %</option>
             </select>
           </label>
         </div>
         <div id="marketplace-categories" class="marketplace-categories"></div>
         <div class="filter-group marketplace-filters">
-          <label><input type="checkbox" id="filter-gate-only" /> Gate ready only</label>
-          <label><input type="checkbox" id="filter-official-only" /> Official only</label>
-          <label><input type="checkbox" id="filter-hide-secrets" /> No secrets required</label>
+          <label><input type="checkbox" id="filter-gate-only" /> <span data-i18n="marketplace.filterGate">Gate ready only</span></label>
+          <label><input type="checkbox" id="filter-official-only" /> <span data-i18n="marketplace.filterOfficial">Official only</span></label>
+          <label><input type="checkbox" id="filter-hide-secrets" /> <span data-i18n="marketplace.filterNoSecrets">No secrets required</span></label>
         </div>
         <div id="marketplace-results" class="marketplace-grid"></div>
       </div>
@@ -198,15 +212,15 @@
         <div id="wizard-estimate" class="wizard-estimate"></div>
         <p id="wizard-hint" class="note hidden"></p>
         <div class="wizard-actions">
-          <button type="button" id="wizard-back" class="btn-sm">Back to catalog</button>
-          <button type="button" id="wizard-confirm" class="btn-sm btn-primary">Add MCP</button>
+          <button type="button" id="wizard-back" class="btn-sm" data-i18n="marketplace.back">Back to catalog</button>
+          <button type="button" id="wizard-confirm" class="btn-sm btn-primary" data-i18n="marketplace.addMcp">Add MCP</button>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    <span id="health-status">Loading…</span>
+    <span id="health-status" data-i18n="app.loading">Loading…</span>
   </footer>
 
   <script src="/app.js" type="module"></script>
