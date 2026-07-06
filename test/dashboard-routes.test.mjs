@@ -114,9 +114,16 @@ async function testGetRoutes() {
     const unknown = await expectJson(base, "/api/compare", { status: 404 });
     assert(unknown.error === "not_found", "unknown api json 404");
 
-    for (const path of ["/", "/app.js", "/style.css"]) {
+    for (const path of ["/", "/app.js", "/style.css", "/i18n.mjs", "/i18n/en.mjs"]) {
       const res = await fetch(`${base}${path}`);
       assert(res.ok, `static ${path} ${res.status}`);
+      if (path.endsWith(".mjs")) {
+        const ct = res.headers.get("content-type") ?? "";
+        assert(
+          ct.includes("javascript"),
+          `${path} content-type should be javascript, got ${ct}`
+        );
+      }
     }
 
     console.error("[routes] GET routes ok");
@@ -180,6 +187,9 @@ async function testMissingCatalog() {
 }
 
 async function testUiSettingsRoutes() {
+  const uiPath = join(tmpdir(), `costgate-ui-settings-${process.pid}-${Date.now()}.json`);
+  const prevUiPath = process.env.COSTGATE_DASHBOARD_UI_PATH;
+  process.env.COSTGATE_DASHBOARD_UI_PATH = uiPath;
   const { base, close } = await startServer();
   try {
     const get = await expectJson(base, "/api/ui-settings");
@@ -207,6 +217,8 @@ async function testUiSettingsRoutes() {
 
     console.error("[routes] ui-settings ok");
   } finally {
+    if (prevUiPath === undefined) delete process.env.COSTGATE_DASHBOARD_UI_PATH;
+    else process.env.COSTGATE_DASHBOARD_UI_PATH = prevUiPath;
     await close();
   }
 }
