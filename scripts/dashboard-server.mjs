@@ -840,6 +840,22 @@ function createDashboardServer(options = {}) {
           return;
         }
 
+        if (pathname === "/api/admin/restart") {
+          const body = await readBody(req);
+          const delayMs =
+            typeof body.delay_ms === "number" && body.delay_ms >= 0
+              ? Math.floor(body.delay_ms)
+              : 200;
+          json(res, 200, { ok: true, restarting: true, delay_ms: delayMs });
+          scheduleDashboardRestart(server, {
+            host: HOST,
+            port: PORT,
+            delayMs,
+            projectRoot: process.env.COSTGATE_PROJECT_ROOT,
+          });
+          return;
+        }
+
         if (!authorizeWrite(req)) {
           json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
           return;
@@ -999,22 +1015,6 @@ function createDashboardServer(options = {}) {
           const body = await readBody(req);
           const result = patchGateSettings(body.settings ?? body, gateSettingsOpts(paths));
           json(res, 200, { ok: true, ...result });
-          return;
-        }
-
-        if (pathname === "/api/admin/restart") {
-          const body = await readBody(req);
-          const delayMs =
-            typeof body.delay_ms === "number" && body.delay_ms >= 0
-              ? Math.floor(body.delay_ms)
-              : 200;
-          json(res, 200, { ok: true, restarting: true, delay_ms: delayMs });
-          scheduleDashboardRestart(server, {
-            host: HOST,
-            port: PORT,
-            delayMs,
-            projectRoot: process.env.COSTGATE_PROJECT_ROOT,
-          });
           return;
         }
 

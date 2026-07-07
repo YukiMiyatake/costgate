@@ -35,6 +35,16 @@ async function testHttpEndpoint() {
   try {
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
     assert(health.capabilities?.admin_restart === true, "admin_restart capability");
+
+    const restart = await fetch(`${base}/api/admin/restart`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delay_ms: 5000 }),
+    });
+    assert(restart.ok, `POST /api/admin/restart status ${restart.status}`);
+    const body = await restart.json();
+    assert(body.ok === true && body.restarting === true, "restart payload");
+
     console.error("[dashboard-admin-restart] http ok");
   } finally {
     await new Promise((resolve) => server.close(resolve));
