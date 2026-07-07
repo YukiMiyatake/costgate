@@ -11,6 +11,9 @@ coverage/
 .costgate/sanitized/
 test/fixtures/.generated/
 test/fixtures/dashboard/.generated-logs/
+test/fixtures/dashboard/.generated-history/
+test/fixtures/dashboard/.generated-history-api/
+test/fixtures/dashboard/.generated-history-logs/
 
 # Go
 packages/gate/bin/

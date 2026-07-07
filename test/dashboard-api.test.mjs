@@ -161,6 +161,10 @@ async function testHttpApi() {
     const exportBody = await exported.json();
     assert(exportBody.turns.length === 1, "history export count");
 
+    const probeHistory = await fetchJson(port, "/api/history?limit=10&source=probe");
+    assert(probeHistory.source === "probe", "probe history source");
+    assert(probeHistory.count === 2, "probe history count");
+
     const html = await fetch(`http://127.0.0.1:${port}/`);
     assert(html.ok, "index html");
     const text = await html.text();

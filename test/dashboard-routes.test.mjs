@@ -102,6 +102,7 @@ async function testGetRoutes() {
       "/api/marketplace/",
       "/api/history",
       "/api/history?limit=10",
+      "/api/history?limit=10&source=probe",
     ];
     for (const path of getRoutes) {
       await expectJson(base, path, { status: 200 });

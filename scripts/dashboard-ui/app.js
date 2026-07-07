@@ -1512,6 +1512,11 @@ async function openAddMcpTab(templateId) {
 
 let historyTurns = [];
 const historySelected = new Set();
+let historySource = sessionStorage.getItem("costgate_history_source") ?? "turns";
+
+function historyQuery() {
+  return `${apiPath("history")}?limit=50&source=${encodeURIComponent(historySource)}`;
+}
 
 function updateHistoryExportButton() {
   const btn = document.getElementById("history-export-btn");
@@ -1538,7 +1543,7 @@ async function exportSelectedHistory() {
   try {
     const payload = await fetchJson("/api/history/export", {
       method: "POST",
-      body: JSON.stringify({ generation_ids: ids }),
+      body: JSON.stringify({ generation_ids: ids, source: historySource }),
     });
     downloadHistoryExport(payload);
     showToast(t("history.exportOk", { count: payload.turns?.length ?? ids.length }), { kind: "success" });
@@ -1548,6 +1553,9 @@ async function exportSelectedHistory() {
 }
 
 function historyPreviewLabel(turn) {
+  if (turn.source === "probe") {
+    return t("history.probeSessionLabel", { id: turn.session_id ?? turn.generation_id ?? "—" });
+  }
   if (turn.prompt_preview) return turn.prompt_preview;
   if (turn.keywords) return t("history.rowPreviewFallback", { keywords: turn.keywords });
   return turn.generation_id ?? "—";
@@ -1690,6 +1698,16 @@ function renderHistory(data) {
   }
 }
 
+async function loadHistory() {
+  const data = await fetchJson(historyQuery()).catch(() => ({
+    turns: [],
+    count: 0,
+    limit: 50,
+    source: historySource,
+  }));
+  renderHistory(data);
+}
+
 function setupHistoryPanel() {
   const close = document.getElementById("history-detail-close");
   if (!close || close.dataset.wired) return;
@@ -1703,6 +1721,22 @@ function setupHistoryPanel() {
   if (exportBtn && !exportBtn.dataset.wired) {
     exportBtn.dataset.wired = "1";
     exportBtn.addEventListener("click", () => void exportSelectedHistory());
+  }
+
+  const sourceSelect = document.getElementById("history-source");
+  if (sourceSelect && !sourceSelect.dataset.wired) {
+    sourceSelect.dataset.wired = "1";
+    sourceSelect.value = historySource;
+    sourceSelect.addEventListener("change", async () => {
+      historySource = sourceSelect.value === "probe" ? "probe" : "turns";
+      sessionStorage.setItem("costgate_history_source", historySource);
+      document.getElementById("history-detail")?.classList.add("hidden");
+      try {
+        await loadHistory();
+      } catch (e) {
+        showToast(t("history.loadFail") + (e.message ? `: ${e.message}` : ""));
+      }
+    });
   }
 }
 
@@ -2080,13 +2114,15 @@ async function reload(retryGlobal = true) {
       fetchJson(apiPath("tools")),
       fetchJson(apiPath("mcps")),
       fetchJson(apiPath("recommendations")),
-      fetchJson(`${apiPath("history")}?limit=50`).catch(() => ({ turns: [], count: 0, limit: 50 })),
+      fetchJson(historyQuery()).catch(() => ({ turns: [], count: 0, limit: 50, source: historySource })),
     ]);
     renderOverview(overview);
     renderTools(tools);
     renderMcps(mcps);
     renderRecommendations(recs);
     renderHistory(history);
+    const sourceSelect = document.getElementById("history-source");
+    if (sourceSelect) sourceSelect.value = historySource;
     void refreshGateStatus?.();
   } catch (e) {
     if (retryGlobal && activeWorkspaceId && isWorkspaceApiError(e.message)) {
