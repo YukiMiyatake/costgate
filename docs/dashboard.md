@@ -43,10 +43,11 @@ When using a cloned repo, `npm run cursor:production` behaves the same way.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `COSTGATE_DASHBOARD_AUTO` | `1` | Start dashboard when Gate starts |
-| `COSTGATE_DASHBOARD_AUTO_OPEN` | `1` | Open browser on first start |
+| `COSTGATE_DASHBOARD_AUTO_OPEN` | `once` | Browser: `once` (default), `always`, or `never` |
 | `COSTGATE_DASHBOARD_PORT` | `8787` | Port |
 
-Disable: `COSTGATE_DASHBOARD_AUTO=0` or `COSTGATE_DASHBOARD_AUTO_OPEN=0`
+Disable dashboard: `COSTGATE_DASHBOARD_AUTO=0`  
+Disable browser: `COSTGATE_DASHBOARD_AUTO_OPEN=never`
 
 ### Manual (development / debugging)
 

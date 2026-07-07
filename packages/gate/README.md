@@ -70,6 +70,10 @@ Usage-based `Classify()` runs first; catalog rules overlay explicit A/B/C for kn
 | `COSTGATE_COMPRESS_MAX_CHARS` | `12000` | Max total text chars kept per tool result |
 | `COSTGATE_USAGE_PATH` | `~/.costgate/usage.json` | Tool usage store |
 | `COSTGATE_PROBE_LOG_DIR` | `~/.costgate/logs` | Probe logs for usage import |
+| `COSTGATE_TOOL_OVERRIDES` | `~/.costgate/tool-overrides.json` | Dashboard tool tier overrides |
+| `COSTGATE_GATE_HOT_RELOAD` | `1` | `0`/`false` disables tool-overrides hot-reload |
+| `COSTGATE_EXPOSURE_MODE` | `conservative` | `conservative` / `aggressive` / `budget` — tools/list exposure |
+| `COSTGATE_SLIM_LIST` | `0` | `1`/`true` — shorten tool descriptions in tools/list |
 
 ## Cursor
 
