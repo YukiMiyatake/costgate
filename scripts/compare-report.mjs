@@ -5,6 +5,8 @@
  * Usage:
  *   npm run compare
  *   npm run compare -- --intent "pull request"
+ *   npm run compare -- --exposure-mode aggressive --exposure-max-b 3
+ *   npm run compare -- --exposure-mode budget --exposure-token-budget 3000
  *   npm run compare -- --json
  *   npm run compare -- --via-probe
  *   npm run compare -- --mock
@@ -28,6 +30,16 @@ const mockBackend =
 const intentIdx = args.indexOf("--intent");
 const intent =
   intentIdx >= 0 ? args[intentIdx + 1] ?? "" : process.env.COSTGATE_INTENT ?? "";
+
+function readArg(flag) {
+  const idx = args.indexOf(flag);
+  return idx >= 0 ? args[idx + 1] ?? "" : "";
+}
+
+const exposureMode = readArg("--exposure-mode") || process.env.COSTGATE_EXPOSURE_MODE || "";
+const exposureMaxB = readArg("--exposure-max-b") || process.env.COSTGATE_EXPOSURE_MAX_B || "";
+const exposureTokenBudget =
+  readArg("--exposure-token-budget") || process.env.COSTGATE_EXPOSURE_TOKEN_BUDGET || "";
 
 const baseEnv = useMock
   ? mockGateEnv("compare-report", {}, mockBackend)
@@ -67,15 +79,20 @@ async function measureProbe() {
 }
 
 async function measureGateFilter() {
+  const filterEnv = {
+    ...baseEnv,
+    COSTGATE_GATE_MODE: "filter",
+    COSTGATE_INTENT: intent,
+    COSTGATE_INTENT_DYNAMIC: args.includes("--dynamic") ? "1" : "0",
+  };
+  if (exposureMode) filterEnv.COSTGATE_EXPOSURE_MODE = exposureMode;
+  if (exposureMaxB) filterEnv.COSTGATE_EXPOSURE_MAX_B = exposureMaxB;
+  if (exposureTokenBudget) filterEnv.COSTGATE_EXPOSURE_TOKEN_BUDGET = exposureTokenBudget;
+
   return withMcpProcess(
     GATE_BIN,
     [],
-    {
-      ...baseEnv,
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT: intent,
-      COSTGATE_INTENT_DYNAMIC: args.includes("--dynamic") ? "1" : "0",
-    },
+    filterEnv,
     async (client) => {
       await client.initialize("compare-after");
       const tools = await client.listTools();
@@ -118,9 +135,22 @@ function loadLatestProbeToolsList() {
 }
 
 function printReport(before, after, beforeLabel) {
+  const exposure =
+    exposureMode || exposureMaxB || exposureTokenBudget
+      ? {
+          mode: exposureMode || "conservative",
+          max_b: exposureMaxB ? Number(exposureMaxB) : null,
+          token_budget: exposureTokenBudget ? Number(exposureTokenBudget) : null,
+        }
+      : null;
   const report = {
     before: { label: beforeLabel, ...before },
-    after: { label: "gate-filter", intent: intent || null, ...after },
+    after: {
+      label: "gate-filter",
+      intent: intent || null,
+      exposure,
+      ...after,
+    },
     reduction: {
       tools_pct: pctReduction(before.tool_count, after.tool_count),
       bytes_pct: pctReduction(before.total_schema_bytes, after.total_schema_bytes),
@@ -142,7 +172,7 @@ function printReport(before, after, beforeLabel) {
   console.log(`  schema bytes:   ${before.total_schema_bytes.toLocaleString()}`);
   console.log(`  est. tokens:    ~${before.estimated_tokens.toLocaleString()}`);
   console.log();
-  console.log(`After (gate filter${intent ? `, intent="${intent}"` : ""})`);
+  console.log(`After (gate filter${intent ? `, intent="${intent}"` : ""}${exposureMode ? `, exposure=${exposureMode}` : ""})`);
   console.log(`  tools:          ${after.tool_count}`);
   console.log(`  schema bytes:   ${after.total_schema_bytes.toLocaleString()}`);
   console.log(`  est. tokens:    ~${after.estimated_tokens.toLocaleString()}`);
