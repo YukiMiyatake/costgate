@@ -80,6 +80,10 @@ export default {
     compressedYes: "compressed",
     compressedNo: "raw",
     loadFail: "Could not load history.",
+    exportSelected: "Export selected",
+    exportNone: "Select at least one turn to export.",
+    exportOk: "Exported {count} turn(s).",
+    exportFail: "Export failed.",
   },
   overview: {
     title: "Overview",

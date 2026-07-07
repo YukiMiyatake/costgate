@@ -168,7 +168,7 @@ async function testHttpApi() {
     assert(text.includes("Add MCP"), "wizard tab");
     assert(text.includes("shield-prompt-panel"), "shield prompt UI");
     assert(text.includes('data-tab="history"'), "history tab");
-    assert(text.includes("panel-history"), "history panel");
+    assert(text.includes("history-export-btn"), "history export button");
 
     console.error("[dashboard] HTTP API ok");
   } finally {
