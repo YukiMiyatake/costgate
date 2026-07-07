@@ -106,6 +106,10 @@ Phase 25 で Gate event log に `backend` を含め、usage store の拡張（`b
 | `PATCH` | `/api/mcps/:name` | mcp.json enable/disable | 24 |
 | `POST` | `/api/mcps` | ウィザードによる追加 | 26 |
 | `GET` | `/api/marketplace` | カタログ検索 | 26 |
+| `GET` | `/api/history` | 直近プロンプトターン一覧 | 9 |
+| `GET` | `/api/history/:generation_id` | 1 ターン詳細 | 9 |
+| `POST` | `/api/history/export` | 選択ターン JSON Export | 9 |
+| `GET` | `/api/workspaces/:id/history` | WS 別履歴一覧 | 9 |
 
 ### レスポンス例: `GET /api/tools`
 

@@ -1511,6 +1511,41 @@ async function openAddMcpTab(templateId) {
 }
 
 let historyTurns = [];
+const historySelected = new Set();
+
+function updateHistoryExportButton() {
+  const btn = document.getElementById("history-export-btn");
+  if (btn) btn.disabled = historySelected.size === 0;
+}
+
+function downloadHistoryExport(payload) {
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `costgate-history-${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportSelectedHistory() {
+  const ids = [...historySelected];
+  if (!ids.length) {
+    showToast(t("history.exportNone"));
+    return;
+  }
+  try {
+    const payload = await fetchJson("/api/history/export", {
+      method: "POST",
+      body: JSON.stringify({ generation_ids: ids }),
+    });
+    downloadHistoryExport(payload);
+    showToast(t("history.exportOk", { count: payload.turns?.length ?? ids.length }), { kind: "success" });
+  } catch (e) {
+    showToast(t("history.exportFail") + (e.message ? `: ${e.message}` : ""));
+  }
+}
 
 function historyPreviewLabel(turn) {
   if (turn.prompt_preview) return turn.prompt_preview;
@@ -1565,8 +1600,8 @@ function renderHistoryDetail(turn) {
     callsBody.appendChild(tr);
   }
 
-  for (const btn of document.querySelectorAll(".history-row")) {
-    btn.classList.toggle("active", btn.dataset.generationId === turn.generation_id);
+  for (const row of document.querySelectorAll(".history-row")) {
+    row.classList.toggle("active", row.dataset.generationId === turn.generation_id);
   }
 }
 
@@ -1577,6 +1612,8 @@ function renderHistory(data) {
   if (!list) return;
 
   historyTurns = data?.turns ?? [];
+  historySelected.clear();
+  updateHistoryExportButton();
   list.innerHTML = "";
   if (count) {
     count.textContent = t("history.count", {
@@ -1593,11 +1630,26 @@ function renderHistory(data) {
   empty?.classList.add("hidden");
 
   for (const turn of historyTurns) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "history-row";
-    btn.dataset.generationId = turn.generation_id ?? "";
-    btn.setAttribute("role", "listitem");
+    const row = document.createElement("div");
+    row.className = "history-row";
+    row.dataset.generationId = turn.generation_id ?? "";
+    row.setAttribute("role", "listitem");
+
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "history-row-check";
+    check.addEventListener("click", (e) => e.stopPropagation());
+    check.addEventListener("change", () => {
+      const id = turn.generation_id;
+      if (!id) return;
+      if (check.checked) historySelected.add(id);
+      else historySelected.delete(id);
+      updateHistoryExportButton();
+    });
+
+    const body = document.createElement("button");
+    body.type = "button";
+    body.className = "history-row-body";
 
     const title = document.createElement("p");
     title.className = "history-row-title";
@@ -1612,8 +1664,8 @@ function renderHistory(data) {
       tools: fmt(metrics.tool_calls ?? 0),
     });
 
-    btn.appendChild(title);
-    btn.appendChild(meta);
+    body.appendChild(title);
+    body.appendChild(meta);
 
     const chips = document.createElement("div");
     chips.className = "history-chips";
@@ -1629,10 +1681,12 @@ function renderHistory(data) {
       more.textContent = `+${turn.tools_called.length - 8}`;
       chips.appendChild(more);
     }
-    if (chips.childElementCount) btn.appendChild(chips);
+    if (chips.childElementCount) body.appendChild(chips);
 
-    btn.addEventListener("click", () => renderHistoryDetail(turn));
-    list.appendChild(btn);
+    body.addEventListener("click", () => renderHistoryDetail(turn));
+    row.appendChild(check);
+    row.appendChild(body);
+    list.appendChild(row);
   }
 }
 
@@ -1642,8 +1696,14 @@ function setupHistoryPanel() {
   close.dataset.wired = "1";
   close.addEventListener("click", () => {
     document.getElementById("history-detail")?.classList.add("hidden");
-    for (const btn of document.querySelectorAll(".history-row")) btn.classList.remove("active");
+    for (const row of document.querySelectorAll(".history-row")) row.classList.remove("active");
   });
+
+  const exportBtn = document.getElementById("history-export-btn");
+  if (exportBtn && !exportBtn.dataset.wired) {
+    exportBtn.dataset.wired = "1";
+    exportBtn.addEventListener("click", () => void exportSelectedHistory());
+  }
 }
 
 function renderRecommendations(data) {

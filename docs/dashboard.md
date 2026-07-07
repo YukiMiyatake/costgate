@@ -77,6 +77,21 @@ CLI alternatives (available before the dashboard existed):
 - Gate `tools/list` reduction rate
 - Share of fixed cost (tool definitions) in total usage
 
+### History (Phase 9 ✅)
+
+- Recent prompt turns (default **50**) from `~/.costgate/history/turns.jsonl`
+- Per turn: prompt preview / keywords, tools/list + tool_call token estimates, compression savings
+- Correlated with Gate JSONL via `generation_id` (fallback: time window)
+- Select rows and **Export selected** → JSON download
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COSTGATE_HISTORY` | `1` | Record turns on `beforeSubmitPrompt` |
+| `COSTGATE_HISTORY_LIMIT` | `50` | Max turns kept on disk |
+| `COSTGATE_HISTORY_PROMPT` | `preview` | `off` / `preview` (120 chars) / `full` |
+
+Details: [dev/prompt-history.md](./dev/prompt-history.md)
+
 ### Tools
 
 - Tool name, call count, last used date

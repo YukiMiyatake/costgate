@@ -80,6 +80,10 @@ export default {
     compressedYes: "圧縮あり",
     compressedNo: "生",
     loadFail: "履歴を読み込めませんでした。",
+    exportSelected: "選択を Export",
+    exportNone: "Export するターンを選択してください。",
+    exportOk: "{count} 件を Export しました。",
+    exportFail: "Export に失敗しました。",
   },
   overview: {
     title: "概要",
