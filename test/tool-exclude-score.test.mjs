@@ -4,6 +4,7 @@ import {
   applyExcludeScores,
   collectListTokenSamples,
   summarizeExcludeCandidates,
+  isExcludeRecommended,
 } from "../scripts/lib/tool-exclude-score.mjs";
 
 function assert(cond, msg) {
@@ -83,11 +84,19 @@ function testSummarizeCandidates() {
     { name: "hide-me", tier: "C", exclude_score: 80, estimated_list_tokens: 200 },
     { name: "already", tier: "hidden", exclude_score: 90, estimated_list_tokens: 500 },
     { name: "keep", tier: "A", exclude_score: 5, estimated_list_tokens: 100 },
+    { name: "locked", tier: "B", exclude_score: 90, exclude_lock: true, estimated_list_tokens: 300 },
   ];
   const summary = summarizeExcludeCandidates(tools);
   assert(summary.count === 1, "one candidate");
   assert(summary.tokensSaved === 200, "token sum");
   assert(summary.candidates[0].name === "hide-me", "right tool");
+}
+
+function testExcludeLockSkipsScore() {
+  assert(
+    !isExcludeRecommended({ tier: "C", exclude_score: 99, exclude_lock: true }),
+    "locked tool not recommended"
+  );
 }
 
 testHiddenZero();
@@ -98,4 +107,5 @@ testActiveTierANotZero();
 testCollectSamplesFromTools();
 testApplyBatch();
 testSummarizeCandidates();
+testExcludeLockSkipsScore();
 console.error("[tool-exclude-score] all passed");

@@ -52,12 +52,60 @@ export function saveToolOverrides(data, path = toolOverridesPath()) {
 
 export function setToolForceTier(toolName, forceTier, path = toolOverridesPath()) {
   const data = loadToolOverrides(path);
+  const cur = { ...(data.tools[toolName] ?? {}) };
   if (!forceTier || forceTier === "default") {
+    delete cur.force_tier;
+  } else {
+    cur.force_tier = forceTier;
+  }
+  if (Object.keys(cur).length === 0) {
     delete data.tools[toolName];
   } else {
-    data.tools[toolName] = { force_tier: forceTier };
+    data.tools[toolName] = cur;
   }
   saveToolOverrides(data, path);
+  return data;
+}
+
+/** Prevent bulk-exclude recommendations from targeting this tool. */
+export function setToolExcludeLock(toolName, locked, path = toolOverridesPath()) {
+  const data = loadToolOverrides(path);
+  const cur = { ...(data.tools[toolName] ?? {}) };
+  if (locked) {
+    cur.exclude_lock = true;
+    data.tools[toolName] = cur;
+  } else {
+    delete cur.exclude_lock;
+    if (Object.keys(cur).length === 0) {
+      delete data.tools[toolName];
+    } else {
+      data.tools[toolName] = cur;
+    }
+  }
+  saveToolOverrides(data, path);
+  return data;
+}
+
+/** PATCH body may set force_tier and/or exclude_lock without clobbering other fields. */
+export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
+  const hasForce =
+    body.force_tier !== undefined ||
+    body.enabled === true ||
+    body.enabled === false;
+  const hasLock = typeof body.exclude_lock === "boolean";
+  if (!hasForce && !hasLock) {
+    throw new Error("force_tier, enabled, or exclude_lock required");
+  }
+  let data = loadToolOverrides(path);
+  if (hasForce) {
+    const forceTier =
+      body.force_tier ??
+      (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
+    data = setToolForceTier(toolName, forceTier, path);
+  }
+  if (hasLock) {
+    data = setToolExcludeLock(toolName, body.exclude_lock, path);
+  }
   return data;
 }
 
@@ -65,11 +113,15 @@ export function setToolForceTier(toolName, forceTier, path = toolOverridesPath()
 export function bulkHideTools(toolNames, path = toolOverridesPath()) {
   const names = [...new Set((toolNames ?? []).filter(Boolean))];
   const data = loadToolOverrides(path);
+  const hidden = [];
   for (const name of names) {
-    data.tools[name] = { force_tier: "hidden" };
+    const cur = data.tools[name] ?? {};
+    if (cur.exclude_lock) continue;
+    data.tools[name] = { ...cur, force_tier: "hidden" };
+    hidden.push(name);
   }
   saveToolOverrides(data, path);
-  return { overrides: data, hidden: names, count: names.length };
+  return { overrides: data, hidden, count: hidden.length };
 }
 
 export function loadMcpJson(path = cursorMcpPath()) {
