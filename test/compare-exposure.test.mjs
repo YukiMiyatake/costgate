@@ -10,11 +10,16 @@ async function main() {
     gateBin(),
     [],
     {
-      ...mockGateEnv("exposure-conservative", {}, "mock"),
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT: "github pull merge issue search",
-      COSTGATE_INTENT_DYNAMIC: "0",
-      COSTGATE_EXPOSURE_MODE: "conservative",
+      ...mockGateEnv(
+        "exposure-conservative",
+        {
+          COSTGATE_GATE_MODE: "filter",
+          COSTGATE_INTENT: "github pull merge issue search",
+          COSTGATE_INTENT_DYNAMIC: "0",
+          COSTGATE_EXPOSURE_MODE: "conservative",
+        },
+        "mock"
+      ),
     },
     async (client) => {
       await client.initialize("exposure-conservative");
@@ -27,12 +32,17 @@ async function main() {
     gateBin(),
     [],
     {
-      ...mockGateEnv("exposure-aggressive", {}, "mock"),
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT: "github pull merge issue search",
-      COSTGATE_INTENT_DYNAMIC: "0",
-      COSTGATE_EXPOSURE_MODE: "aggressive",
-      COSTGATE_EXPOSURE_MAX_B: "2",
+      ...mockGateEnv(
+        "exposure-aggressive",
+        {
+          COSTGATE_GATE_MODE: "filter",
+          COSTGATE_INTENT: "github pull merge issue search",
+          COSTGATE_INTENT_DYNAMIC: "0",
+          COSTGATE_EXPOSURE_MODE: "aggressive",
+          COSTGATE_EXPOSURE_MAX_B: "2",
+        },
+        "mock"
+      ),
     },
     async (client) => {
       await client.initialize("exposure-aggressive");

@@ -101,6 +101,7 @@ async function testHttpApi() {
     const get = await fetch(`${base}/api/gate-settings`).then((r) => r.json());
     assert(get.settings.gate_mode === "filter", "GET settings");
     assert(get.defs?.length >= 5, "GET defs");
+    assert(get.hot_reload === true, "hot_reload flag");
 
     const patch = await fetch(`${base}/api/gate-settings`, {
       method: "PATCH",
@@ -110,6 +111,18 @@ async function testHttpApi() {
     assert(patch.ok, `PATCH ${patch.status}`);
     const body = await patch.json();
     assert(body.settings.intent_probe === false, "patched");
+    assert(body.requires_gate_restart === false, "hot-reloadable");
+    assert(body.gate_reload === "auto", "gate_reload hint");
+
+    const modePatch = await fetch(`${base}/api/gate-settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: { gate_mode: "transparent" } }),
+    });
+    assert(modePatch.ok, `mode PATCH ${modePatch.status}`);
+    const modeBody = await modePatch.json();
+    assert(modeBody.requires_gate_restart === true, "gate_mode needs restart");
+    assert(modeBody.gate_reload === undefined, "no auto reload for mode");
 
     const again = await fetch(`${base}/api/gate-settings`).then((r) => r.json());
     assert(again.settings.intent_probe === false, "persisted");

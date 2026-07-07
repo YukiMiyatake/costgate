@@ -1175,12 +1175,15 @@ function setupGateSettings() {
   document.getElementById("gate-settings-save")?.addEventListener("click", async () => {
     try {
       const settings = collectGateSettingsForm();
-      await fetchJson(apiPath("gate-settings"), {
+      const result = await fetchJson(apiPath("gate-settings"), {
         method: "PATCH",
         body: JSON.stringify({ settings }),
       });
       await loadGateSettings();
-      showToast(t("mcps.gateSaved"), { kind: "success" });
+      const msg = result.requires_gate_restart
+        ? t("mcps.gateSavedRestart")
+        : t("mcps.gateSaved");
+      showToast(msg, { kind: "success" });
     } catch (e) {
       showToast(e.message);
     }

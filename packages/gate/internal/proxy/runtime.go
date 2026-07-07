@@ -12,6 +12,7 @@ import (
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/compress"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/env"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatesettings"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatelog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/intent"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/meta"
@@ -33,6 +34,7 @@ type filterRuntime struct {
 	fcs             map[string]*forwardContext
 	live            map[string]bool
 	overridesMod    time.Time
+	settingsMod     time.Time
 	syncMu          sync.Mutex
 }
 
@@ -59,6 +61,9 @@ func newFilterRuntime(
 	}
 	if mod, err := overrides.FileModTime(); err == nil {
 		r.overridesMod = mod
+	}
+	if mod, err := gatesettings.FileModTime(); err == nil {
+		r.settingsMod = mod
 	}
 	shields := make(map[string]*shield.Handler, len(fcs))
 	for name, fc := range fcs {
@@ -99,6 +104,33 @@ func (r *filterRuntime) currentIntent() string {
 	return intent.Resolve(r.store, r.static)
 }
 
+func (r *filterRuntime) reloadGateSettingsIfChanged() bool {
+	if !env.Bool("COSTGATE_GATE_HOT_RELOAD", true) {
+		return false
+	}
+	mod, err := gatesettings.FileModTime()
+	if err != nil || mod.Equal(r.settingsMod) {
+		return false
+	}
+	loaded, err := gatesettings.Load()
+	if err != nil {
+		log.Printf("[costgate-gate] gate settings reload: %v", err)
+		return false
+	}
+	if loaded.GateMode != gateMode() {
+		log.Printf("[costgate-gate] gate settings: gate_mode=%q requires Gate restart (running %q)", loaded.GateMode, gateMode())
+		r.settingsMod = mod
+		return false
+	}
+	loaded.ApplyToEnv()
+	r.static = loaded.StaticIntent
+	r.settingsMod = mod
+	gen := loaded.Generation()
+	gatelog.LogSettingsReload(gen)
+	log.Printf("[costgate-gate] gate settings reloaded (generation=%s)", gen)
+	return true
+}
+
 func (r *filterRuntime) reloadOverridesIfChanged() bool {
 	if !env.Bool("COSTGATE_GATE_HOT_RELOAD", true) {
 		return false
@@ -122,6 +154,7 @@ func (r *filterRuntime) syncTools() {
 	r.syncMu.Lock()
 	defer r.syncMu.Unlock()
 
+	r.reloadGateSettingsIfChanged()
 	r.reloadOverridesIfChanged()
 
 	intentText := r.currentIntent()

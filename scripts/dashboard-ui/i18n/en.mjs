@@ -181,10 +181,11 @@ export default {
     gateSettingsTitle: "costgate-gate settings",
     gateSave: "Save Gate settings",
     gateNoteGlobal:
-      "Saved to ~/.costgate/gate-settings.json. Restart Cursor MCP to apply.",
+      "Saved to ~/.costgate/gate-settings.json. Gate applies most settings automatically (gate_mode needs MCP restart).",
     gateNoteProject:
-      "Project .costgate/gate-settings.json overrides Global. Restart Cursor MCP to apply.",
-    gateSaved: "Gate settings saved. Restart Cursor MCP (or reload window) to apply.",
+      "Project .costgate/gate-settings.json overrides Global. Gate applies most settings automatically.",
+    gateSaved: "Gate settings saved. Changes apply automatically (restart MCP only for gate_mode).",
+    gateSavedRestart: "Gate settings saved. Restart Cursor MCP to apply gate_mode change.",
     colServer: "Server",
     colRole: "Role",
     colTrust: "Trust",
