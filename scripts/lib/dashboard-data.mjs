@@ -323,9 +323,10 @@ function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, 
       in_catalog: inCatalog,
       call_count: callCount,
       last_used: lastUsed,
-      estimated_list_tokens: probe?.estimated_list_tokens
-        ? Math.round(probe.estimated_list_tokens)
-        : null,
+      estimated_list_tokens:
+        probe?.estimated_list_tokens != null
+          ? Math.round(probe.estimated_list_tokens)
+          : null,
       stale_days: staleDays(lastUsed, now),
       recommendation: null,
       exclude_score: 0,
