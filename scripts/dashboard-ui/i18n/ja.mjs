@@ -60,6 +60,10 @@ export default {
     promptIntentStale: "Prompt intent (古い)",
     lastShieldBlock: "最終 Shield ブロック",
     lastShieldBlockStale: "最終 Shield ブロック (古い)",
+    gateActivity: "最終 Gate 活動",
+    gateActivityStale: "最終 Gate 活動 (古い)",
+    gateActivityMissing: " Gate ログに tool イベントがまだありません。利用統計が空の場合があります。",
+    gateActivityStaleNote: " Gate 活動は {age} 前です。呼び出し回数が直近の Cursor 利用を反映していない可能性があります。",
     periodNote:
       "期間: {from} → {to}。Gate/Probe 外の MCP は blind spot として表示されます。",
     probeMissing:
@@ -151,6 +155,9 @@ export default {
     bulkExcludeConfirmTokensUnknown: "List トークン削減量は未計測のツールを含みます。",
     bulkExcludeConfirmMore: "…ほか {count} 件",
     bulkExcludeDone: "{count} 件を除外しました。推定 List トークン削減 ~{tokens}。Gate を再起動してください。",
+    gateFreshness: "Gate データ: {age}",
+    gateFreshnessStale: "Gate データ (古い): {age}",
+    gateFreshnessNone: "Gate データ: ログにイベントなし",
     empty: "条件に一致するツールがありません。",
     blindBanner: "計測圏外 MCP: {list}",
     savedOverride: "保存しました。ツール override を反映するには Gate を再起動してください。",

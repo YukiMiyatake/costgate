@@ -32,6 +32,7 @@ import { buildShieldPromptSnapshot, shieldPromptBlockDir } from "./shield-prompt
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
+const GATE_LOG_FRESH_MS = 60 * 60 * 1000;
 export const DASHBOARD_VERSION = "31a";
 
 export function defaultPaths() {
@@ -224,6 +225,80 @@ function ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend, options = {}
       }
     }
   }
+}
+
+function gateLogRowMatchesProject(row, options = {}) {
+  const projectRootFilter = options.projectRootFilter
+    ? resolve(options.projectRootFilter)
+    : null;
+  if (!projectRootFilter) return true;
+  const rowRoot = row.project_root ? resolve(row.project_root) : null;
+  if (options.strictProjectRoot) {
+    return Boolean(rowRoot && rowRoot === projectRootFilter);
+  }
+  return !rowRoot || rowRoot === projectRootFilter;
+}
+
+function latestGateLogTimestamp(gateLogDir, options = {}) {
+  if (!existsSync(gateLogDir)) return null;
+  let latest = null;
+  for (const file of readdirSync(gateLogDir).filter(
+    (f) => f.startsWith("gate-") && f.endsWith(".jsonl")
+  )) {
+    for (const line of readFileSync(join(gateLogDir, file), "utf8").split("\n")) {
+      if (!line.trim()) continue;
+      let row;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (row.type !== "gate_event" || !row.ts) continue;
+      if (!gateLogRowMatchesProject(row, options)) continue;
+      const ts = Date.parse(row.ts);
+      if (Number.isNaN(ts)) continue;
+      if (latest == null || ts > latest) latest = ts;
+    }
+  }
+  return latest;
+}
+
+/** Latest Gate JSONL activity for overview / tools freshness badges. */
+export function buildGateLogFreshness(options = {}) {
+  const now = options.now ?? Date.now();
+  const sources = [];
+  if (options.gateLogDir) {
+    sources.push({
+      dir: options.gateLogDir,
+      projectRootFilter: options.projectRoot ?? null,
+      strictProjectRoot: false,
+    });
+  }
+  const globalDir = options.globalGateLogDir ?? null;
+  if (options.projectRoot && globalDir && globalDir !== options.gateLogDir) {
+    sources.push({
+      dir: globalDir,
+      projectRootFilter: options.projectRoot,
+      strictProjectRoot: true,
+    });
+  }
+
+  let latestTs = null;
+  for (const src of sources) {
+    const ts = latestGateLogTimestamp(src.dir, src);
+    if (ts != null && (latestTs == null || ts > latestTs)) latestTs = ts;
+  }
+
+  if (latestTs == null) {
+    return { last_ts: null, age_sec: null, stale: true, has_events: false };
+  }
+  const ageMs = now - latestTs;
+  return {
+    last_ts: new Date(latestTs).toISOString(),
+    age_sec: Math.round(ageMs / 1000),
+    stale: ageMs > GATE_LOG_FRESH_MS,
+    has_events: true,
+  };
 }
 
 function mergeToolCallRow(row, byTool, byBackend) {
@@ -571,6 +646,14 @@ export function buildDashboardData(options = {}) {
   };
   const promptIntent = buildPromptIntentSnapshot({ ...paths, now });
   const shieldPrompt = buildShieldPromptSnapshot({ dir: paths.shieldPromptBlockDir, now });
+  const gateLogFreshness = buildGateLogFreshness({
+    gateLogDir: paths.gateLogDir,
+    globalGateLogDir: paths.scoped
+      ? (options.globalPaths?.gateLogDir ?? globalPaths.gateLogDir)
+      : null,
+    projectRoot: paths.scoped ? paths.projectRoot : null,
+    now,
+  });
 
   return {
     generated_at: new Date(now).toISOString(),
@@ -603,6 +686,7 @@ export function buildDashboardData(options = {}) {
       prompt_intent: promptIntent,
       shield_prompt: shieldPrompt,
       shield_prompt_block_count: shieldPrompt.block_count ?? 0,
+      gate_log_freshness: gateLogFreshness,
     },
     tools: {
       tools,
@@ -611,6 +695,7 @@ export function buildDashboardData(options = {}) {
       backends_without_catalog: Object.keys(backends)
         .filter((b) => !catalogs[b]?.overrides)
         .sort(),
+      gate_log_freshness: gateLogFreshness,
     },
     mcps,
     recommendations: {
