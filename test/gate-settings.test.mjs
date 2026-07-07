@@ -51,12 +51,15 @@ function testEnvMapping() {
     exposure_mode: "aggressive",
     exposure_max_b: 3,
     exposure_token_budget: 2500,
+    slim_list: true,
   });
   assert(env.COSTGATE_COMPRESS === "0", "compress env");
   assert(env.COSTGATE_GATE_MODE === "transparent", "mode env");
   assert(env.COSTGATE_EXPOSURE_MODE === "aggressive", "exposure mode env");
   assert(env.COSTGATE_EXPOSURE_MAX_B === "3", "exposure max b env");
   assert(env.COSTGATE_EXPOSURE_TOKEN_BUDGET === "2500", "exposure budget env");
+  assert(env.COSTGATE_SLIM_LIST === "1", "slim list env");
+  assert(env.COSTGATE_SLIM_LIST_MAX_CHARS === "120", "slim max env");
   console.error("[gate-settings] env mapping ok");
 }
 

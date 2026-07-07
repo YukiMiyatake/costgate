@@ -142,7 +142,7 @@ func (r *filterRuntime) logStartup() {
 	intentText := r.currentIntent()
 	a, b, c, h := filter.CountTiers(r.tiers)
 	log.Printf(
-		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q exposure=%s dynamic=%v compress=%v codemode=%v shield=%v backends=[%s]",
-		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, filter.ResolveExposureMode(), intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(), shield.Enabled(), r.registry.String(),
+		"[costgate-gate] filter mode: exposed=%d meta=2 total=%d tiers(A=%d B=%d C=%d hidden=%d) intent=%q exposure=%s slim_list=%v dynamic=%v compress=%v codemode=%v shield=%v backends=[%s]",
+		r.exposedCount(), len(r.cat.Tools), a, b, c, h, intentText, filter.ResolveExposureMode(), filter.SlimListEnabled(), intent.DynamicEnabled(), compress.Enabled(), codemode.Enabled(), shield.Enabled(), r.registry.String(),
 	)
 }

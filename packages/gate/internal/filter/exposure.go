@@ -209,12 +209,14 @@ func selectExposedBudget(tools []*mcp.Tool, tiers map[string]Tier, intent string
 
 // SelectExposed picks backend tools to register in tools/list.
 func SelectExposed(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*mcp.Tool {
+	var exposed []*mcp.Tool
 	switch ResolveExposureMode() {
 	case ExposureAggressive:
-		return selectExposedAggressive(tools, tiers, intent, ExposureMaxTierB())
+		exposed = selectExposedAggressive(tools, tiers, intent, ExposureMaxTierB())
 	case ExposureBudget:
-		return selectExposedBudget(tools, tiers, intent, ExposureTokenBudget())
+		exposed = selectExposedBudget(tools, tiers, intent, ExposureTokenBudget())
 	default:
-		return selectExposedConservative(tools, tiers, intent)
+		exposed = selectExposedConservative(tools, tiers, intent)
 	}
+	return slimExposedTools(exposed)
 }
