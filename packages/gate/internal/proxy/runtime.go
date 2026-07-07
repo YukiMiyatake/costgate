@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
@@ -27,6 +28,7 @@ type filterRuntime struct {
 	static   string
 	fcs      map[string]*forwardContext
 	live     map[string]bool
+	syncMu   sync.Mutex
 }
 
 func newFilterRuntime(
@@ -68,7 +70,7 @@ func (r *filterRuntime) record(tool string) {
 	r.store.Record(tool)
 	r.store.SaveDebounced()
 	if intent.DynamicEnabled() {
-		r.syncTools()
+		go r.syncTools()
 	}
 }
 
@@ -77,6 +79,9 @@ func (r *filterRuntime) currentIntent() string {
 }
 
 func (r *filterRuntime) syncTools() {
+	r.syncMu.Lock()
+	defer r.syncMu.Unlock()
+
 	intentText := r.currentIntent()
 	exposed := filter.SelectExposed(r.cat.Tools, r.tiers, intentText)
 

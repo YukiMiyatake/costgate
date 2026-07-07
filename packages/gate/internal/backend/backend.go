@@ -28,6 +28,7 @@ func Connect(ctx context.Context, name string, cfg config.BackendConfig) (*mcp.C
 		transport = &mcp.StreamableClientTransport{
 			Endpoint:   cfg.URL,
 			HTTPClient: httpClientForBackend(cfg),
+			MaxRetries: defaultHTTPMaxRetries,
 		}
 	} else {
 		cmd := exec.Command(cfg.Command, cfg.Args...)
