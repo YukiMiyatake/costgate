@@ -137,14 +137,18 @@ export function bulkHideTools(toolNames, path = toolOverridesPath()) {
   const names = [...new Set((toolNames ?? []).filter(Boolean))];
   const data = loadToolOverrides(path);
   const hidden = [];
+  const skipped = [];
   for (const name of names) {
     const cur = data.tools[name] ?? {};
-    if (cur.exclude_lock || cur.always_expose) continue;
+    if (cur.exclude_lock || cur.always_expose) {
+      skipped.push(name);
+      continue;
+    }
     data.tools[name] = { ...cur, force_tier: "hidden" };
     hidden.push(name);
   }
   saveToolOverrides(data, path);
-  return { overrides: data, hidden, count: hidden.length };
+  return { overrides: data, hidden, skipped, count: hidden.length };
 }
 
 export function loadMcpJson(path = cursorMcpPath()) {

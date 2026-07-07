@@ -587,6 +587,7 @@ async function handleBulkExclude(req, res, overridesPath, workspaceId = null) {
   const payload = {
     ok: true,
     hidden: result.hidden,
+    skipped: result.skipped ?? [],
     count: result.count,
     tokens_saved:
       typeof body.tokens_saved === "number" && body.tokens_saved >= 0
