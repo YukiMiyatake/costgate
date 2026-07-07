@@ -54,6 +54,7 @@ export function defaultPaths() {
     marketplaceDir:
       process.env.COSTGATE_MARKETPLACE_DIR ?? join(repoRoot(), "catalog/marketplace"),
     promptIntentDir: process.env.COSTGATE_PROMPT_INTENT_DIR ?? promptIntentDir(),
+    historyDir: process.env.COSTGATE_HISTORY_DIR ?? join(home, ".costgate", "history"),
     shieldPromptBlockDir:
       process.env.COSTGATE_SHIELD_PROMPT_DIR ?? shieldPromptBlockDir(),
     gateSettingsPath:
