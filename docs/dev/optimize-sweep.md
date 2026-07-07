@@ -281,15 +281,30 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 | aggressive_8k_prompt | 4200 | 16/17 | 4.2 | ★ |
 | budget_12k_probe | 5100 | 17/17 | 4.8 | ★★ |
 
-### Phase E — Cursor Agent E2E（スポット検証）⏳ P8
+### Phase E — Cursor Agent E2E（スポット検証）✅ P8
 
-週次 or リリース前に **上位 3 設定**だけ:
+```bash
+# mock proxy layer（CI / 週次）
+npm run cursor:e2e:spot:smoke
 
-1. `gate-settings.json` を適用
-2. 固定プロンプトセット（10–20 件）を Cursor Agent に実行
-3. 記録: 使用ツール、ターン数、`discover_tools` 発生率、主観成功
+# 全プロンプト + デフォルト設定
+npm run cursor:e2e:spot -- --mock --json
 
-**Cursor SDK**（`@cursor/sdk`）で半自動化も検討可。ただし **本番 Cursor IDE との差**（MCP 露出タイミング等）は残る。
+# sweep Pareto 上位 N 設定
+npm run cursor:e2e:spot -- --mock --sweep reports/sweep.json --top 3
+
+# 手動 Cursor 検証用チェックリスト
+npm run cursor:e2e:spot -- --mock --checklist reports/cursor-e2e-checklist.md
+```
+
+| パス | 役割 |
+|------|------|
+| `scripts/cursor-e2e-spot.mjs` | CLI |
+| `scripts/lib/cursor-e2e-spot.mjs` | プロンプト × 設定の spot 実行 |
+| `test/eval/cursor-e2e-prompts.json` | 固定プロンプトセット（8件） |
+| `.github/workflows/cursor-e2e-spot.yml` | 週次 workflow（mock） |
+
+**記録:** pass rate、`discover_tools` 必要率、意図キーワード。本番 Cursor Agent は `--checklist` で手動追跡。
 
 ---
 
@@ -346,7 +361,7 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 | **P7a** | LLM judge モジュール（圧縮品質） | ✅ Done |
 | **P7b** | Shield 副作用 judge | ✅ Done |
 | **P7c** | Dashboard「推奨設定を eval で検証」ボタン | ✅ Done |
-| **P8** | Cursor E2E スポット（週次 workflow） | 継続 | Agent 本体 |
+| **P8** | Cursor E2E スポット（週次 workflow） | ✅ Done |
 
 ---
 

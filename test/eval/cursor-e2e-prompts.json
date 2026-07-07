@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "prompts": [
+    {
+      "id": "github_pr",
+      "prompt": "Create a pull request to merge this bugfix into main on GitHub",
+      "expect_tools_any": ["create_pull_request", "search_issues", "merge_pull_request"],
+      "expect_discover_query": "pull request"
+    },
+    {
+      "id": "github_search_issue",
+      "prompt": "Search open GitHub issues for regression bugs in this repository",
+      "expect_tools_any": ["search_issues"],
+      "expect_discover_query": "search issue"
+    },
+    {
+      "id": "github_fork",
+      "prompt": "Fork this repository before starting the feature branch",
+      "expect_tools_any": ["fork_repository"],
+      "expect_discover_query": "fork"
+    },
+    {
+      "id": "read_source_file",
+      "prompt": "Read the main.go source file and summarize the entrypoint",
+      "expect_tools_any": ["get_file_contents"],
+      "expect_discover_query": "file contents"
+    },
+    {
+      "id": "echo_test",
+      "prompt": "Echo a hello message through the mock backend to verify delegation",
+      "expect_tools_any": ["echo"],
+      "expect_discover_query": "echo"
+    },
+    {
+      "id": "code_search",
+      "prompt": "Search the codebase for functions named hello across files",
+      "expect_tools_any": ["search_code"],
+      "expect_discover_query": "search code"
+    },
+    {
+      "id": "merge_pr",
+      "prompt": "Merge the approved pull request after CI passes",
+      "expect_tools_any": ["merge_pull_request", "create_pull_request"],
+      "expect_discover_query": "merge"
+    },
+    {
+      "id": "issue_comment",
+      "prompt": "Find the GitHub issue about token usage and prepare a reply",
+      "expect_tools_any": ["search_issues"],
+      "expect_discover_query": "issue"
+    }
+  ]
+}
