@@ -151,12 +151,14 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, registry *backend.R
 		shieldH = shields[backendName]
 	}
 	result, callMeta, err := shield.CallTool(ctx, registry, session, backendName, shieldH, rawTool, args.Arguments)
-	if err == nil && onInvoke != nil {
+	if err != nil {
+		gatelog.LogToolCallError(args.Name, err)
+		return result, err
+	}
+	if onInvoke != nil {
 		onInvoke(args.Name)
 	}
-	if err == nil {
-		gatelog.LogToolCall(args.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
-	}
+	gatelog.LogToolCall(args.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
 	return result, err
 }
 

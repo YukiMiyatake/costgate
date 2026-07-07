@@ -62,6 +62,11 @@ func LogToolCall(tool string, responseBytes int, compressed bool, savedBytes int
 	defaultLogger.logToolCall(tool, responseBytes, compressed, savedBytes)
 }
 
+// LogToolCallError records a failed backend tool invocation.
+func LogToolCallError(tool string, err error) {
+	defaultLogger.logToolCallError(tool, err)
+}
+
 func (l *Logger) logToolsList(backend string, toolsExposed, tokensEst int) {
 	l.append(map[string]any{
 		"event":          "tools_list",
@@ -73,15 +78,32 @@ func (l *Logger) logToolsList(backend string, toolsExposed, tokensEst int) {
 
 func (l *Logger) logToolCall(tool string, responseBytes int, compressed bool, savedBytes int) {
 	row := map[string]any{
-		"event":           "tool_call",
-		"tool":            tool,
-		"response_bytes":  responseBytes,
-		"compressed":      compressed,
+		"event":          "tool_call",
+		"tool":           tool,
+		"response_bytes": responseBytes,
+		"compressed":     compressed,
+		"ok":             true,
 	}
 	if savedBytes > 0 {
 		row["saved_bytes"] = savedBytes
 	}
 	l.append(row)
+}
+
+func (l *Logger) logToolCallError(tool string, err error) {
+	msg := ""
+	if err != nil {
+		msg = err.Error()
+		if len(msg) > 200 {
+			msg = msg[:200]
+		}
+	}
+	l.append(map[string]any{
+		"event": "tool_call",
+		"tool":  tool,
+		"ok":    false,
+		"error": msg,
+	})
 }
 
 func (l *Logger) append(row map[string]any) {

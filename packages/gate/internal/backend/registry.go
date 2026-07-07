@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -15,13 +16,16 @@ import (
 const (
 	defaultConnectTimeout    = 45 * time.Second
 	heavyStdioConnectTimeout = 90 * time.Second
+	urlIdleReconnect         = 2 * time.Minute
 )
 
 // Registry holds connected backend MCP sessions.
 type Registry struct {
-	names    []string
-	sessions map[string]*mcp.ClientSession
-	configs  map[string]config.BackendConfig
+	mu         sync.Mutex
+	names      []string
+	sessions   map[string]*mcp.ClientSession
+	configs    map[string]config.BackendConfig
+	lastCallAt map[string]time.Time
 }
 
 // NewRegistryForTest builds a registry from pre-connected sessions (tests only).
@@ -95,6 +99,34 @@ func connectTimeoutFor(name string, cfg config.BackendConfig) time.Duration {
 		return heavyStdioConnectTimeout
 	}
 	return defaultConnectTimeout
+}
+
+// ReconnectIfIdle replaces a URL backend session left unused for urlIdleReconnect.
+func (r *Registry) ReconnectIfIdle(ctx context.Context, name string) error {
+	if r == nil || !r.IsURL(name) {
+		return nil
+	}
+	r.mu.Lock()
+	last, ok := r.lastCallAt[name]
+	r.mu.Unlock()
+	if !ok || time.Since(last) < urlIdleReconnect {
+		return nil
+	}
+	log.Printf("[costgate-gate] backend %s: reconnecting after %v idle", name, time.Since(last).Round(time.Second))
+	return r.Reconnect(ctx, name)
+}
+
+// MarkBackendUsed records the last successful tool call time for a backend.
+func (r *Registry) MarkBackendUsed(name string) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.lastCallAt == nil {
+		r.lastCallAt = make(map[string]time.Time, len(r.names))
+	}
+	r.lastCallAt[name] = time.Now()
 }
 
 // Reconnect replaces one backend session (used after HTTP/SSE transport errors).

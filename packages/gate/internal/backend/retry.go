@@ -39,8 +39,23 @@ func CallTool(
 	tool string,
 	rawArgs json.RawMessage,
 ) (*mcp.CallToolResult, error) {
+	if registry != nil && registry.IsURL(backendName) {
+		if idleErr := registry.ReconnectIfIdle(ctx, backendName); idleErr != nil {
+			return nil, idleErr
+		}
+		if fresh, ok := registry.Session(backendName); ok && fresh != nil {
+			session = fresh
+		}
+	}
+
 	result, err := callToolOnce(ctx, session, tool, rawArgs)
-	if err == nil || registry == nil || !registry.IsURL(backendName) || !IsRetryableMCPError(err) {
+	if err == nil {
+		if registry != nil {
+			registry.MarkBackendUsed(backendName)
+		}
+		return result, nil
+	}
+	if registry == nil || !registry.IsURL(backendName) || !IsRetryableMCPError(err) {
 		return result, err
 	}
 
@@ -52,7 +67,11 @@ func CallTool(
 	if !ok || session == nil {
 		return nil, err
 	}
-	return callToolOnce(ctx, session, tool, rawArgs)
+	result, err = callToolOnce(ctx, session, tool, rawArgs)
+	if err == nil && registry != nil {
+		registry.MarkBackendUsed(backendName)
+	}
+	return result, err
 }
 
 func callToolOnce(ctx context.Context, session *mcp.ClientSession, tool string, rawArgs json.RawMessage) (*mcp.CallToolResult, error) {
