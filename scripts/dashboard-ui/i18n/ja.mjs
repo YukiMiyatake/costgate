@@ -238,6 +238,18 @@ export default {
     intent_prompt: { label: "Prompt intent", hint: "Cursor prompt-intent hook で Tier B を補強" },
     static_intent: { label: "静的 intent キーワード", hint: "Tier B 用キーワード（空白区切り・任意）" },
     compress_max_chars: { label: "圧縮最大文字数", hint: "圧縮 ON 時に残す最大文字数" },
+    exposure_mode: {
+      label: "露出モード",
+      hint: "conservative = マッチした Tier B すべて / aggressive = 上位 N 件 / budget = トークン上限",
+    },
+    exposure_max_b: {
+      label: "Aggressive Tier B 上限",
+      hint: "exposure_mode=aggressive 時の intent マッチ Tier B 最大数",
+    },
+    exposure_token_budget: {
+      label: "List トークン予算",
+      hint: "exposure_mode=budget 時の tools/list 推定トークン上限",
+    },
   },
   rec: {
     title: "おすすめ",

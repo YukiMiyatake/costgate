@@ -44,9 +44,19 @@ function testProjectOverride() {
 }
 
 function testEnvMapping() {
-  const env = gateSettingsToEnv({ ...DEFAULT_GATE_SETTINGS, compress: false, gate_mode: "transparent" });
+  const env = gateSettingsToEnv({
+    ...DEFAULT_GATE_SETTINGS,
+    compress: false,
+    gate_mode: "transparent",
+    exposure_mode: "aggressive",
+    exposure_max_b: 3,
+    exposure_token_budget: 2500,
+  });
   assert(env.COSTGATE_COMPRESS === "0", "compress env");
   assert(env.COSTGATE_GATE_MODE === "transparent", "mode env");
+  assert(env.COSTGATE_EXPOSURE_MODE === "aggressive", "exposure mode env");
+  assert(env.COSTGATE_EXPOSURE_MAX_B === "3", "exposure max b env");
+  assert(env.COSTGATE_EXPOSURE_TOKEN_BUDGET === "2500", "exposure budget env");
   console.error("[gate-settings] env mapping ok");
 }
 

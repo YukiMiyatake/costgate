@@ -20,6 +20,9 @@ export const DEFAULT_GATE_SETTINGS = {
   intent_prompt: true,
   static_intent: "",
   compress_max_chars: 12000,
+  exposure_mode: "conservative",
+  exposure_max_b: 5,
+  exposure_token_budget: 4000,
 };
 
 export const GATE_SETTING_DEFS = [
@@ -80,6 +83,28 @@ export const GATE_SETTING_DEFS = [
     label: "Compress max chars",
     hint: "Max characters kept per tool result when compression is on",
   },
+  {
+    key: "exposure_mode",
+    env: "COSTGATE_EXPOSURE_MODE",
+    type: "enum",
+    options: ["conservative", "aggressive", "budget"],
+    label: "Exposure mode",
+    hint: "conservative = all matched Tier B; aggressive = top-N Tier B; budget = token cap",
+  },
+  {
+    key: "exposure_max_b",
+    env: "COSTGATE_EXPOSURE_MAX_B",
+    type: "number",
+    label: "Aggressive Tier B cap",
+    hint: "Max intent-matched Tier B tools when exposure_mode=aggressive",
+  },
+  {
+    key: "exposure_token_budget",
+    env: "COSTGATE_EXPOSURE_TOKEN_BUDGET",
+    type: "number",
+    label: "List token budget",
+    hint: "Max estimated tools/list tokens when exposure_mode=budget",
+  },
 ];
 
 export function globalGateSettingsPath() {
@@ -101,6 +126,15 @@ function normalizeSettings(raw = {}) {
   if (typeof raw.static_intent === "string") out.static_intent = raw.static_intent;
   if (typeof raw.compress_max_chars === "number" && raw.compress_max_chars > 0) {
     out.compress_max_chars = Math.floor(raw.compress_max_chars);
+  }
+  if (["conservative", "aggressive", "budget"].includes(raw.exposure_mode)) {
+    out.exposure_mode = raw.exposure_mode;
+  }
+  if (typeof raw.exposure_max_b === "number" && raw.exposure_max_b >= 0) {
+    out.exposure_max_b = Math.floor(raw.exposure_max_b);
+  }
+  if (typeof raw.exposure_token_budget === "number" && raw.exposure_token_budget >= 0) {
+    out.exposure_token_budget = Math.floor(raw.exposure_token_budget);
   }
   return out;
 }
@@ -178,6 +212,9 @@ export function gateSettingsToEnv(settings) {
     COSTGATE_INTENT_PROMPT: boolEnv(s.intent_prompt),
     COSTGATE_INTENT: s.static_intent ?? "",
     COSTGATE_COMPRESS_MAX_CHARS: String(s.compress_max_chars),
+    COSTGATE_EXPOSURE_MODE: s.exposure_mode,
+    COSTGATE_EXPOSURE_MAX_B: String(s.exposure_max_b),
+    COSTGATE_EXPOSURE_TOKEN_BUDGET: String(s.exposure_token_budget),
   };
 }
 

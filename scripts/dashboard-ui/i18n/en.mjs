@@ -236,6 +236,18 @@ export default {
     intent_prompt: { label: "Prompt intent", hint: "Cursor prompt-intent hook augments Tier B" },
     static_intent: { label: "Static intent keywords", hint: "Space-separated Tier B keywords (optional)" },
     compress_max_chars: { label: "Compress max chars", hint: "Max characters kept per tool result when compression is on" },
+    exposure_mode: {
+      label: "Exposure mode",
+      hint: "conservative = all matched Tier B; aggressive = top-N Tier B; budget = token cap",
+    },
+    exposure_max_b: {
+      label: "Aggressive Tier B cap",
+      hint: "Max intent-matched Tier B tools when exposure_mode=aggressive",
+    },
+    exposure_token_budget: {
+      label: "List token budget",
+      hint: "Max estimated tools/list tokens when exposure_mode=budget",
+    },
   },
   rec: {
     title: "Recommendations",

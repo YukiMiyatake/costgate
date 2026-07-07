@@ -123,28 +123,6 @@ func MatchIntent(intent string, tool *mcp.Tool) bool {
 	return false
 }
 
-// SelectExposed picks backend tools to register in tools/list.
-func SelectExposed(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*mcp.Tool {
-	var exposed []*mcp.Tool
-	for _, tool := range tools {
-		if tool == nil {
-			continue
-		}
-		tier := tiers[tool.Name]
-		switch tier {
-		case TierA:
-			exposed = append(exposed, tool)
-		case TierB:
-			if MatchIntent(intent, tool) {
-				exposed = append(exposed, tool)
-			}
-		case TierHidden:
-			// never in tools/list
-		}
-	}
-	return exposed
-}
-
 // CountTiers returns how many tools fall in each tier (hidden counted separately).
 func CountTiers(tiers map[string]Tier) (a, b, c, hidden int) {
 	for _, t := range tiers {
