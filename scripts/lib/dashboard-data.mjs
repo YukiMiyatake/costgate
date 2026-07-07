@@ -410,15 +410,20 @@ function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, 
       const lTs = lastUsed ? Date.parse(lastUsed) : 0;
       if (!Number.isNaN(uTs) && uTs >= lTs) lastUsed = u.last_used;
     }
-    const tier = overrides[name]?.force_tier ?? tierForTool(name, backend, catalogs, defaultBackend);
-    const forced = Boolean(overrides[name]?.force_tier);
+    const override = overrides[name];
+    const tier =
+      override?.force_tier ??
+      (override?.always_expose ? "A" : null) ??
+      tierForTool(name, backend, catalogs, defaultBackend);
+    const forced = Boolean(override?.force_tier || override?.always_expose);
     const inCatalog = Boolean(tierForTool(name, backend, catalogs, defaultBackend));
     tools.push({
       name,
       backend,
       tier,
       forced_tier: forced,
-      exclude_lock: Boolean(overrides[name]?.exclude_lock),
+      exclude_lock: Boolean(override?.exclude_lock),
+      always_expose: Boolean(override?.always_expose),
       in_catalog: inCatalog,
       call_count: callCount,
       last_used: lastUsed,

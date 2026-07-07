@@ -70,7 +70,7 @@ export const EXCLUDE_RECOMMEND_MIN_SCORE = 40;
 
 export function isExcludeRecommended(tool, minScore = EXCLUDE_RECOMMEND_MIN_SCORE) {
   if (!tool || tool.tier === "hidden") return false;
-  if (tool.exclude_lock) return false;
+  if (tool.exclude_lock || tool.always_expose) return false;
   return (tool.exclude_score ?? 0) >= minScore;
 }
 

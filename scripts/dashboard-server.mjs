@@ -380,7 +380,11 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
         tool: name,
         force_tier: data.tools[name]?.force_tier ?? null,
         exclude_lock: Boolean(data.tools[name]?.exclude_lock),
-        requires_gate_restart: body.force_tier !== undefined || body.enabled !== undefined,
+        always_expose: Boolean(data.tools[name]?.always_expose),
+        requires_gate_restart:
+          body.force_tier !== undefined ||
+          body.enabled !== undefined ||
+          body.always_expose !== undefined,
         overrides: data,
       });
     } catch (e) {
@@ -835,8 +839,11 @@ function createDashboardServer(options = {}) {
               tool: name,
               force_tier: data.tools[name]?.force_tier ?? null,
               exclude_lock: Boolean(data.tools[name]?.exclude_lock),
+              always_expose: Boolean(data.tools[name]?.always_expose),
               requires_gate_restart:
-                body.force_tier !== undefined || body.enabled !== undefined,
+                body.force_tier !== undefined ||
+                body.enabled !== undefined ||
+                body.always_expose !== undefined,
               overrides: data,
             });
           } catch (e) {

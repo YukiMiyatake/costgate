@@ -85,6 +85,7 @@ function testSummarizeCandidates() {
     { name: "already", tier: "hidden", exclude_score: 90, estimated_list_tokens: 500 },
     { name: "keep", tier: "A", exclude_score: 5, estimated_list_tokens: 100 },
     { name: "locked", tier: "B", exclude_score: 90, exclude_lock: true, estimated_list_tokens: 300 },
+    { name: "pinned", tier: "B", exclude_score: 90, always_expose: true, estimated_list_tokens: 400 },
   ];
   const summary = summarizeExcludeCandidates(tools);
   assert(summary.count === 1, "one candidate");
@@ -96,6 +97,10 @@ function testExcludeLockSkipsScore() {
   assert(
     !isExcludeRecommended({ tier: "C", exclude_score: 99, exclude_lock: true }),
     "locked tool not recommended"
+  );
+  assert(
+    !isExcludeRecommended({ tier: "C", exclude_score: 99, always_expose: true }),
+    "pinned tool not recommended"
   );
 }
 

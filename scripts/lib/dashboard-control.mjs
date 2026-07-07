@@ -86,6 +86,25 @@ export function setToolExcludeLock(toolName, locked, path = toolOverridesPath())
   return data;
 }
 
+/** Pin tool to tools/list (Tier A) without changing other override fields. */
+export function setToolAlwaysExpose(toolName, pinned, path = toolOverridesPath()) {
+  const data = loadToolOverrides(path);
+  const cur = { ...(data.tools[toolName] ?? {}) };
+  if (pinned) {
+    cur.always_expose = true;
+    data.tools[toolName] = cur;
+  } else {
+    delete cur.always_expose;
+    if (Object.keys(cur).length === 0) {
+      delete data.tools[toolName];
+    } else {
+      data.tools[toolName] = cur;
+    }
+  }
+  saveToolOverrides(data, path);
+  return data;
+}
+
 /** PATCH body may set force_tier and/or exclude_lock without clobbering other fields. */
 export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
   const hasForce =
@@ -93,8 +112,9 @@ export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
     body.enabled === true ||
     body.enabled === false;
   const hasLock = typeof body.exclude_lock === "boolean";
-  if (!hasForce && !hasLock) {
-    throw new Error("force_tier, enabled, or exclude_lock required");
+  const hasPin = typeof body.always_expose === "boolean";
+  if (!hasForce && !hasLock && !hasPin) {
+    throw new Error("force_tier, enabled, exclude_lock, or always_expose required");
   }
   let data = loadToolOverrides(path);
   if (hasForce) {
@@ -106,6 +126,9 @@ export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
   if (hasLock) {
     data = setToolExcludeLock(toolName, body.exclude_lock, path);
   }
+  if (hasPin) {
+    data = setToolAlwaysExpose(toolName, body.always_expose, path);
+  }
   return data;
 }
 
@@ -116,7 +139,7 @@ export function bulkHideTools(toolNames, path = toolOverridesPath()) {
   const hidden = [];
   for (const name of names) {
     const cur = data.tools[name] ?? {};
-    if (cur.exclude_lock) continue;
+    if (cur.exclude_lock || cur.always_expose) continue;
     data.tools[name] = { ...cur, force_tier: "hidden" };
     hidden.push(name);
   }
