@@ -31,6 +31,7 @@ import {
   patchGateSettings,
 } from "./lib/gate-settings.mjs";
 import { buildMcpTrustApiPayload, patchMcpTrust } from "./lib/mcp-trust.mjs";
+import { buildGateStatusPayload } from "./lib/dashboard-gate-status.mjs";
 import {
   buildShieldPromptApiPayload,
   sanitizePromptApiBody,
@@ -227,6 +228,17 @@ function gateSettingsOpts(paths) {
   };
 }
 
+function gateStatusOpts(paths) {
+  const global = defaultPaths();
+  return {
+    projectRoot: paths.projectRoot ?? paths.workspace_path ?? null,
+    gateSettingsPath: paths.gateSettingsPath,
+    overridesPath: paths.overridesPath ?? toolOverridesPath(),
+    gateLogDir: paths.gateLogDir ?? global.gateLogDir,
+    globalGateLogDir: paths.globalPaths?.gateLogDir ?? global.gateLogDir,
+  };
+}
+
 function mcpTrustOpts(paths) {
   const scoped = Boolean(paths.scoped ?? paths.workspace_id);
   const projectRoot = paths.projectRoot ?? paths.workspace_path;
@@ -403,6 +415,18 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     } catch (e) {
       json(res, 400, { error: e.message ?? String(e) });
     }
+    return true;
+  }
+
+  const wsGateStatus = pathname.match(/^\/api\/workspaces\/([^/]+)\/gate\/status$/);
+  if (method === "GET" && wsGateStatus) {
+    const resolved = resolveWorkspaceRequest(wsGateStatus[1], res);
+    if (!resolved) return true;
+    const { paths } = resolved;
+    json(res, 200, {
+      workspace_id: resolved.wsId,
+      ...buildGateStatusPayload(gateStatusOpts(paths)),
+    });
     return true;
   }
 
@@ -664,6 +688,11 @@ function createDashboardServer(options = {}) {
         if (pathname === "/api/gate-settings") {
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
           json(res, 200, buildGateSettingsApiPayload(gateSettingsOpts(paths)));
+          return;
+        }
+        if (pathname === "/api/gate/status") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          json(res, 200, buildGateStatusPayload(gateStatusOpts(paths)));
           return;
         }
         if (pathname === "/api/mcp-trust") {
