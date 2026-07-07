@@ -5,8 +5,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { handleCursorRegistryHook, extractFilePathFromHook } from "../scripts/cursor-registry-hook.mjs";
-import { listWorkspaces } from "../scripts/lib/dashboard-workspaces.mjs";
+import { listWorkspaces, touchRegistryPath } from "../scripts/lib/dashboard-workspaces.mjs";
 import { resolveWorkspaceRootFromPath } from "../scripts/lib/resolve-workspace-root.mjs";
 
 function assert(cond, msg) {
@@ -98,11 +99,38 @@ function testResolveWorkspaceRoot() {
   console.error("[cursor-hook] resolve root ok");
 }
 
+function testMonorepoFileFoldsToWorkspaceRoot() {
+  const { base, regPath } = tempReg();
+  const mono = join(base, "costgate");
+  mkdirSync(join(mono, ".git"), { recursive: true });
+  const pkg = join(mono, "packages", "gate");
+  mkdirSync(pkg, { recursive: true });
+  writeFileSync(join(pkg, "go.mod"), "module gate\n");
+  const file = join(pkg, "main.go");
+  writeFileSync(file, "package main\n");
+
+  touchRegistryPath(mono, { registryPath: regPath, source: "cursor:workspace" });
+
+  handleCursorRegistryHook({
+    hook_event_name: "postToolUse",
+    tool_name: "Read",
+    tool_input: { path: file },
+    workspace_roots: [mono],
+  });
+
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces.length === 1, "single workspace after fold");
+  assert(resolve(list.workspaces[0].path) === resolve(mono), "monorepo root not package");
+  console.error("[cursor-hook] monorepo fold ok");
+  delete process.env.COSTGATE_WORKSPACE_REGISTRY;
+}
+
 async function main() {
   testWorkspaceOpen();
   testPostToolUseRead();
   testBeforeTabFileRead();
   testResolveWorkspaceRoot();
+  testMonorepoFileFoldsToWorkspaceRoot();
   testUnknownEvent();
   console.error("[cursor-hook] all passed");
 }

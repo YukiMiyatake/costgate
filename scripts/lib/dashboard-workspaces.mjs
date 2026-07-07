@@ -11,6 +11,12 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { resolveProjectRoot } from "./dashboard-project-recommend.mjs";
 import { readJson } from "./read-json.mjs";
+import {
+  collapseNestedWorkspacePaths,
+  findContainingWorkspaceRoot,
+  isPathUnder,
+  normalizeRegistryWorkspacePath,
+} from "./resolve-workspace-root.mjs";
 
 /** How a workspace entered the Activity Registry. */
 export const REGISTRY_SOURCES = {
@@ -84,23 +90,43 @@ function entryFromPath(absPath, extra = {}) {
   };
 }
 
+function pruneNestedRegistryEntries(workspaces, rootPath) {
+  const root = resolve(rootPath);
+  return workspaces.filter((w) => {
+    const wp = resolve(w.path);
+    if (wp === root) return true;
+    return !isPathUnder(wp, root);
+  });
+}
+
 /**
  * Record or update a workspace in the registry.
  * @param {string} absPath
- * @param {{ registryPath?: string, source?: string, pinned?: boolean }} [options]
+ * @param {{ registryPath?: string, source?: string, pinned?: boolean, knownRoots?: string[] }} [options]
  */
 export function touchRegistryPath(absPath, options = {}) {
   const regPath = options.registryPath ?? registryPath();
-  const abs = resolve(absPath);
   const reg = loadRegistry(regPath);
+  const knownRoots = [
+    ...reg.workspaces.map((w) => resolve(w.path)),
+    ...(options.knownRoots ?? []).map((r) => resolve(r)),
+  ];
+  const abs = normalizeRegistryWorkspacePath(absPath, knownRoots);
+  if (!abs) return reg;
+
+  const parent = findContainingWorkspaceRoot(abs, reg.workspaces.map((w) => w.path));
+  const target = parent && parent !== abs ? parent : abs;
+
+  reg.workspaces = pruneNestedRegistryEntries(reg.workspaces, target);
+
   const now = new Date().toISOString();
   const source = options.source ?? null;
   let found = false;
   for (const w of reg.workspaces) {
-    if (resolve(w.path) === abs) {
+    if (resolve(w.path) === target) {
       w.last_seen = now;
-      w.label = basename(abs);
-      w.has_config = hasWorkspaceConfig(abs);
+      w.label = basename(target);
+      w.has_config = hasWorkspaceConfig(target);
       if (options.pinned) w.pinned = true;
       if (source) w.source = source;
       found = true;
@@ -109,7 +135,7 @@ export function touchRegistryPath(absPath, options = {}) {
   }
   if (!found) {
     reg.workspaces.push(
-      entryFromPath(abs, {
+      entryFromPath(target, {
         last_seen: now,
         pinned: options.pinned,
         source,
@@ -121,11 +147,15 @@ export function touchRegistryPath(absPath, options = {}) {
 }
 
 export function pinWorkspace(absPath, path = registryPath()) {
-  const abs = resolve(absPath);
+  const reg = loadRegistry(path);
+  const known = reg.workspaces.map((w) => resolve(w.path));
+  let abs = resolve(absPath);
   if (!existsSync(abs)) {
     throw new Error(`workspace path not found: ${abs}`);
   }
-  touchRegistryPath(abs, { registryPath: path, source: "pin", pinned: true });
+  const containing = findContainingWorkspaceRoot(abs, known);
+  if (containing) abs = containing;
+  touchRegistryPath(abs, { registryPath: path, source: "pin", pinned: true, knownRoots: known });
   return listWorkspaces({ registryPath: path, includeCurrent: false });
 }
 
@@ -196,12 +226,14 @@ export function listWorkspaces(options = {}) {
     return tb - ta || a.label.localeCompare(b.label);
   });
 
+  const collapsed = collapseNestedWorkspacePaths(items);
+
   return {
     registry_path: regPath,
-    workspaces: items,
+    workspaces: collapsed,
     active_id: options.activeId ?? null,
     help:
-      "Projects appear when Gate runs, Cursor opens a folder (hook), Agent/Tab reads a file, or you Pin a path.",
+      "Cursor workspace folders and pinned project roots. Nested package paths fold into the parent project.",
   };
 }
 
