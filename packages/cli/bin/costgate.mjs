@@ -6,7 +6,7 @@
  *   costgate gate          MCP entry (Dashboard + costgate-gate)
  *   costgate dashboard     Manual Dashboard
  *   costgate registry      Cursor hooks only
- *   costgate update        Re-fetch Gate binary + refresh hooks
+ *   costgate update        Re-fetch Gate + refresh mcp.json + hooks
  */
 import { pathToFileURL } from "node:url";
 import { join } from "node:path";
@@ -14,8 +14,14 @@ import { runInit } from "../src/init.mjs";
 import { runGate } from "../src/gate.mjs";
 import { runDashboard } from "../src/dashboard.mjs";
 import { installRegistryHooks } from "../src/registry.mjs";
-import { installGateBinary } from "../src/install-gate.mjs";
+import { ensureGateBinaryForCli } from "../src/install-gate.mjs";
 import { readCliPackageVersion } from "../src/cli-runtime.mjs";
+import {
+  applyProductionMcp,
+  DEFAULT_MCP_PATH,
+  loadMcpJson,
+  saveMcpJson,
+} from "../src/mcp-config.mjs";
 
 function printHelp() {
   process.stderr.write(`@costgate/cli — Gate your MCP. Cut your bill.
@@ -98,10 +104,15 @@ async function main() {
       }
       case "update": {
         const ver = readCliPackageVersion();
-        const gate = await installGateBinary({ version: ver, force: true });
+        const gate = await ensureGateBinaryForCli({ version: ver, force: true });
         process.stderr.write(`[costgate] Gate ${gate.path} (${gate.tag ?? ver})\n`);
+        const mcpPath = DEFAULT_MCP_PATH;
+        const mcp = applyProductionMcp(loadMcpJson(mcpPath), ver);
+        saveMcpJson(mcp, mcpPath);
+        process.stderr.write(`[costgate] mcp.json → @costgate/cli@${ver}\n`);
         const { hooksPath, installed } = await installRegistryHooks();
         process.stderr.write(`[costgate] hooks → ${hooksPath} (+${installed.length})\n`);
+        process.stderr.write("[costgate] Restart Cursor MCP or reload the window.\n");
         break;
       }
       case "shield":

@@ -15,7 +15,7 @@ npx @costgate/cli@latest init
 |---------|------|
 | `costgate init` | 一式セットアップ |
 | `costgate gate` | MCP エントリ（Cursor が npx 経由で起動） |
-| `costgate update` | Gate 再取得 + hooks 更新 |
+| `costgate update` | Gate 再取得 + `mcp.json` バージョン更新 + hooks 更新 |
 | `costgate registry` | hooks のみ |
 
 グローバル: `npm install -g @costgate/cli && costgate init`

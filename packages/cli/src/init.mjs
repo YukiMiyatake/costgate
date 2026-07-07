@@ -1,7 +1,7 @@
 /**
  * costgate init — install Gate binary, mcp.json, hooks, backends template.
  */
-import { installGateBinary } from "./install-gate.mjs";
+import { ensureGateBinaryForCli } from "./install-gate.mjs";
 import {
   applyProductionMcp,
   DEFAULT_BACKENDS_PATH,
@@ -18,7 +18,7 @@ export async function runInit(opts = {}) {
   const version = readCliPackageVersion();
   const steps = [];
 
-  const gate = await installGateBinary({
+  const gate = await ensureGateBinaryForCli({
     version: version,
     tag: opts.tag,
     force: opts.forceGate ?? false,

@@ -1,7 +1,16 @@
 /**
  * Download costgate-gate from GitHub Releases → ~/.costgate/bin/
  */
-import { chmodSync, copyFileSync, createWriteStream, existsSync, mkdirSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, platform, arch as nodeArch } from "node:os";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -18,6 +27,57 @@ export function gateInstallDir(dir = process.env.COSTGATE_BIN_DIR) {
 export function installedGatePath(dir = gateInstallDir()) {
   const ext = platform() === "win32" ? ".exe" : "";
   return join(dir, `costgate-gate${ext}`);
+}
+
+export function installedGateVersionMetaPath(dir = gateInstallDir()) {
+  return join(dir, ".costgate-gate-version");
+}
+
+export function normalizeVersion(version) {
+  return String(version ?? "").trim().replace(/^v/, "");
+}
+
+export function parseGateVersionOutput(stdout) {
+  const match = String(stdout ?? "").trim().match(/^costgate-gate\s+(\S+)/);
+  return match ? normalizeVersion(match[1]) : null;
+}
+
+export function readInstalledGateVersionMeta(dir = gateInstallDir()) {
+  const metaPath = installedGateVersionMetaPath(dir);
+  if (!existsSync(metaPath)) return null;
+  try {
+    return normalizeVersion(readFileSync(metaPath, "utf8")) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeInstalledGateVersionMeta(version, dir = gateInstallDir()) {
+  const ver = normalizeVersion(version);
+  if (!ver) return;
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(installedGateVersionMetaPath(dir), `${ver}\n`, "utf8");
+}
+
+export function readInstalledGateVersion(gatePath = installedGatePath()) {
+  if (!existsSync(gatePath)) return null;
+  try {
+    const out = execFileSync(gatePath, ["--version"], {
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    return parseGateVersionOutput(out);
+  } catch {
+    return null;
+  }
+}
+
+export function gateBinaryMatchesCliVersion(gatePath, cliVersion, installDir = gateInstallDir()) {
+  const want = normalizeVersion(cliVersion);
+  if (!want || !existsSync(gatePath)) return false;
+  const metaVer = readInstalledGateVersionMeta(installDir);
+  if (metaVer === want) return true;
+  return readInstalledGateVersion(gatePath) === want;
 }
 
 export function detectPlatform() {
@@ -71,12 +131,15 @@ export async function installGateBinary(opts = {}) {
   const dest = installedGatePath(installDir);
   const ext = platform() === "win32" ? ".exe" : "";
 
-  if (!opts.force && existsSync(dest)) {
-    return { path: dest, skipped: true, version: opts.version };
-  }
+  const tag =
+    opts.tag ??
+    (opts.version ? `v${normalizeVersion(opts.version)}` : await fetchLatestTag());
+  const ver = normalizeVersion(tag);
 
-  const tag = opts.tag ?? (opts.version ? `v${opts.version.replace(/^v/, "")}` : await fetchLatestTag());
-  const ver = tag.replace(/^v/, "");
+  if (!opts.force && existsSync(dest) && gateBinaryMatchesCliVersion(dest, ver, installDir)) {
+    writeInstalledGateVersionMeta(ver, installDir);
+    return { path: dest, skipped: true, version: ver, tag: `v${ver}` };
+  }
   const { asset, ext: archiveExt } = releaseAssetName(ver, os, arch);
   const url = `https://github.com/${REPO}/releases/download/${tag}/${asset}`;
 
@@ -107,8 +170,27 @@ export async function installGateBinary(opts = {}) {
   }
 
   rmSync(tmp, { recursive: true, force: true });
+  writeInstalledGateVersionMeta(ver, installDir);
 
   return { path: dest, skipped: false, version: ver, tag, url };
+}
+
+/** Install or upgrade Gate when missing or version differs from @costgate/cli. */
+export async function ensureGateBinaryForCli(opts = {}) {
+  const installDir = gateInstallDir(opts.installDir);
+  const dest = installedGatePath(installDir);
+  const cliVer = normalizeVersion(opts.version ?? readCliPackageVersion());
+
+  if (!opts.force && existsSync(dest) && gateBinaryMatchesCliVersion(dest, cliVer, installDir)) {
+    writeInstalledGateVersionMeta(cliVer, installDir);
+    return { path: dest, skipped: true, version: cliVer, tag: `v${cliVer}` };
+  }
+
+  return installGateBinary({
+    ...opts,
+    version: cliVer,
+    force: opts.force ?? true,
+  });
 }
 
 /** Prefer local monorepo build, then installed binary, else download latest release. */
@@ -123,13 +205,13 @@ export async function resolveGateBinary(opts = {}) {
   }
 
   const installed = installedGatePath();
-  if (existsSync(installed)) {
+  const cliVer = normalizeVersion(opts.version ?? readCliPackageVersion());
+  if (existsSync(installed) && gateBinaryMatchesCliVersion(installed, cliVer)) {
     return installed;
   }
 
-  const ver = opts.version ?? readCliPackageVersion();
   try {
-    const result = await installGateBinary({ version: ver, tag: opts.tag, force: true });
+    const result = await ensureGateBinaryForCli({ version: cliVer, tag: opts.tag });
     return result.path;
   } catch (err) {
     throw new Error(
