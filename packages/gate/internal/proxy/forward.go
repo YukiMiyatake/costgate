@@ -55,8 +55,13 @@ func callBackendFromRequest(ctx context.Context, registry *backend.Registry, req
 		}
 	}
 	result, callMeta, err := shield.CallTool(ctx, registry, session, backendName, h, rawTool, req.Params.Arguments)
-	if err == nil && !meta.IsMeta(req.Params.Name) {
-		gatelog.LogToolCall(req.Params.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
+	if meta.IsMeta(req.Params.Name) {
+		return result, err
 	}
+	if err != nil {
+		gatelog.LogToolCallError(req.Params.Name, err)
+		return result, err
+	}
+	gatelog.LogToolCall(req.Params.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
 	return result, err
 }

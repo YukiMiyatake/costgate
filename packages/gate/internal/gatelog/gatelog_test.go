@@ -61,10 +61,54 @@ func TestLoggerWritesGateEvents(t *testing.T) {
 	if call["event"] != "tool_call" || call["tool"] != "search_issues" {
 		t.Fatalf("unexpected tool_call row: %#v", call)
 	}
-	if call["compressed"] != true {
-		t.Fatalf("expected compressed=true, got %#v", call["compressed"])
+	if call["compressed"] != true || call["ok"] != true {
+		t.Fatalf("expected compressed=true ok=true, got %#v", call)
 	}
 }
+
+func TestLoggerWritesToolCallError(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("COSTGATE_GATE_LOG", "1")
+	t.Setenv("COSTGATE_GATE_LOG_DIR", dir)
+
+	l := New()
+	l.logToolCallError("aieph/aieph_search", &simpleErr{"connection closed"})
+
+	path := filepath.Join(dir, entriesName(dir, t))
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	if !scanner.Scan() {
+		t.Fatal("expected one log line")
+	}
+	var row map[string]any
+	if err := json.Unmarshal(scanner.Bytes(), &row); err != nil {
+		t.Fatal(err)
+	}
+	if row["ok"] != false || row["error"] != "connection closed" {
+		t.Fatalf("unexpected error row: %#v", row)
+	}
+}
+
+func entriesName(dir string, t *testing.T) string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 log file, got %d", len(entries))
+	}
+	return entries[0].Name()
+}
+
+type simpleErr struct{ s string }
+
+func (e *simpleErr) Error() string { return e.s }
 
 func TestLoggerDisabled(t *testing.T) {
 	dir := t.TempDir()
