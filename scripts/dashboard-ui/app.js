@@ -597,6 +597,91 @@ function setupShieldPromptPanel() {
 
 let toolsData = null;
 let toolsTierFilter = "all";
+const EXCLUDE_RECOMMEND_MIN_SCORE = 40;
+
+function summarizeExcludeCandidates(tools) {
+  const candidates = [];
+  let tokensSaved = 0;
+  let tokensUnknown = 0;
+  for (const tool of tools ?? []) {
+    if (tool.tier === "hidden") continue;
+    if ((tool.exclude_score ?? 0) < EXCLUDE_RECOMMEND_MIN_SCORE) continue;
+    candidates.push(tool);
+    const tok = tool.estimated_list_tokens;
+    if (tok != null && tok > 0) tokensSaved += tok;
+    else tokensUnknown += 1;
+  }
+  return { candidates, count: candidates.length, tokensSaved, tokensUnknown };
+}
+
+function renderToolsBulkExcludeBar(all) {
+  const btn = document.getElementById("tools-bulk-exclude-btn");
+  const hint = document.getElementById("tools-bulk-exclude-hint");
+  if (!btn) return;
+  const { candidates, count, tokensSaved, tokensUnknown } = summarizeExcludeCandidates(all);
+  btn.disabled = count === 0;
+  btn.textContent =
+    count === 0
+      ? t("tools.bulkExcludeNone")
+      : t("tools.bulkExcludeAction", { count, tokens: fmt(tokensSaved) });
+  if (hint) {
+    if (count === 0) {
+      hint.textContent = t("tools.bulkExcludeHintEmpty", { min: EXCLUDE_RECOMMEND_MIN_SCORE });
+    } else {
+      hint.textContent = t("tools.bulkExcludeHint", {
+        count,
+        tokens: fmt(tokensSaved),
+        unknown: tokensUnknown,
+        min: EXCLUDE_RECOMMEND_MIN_SCORE,
+      });
+    }
+  }
+  btn.onclick = async () => {
+    if (count === 0) return;
+    const tokenLine =
+      tokensSaved > 0
+        ? t("tools.bulkExcludeConfirmTokens", { tokens: fmt(tokensSaved) })
+        : t("tools.bulkExcludeConfirmTokensUnknown");
+    const sample = candidates
+      .slice(0, 8)
+      .map((tool) => `· ${tool.name}`)
+      .join("\n");
+    const more =
+      candidates.length > 8
+        ? `\n${t("tools.bulkExcludeConfirmMore", { count: candidates.length - 8 })}`
+        : "";
+    if (
+      !confirm(
+        `${t("tools.bulkExcludeConfirm", { count })}\n${tokenLine}\n\n${sample}${more}`
+      )
+    ) {
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const result = await fetchJson(apiPath("tools/bulk-exclude"), {
+        method: "POST",
+        body: JSON.stringify({
+          names: candidates.map((tool) => tool.name),
+          tokens_saved: tokensSaved,
+        }),
+      });
+      await reload();
+      const saved = result.tokens_saved ?? tokensSaved;
+      showToast(
+        t("tools.bulkExcludeDone", {
+          count: result.count ?? count,
+          tokens: fmt(saved),
+        }),
+        { kind: "success" }
+      );
+    } catch (e) {
+      showToast(e.message);
+      btn.disabled = false;
+    }
+  };
+}
+
 let toolsSortKey = "call_count";
 let toolsSortDir = "desc";
 
@@ -861,6 +946,7 @@ function renderToolsTable() {
         : t("tools.count", { shown: filtered.length, total: all.length });
   }
   renderToolsTokenSummary(filtered, all);
+  renderToolsBulkExcludeBar(all);
 }
 
 function renderTools(data) {

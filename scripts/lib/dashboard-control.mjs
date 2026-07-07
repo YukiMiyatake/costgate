@@ -61,6 +61,17 @@ export function setToolForceTier(toolName, forceTier, path = toolOverridesPath()
   return data;
 }
 
+/** Hide multiple tools from tools/list (force_tier: hidden). */
+export function bulkHideTools(toolNames, path = toolOverridesPath()) {
+  const names = [...new Set((toolNames ?? []).filter(Boolean))];
+  const data = loadToolOverrides(path);
+  for (const name of names) {
+    data.tools[name] = { force_tier: "hidden" };
+  }
+  saveToolOverrides(data, path);
+  return { overrides: data, hidden: names, count: names.length };
+}
+
 export function loadMcpJson(path = cursorMcpPath()) {
   if (!existsSync(path)) {
     throw new Error(`mcp.json not found: ${path}`);

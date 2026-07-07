@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-import { computeExcludeScore, applyExcludeScores } from "../scripts/lib/tool-exclude-score.mjs";
+import {
+  computeExcludeScore,
+  applyExcludeScores,
+  collectListTokenSamples,
+  summarizeExcludeCandidates,
+} from "../scripts/lib/tool-exclude-score.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -40,9 +45,28 @@ function testHighCostUnused() {
 function testActiveLow() {
   const score = computeExcludeScore(
     { tier: "A", call_count: 50, stale_days: 1, estimated_list_tokens: 100 },
-    { p90: 500 }
+    { p90: 500, p50: 300 }
   );
   assert(score < 30, `active tool low score, got ${score}`);
+}
+
+function testActiveTierANotZero() {
+  const score = computeExcludeScore(
+    { tier: "A", call_count: 10, stale_days: 0, estimated_list_tokens: null },
+    { p90: 0, p50: 0 }
+  );
+  assert(score > 0, `active tier A should not be zero, got ${score}`);
+}
+
+function testCollectSamplesFromTools() {
+  const samples = collectListTokenSamples(
+    [{ estimated_list_tokens: 200 }, { estimated_list_tokens: 400 }],
+    [100]
+  );
+  assert(samples.length === 3, "merged samples");
+  const tools = [{ tier: "C", call_count: 0, stale_days: 100, estimated_list_tokens: 400 }];
+  applyExcludeScores(tools, [100]);
+  assert(tools[0].exclude_score >= 50, `scored with tool samples, got ${tools[0].exclude_score}`);
 }
 
 function testApplyBatch() {
@@ -54,9 +78,24 @@ function testApplyBatch() {
   assert(tools[0].exclude_score > tools[1].exclude_score, "unused ranks higher");
 }
 
+function testSummarizeCandidates() {
+  const tools = [
+    { name: "hide-me", tier: "C", exclude_score: 80, estimated_list_tokens: 200 },
+    { name: "already", tier: "hidden", exclude_score: 90, estimated_list_tokens: 500 },
+    { name: "keep", tier: "A", exclude_score: 5, estimated_list_tokens: 100 },
+  ];
+  const summary = summarizeExcludeCandidates(tools);
+  assert(summary.count === 1, "one candidate");
+  assert(summary.tokensSaved === 200, "token sum");
+  assert(summary.candidates[0].name === "hide-me", "right tool");
+}
+
 testHiddenZero();
 testStaleTierC();
 testHighCostUnused();
 testActiveLow();
+testActiveTierANotZero();
+testCollectSamplesFromTools();
 testApplyBatch();
+testSummarizeCandidates();
 console.error("[tool-exclude-score] all passed");

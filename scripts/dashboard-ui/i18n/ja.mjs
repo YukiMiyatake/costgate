@@ -141,6 +141,16 @@ export default {
     tokenSummaryFiltered:
       "List トークン（絞込）: ~{total}（{count} 件計測）· 掲載分: ~{listed}（{listedCount} 件）",
     tokenSummaryNone: "現在の条件では List トークンの計測データがありません。",
+    bulkExcludeAction: "非掲載お勧めを一括適用（{count} 件 · ~{tokens} tok）",
+    bulkExcludeNone: "非掲載お勧めなし",
+    bulkExcludeHint:
+      "除外スコア {min}+ の掲載中ツール {count} 件 · 推定 List トークン削減 ~{tokens}（{unknown} 件はトークン未計測）",
+    bulkExcludeHintEmpty: "除外スコア {min} 以上の掲載中ツールはありません。",
+    bulkExcludeConfirm: "{count} 件のツールを tools/list から除外しますか？",
+    bulkExcludeConfirmTokens: "推定 List トークン削減: ~{tokens}",
+    bulkExcludeConfirmTokensUnknown: "List トークン削減量は未計測のツールを含みます。",
+    bulkExcludeConfirmMore: "…ほか {count} 件",
+    bulkExcludeDone: "{count} 件を除外しました。推定 List トークン削減 ~{tokens}。Gate を再起動してください。",
     empty: "条件に一致するツールがありません。",
     blindBanner: "計測圏外 MCP: {list}",
     savedOverride: "保存しました。ツール override を反映するには Gate を再起動してください。",

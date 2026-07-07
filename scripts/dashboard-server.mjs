@@ -15,6 +15,7 @@ import { buildDashboardData, buildHealth, buildToolsPayload, defaultPaths } from
 import {
   loadToolOverrides,
   setToolForceTier,
+  bulkHideTools,
   setMcpServerEnabled,
   previewMcpDisable,
   toolOverridesPath,
@@ -347,6 +348,19 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     return true;
   }
 
+  const wsBulkExclude = pathname.match(/^\/api\/workspaces\/([^/]+)\/tools\/bulk-exclude$/);
+  if (method === "POST" && wsBulkExclude) {
+    if (!authorizeWrite(req)) {
+      json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+      return true;
+    }
+    const resolved = resolveWorkspaceRequest(wsBulkExclude[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    await handleBulkExclude(req, res, paths.overridesPath, wsId);
+    return true;
+  }
+
   const toolPatch = pathname.match(/^\/api\/workspaces\/([^/]+)\/tools\/([^/]+)$/);
   if (method === "PATCH" && toolPatch) {
     if (!authorizeWrite(req)) {
@@ -560,6 +574,29 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   return false;
 }
 
+async function handleBulkExclude(req, res, overridesPath, workspaceId = null) {
+  const body = await readBody(req);
+  const names = body.names;
+  if (!Array.isArray(names) || names.length === 0) {
+    json(res, 400, { error: "names (non-empty array) required" });
+    return;
+  }
+  const result = bulkHideTools(names, overridesPath);
+  const payload = {
+    ok: true,
+    hidden: result.hidden,
+    count: result.count,
+    tokens_saved:
+      typeof body.tokens_saved === "number" && body.tokens_saved >= 0
+        ? body.tokens_saved
+        : null,
+    requires_gate_restart: true,
+    overrides: result.overrides,
+  };
+  if (workspaceId) payload.workspace_id = workspaceId;
+  json(res, 200, payload);
+}
+
 function createDashboardServer(options = {}) {
   const dataOptions = options.dataOptions ?? {};
   const controlPaths = options.controlPaths ?? {};
@@ -708,6 +745,15 @@ function createDashboardServer(options = {}) {
           }
           const result = addMcpFromTemplate(template, body.env ?? {}, paths);
           json(res, 200, result);
+          return;
+        }
+
+        if (pathname === "/api/tools/bulk-exclude") {
+          await handleBulkExclude(
+            req,
+            res,
+            controlPaths.overridesPath ?? toolOverridesPath()
+          );
           return;
         }
 
