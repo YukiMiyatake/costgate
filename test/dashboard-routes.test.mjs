@@ -100,6 +100,8 @@ async function testGetRoutes() {
       "/api/marketplace?q=github",
       "/api/marketplace?q=zzznomatch",
       "/api/marketplace/",
+      "/api/history",
+      "/api/history?limit=10",
     ];
     for (const path of getRoutes) {
       await expectJson(base, path, { status: 200 });

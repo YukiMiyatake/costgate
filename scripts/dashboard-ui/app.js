@@ -1510,6 +1510,142 @@ async function openAddMcpTab(templateId) {
   }
 }
 
+let historyTurns = [];
+
+function historyPreviewLabel(turn) {
+  if (turn.prompt_preview) return turn.prompt_preview;
+  if (turn.keywords) return t("history.rowPreviewFallback", { keywords: turn.keywords });
+  return turn.generation_id ?? "—";
+}
+
+function renderHistoryDetail(turn) {
+  const panel = document.getElementById("history-detail");
+  const title = document.getElementById("history-detail-title");
+  const meta = document.getElementById("history-detail-meta");
+  const metricsEl = document.getElementById("history-detail-metrics");
+  const listBody = document.getElementById("history-tools-list-body");
+  const callsBody = document.getElementById("history-tool-calls-body");
+  if (!panel || !turn) return;
+
+  panel.classList.remove("hidden");
+  title.textContent = historyPreviewLabel(turn);
+  meta.textContent = t("history.detailMeta", {
+    generation: turn.generation_id ?? "—",
+    conversation: turn.conversation_id || "—",
+    correlation: turn.correlation ?? "—",
+  });
+
+  const m = turn.metrics ?? {};
+  metricsEl.innerHTML = "";
+  for (const [label, value] of [
+    [t("history.metricTotal"), `~${fmt(m.total_tokens_est ?? 0)}`],
+    [t("history.metricList"), `~${fmt(m.tools_list_tokens_est ?? 0)}`],
+    [t("history.metricCalls"), `~${fmt(m.tool_call_tokens_est ?? 0)}`],
+    [t("history.metricSaved"), `~${fmt(m.saved_tokens_est ?? 0)}`],
+  ]) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<span class="card-label">${label}</span><span class="card-value">${value}</span>`;
+    metricsEl.appendChild(card);
+  }
+
+  listBody.innerHTML = "";
+  for (const row of turn.tools_list ?? []) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.backend ?? "—"}</td><td>${fmt(row.tools_exposed ?? 0)}</td><td>~${fmt(row.tokens_est ?? 0)}</td>`;
+    listBody.appendChild(tr);
+  }
+
+  callsBody.innerHTML = "";
+  for (const row of turn.tool_calls ?? []) {
+    const saved = row.saved_bytes ? `~${fmt(Math.ceil(row.saved_bytes / 4))}` : "—";
+    const flag = row.compressed ? t("history.compressedYes") : t("history.compressedNo");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.tool ?? "—"}</td><td>${fmt(row.response_bytes ?? 0)} B · ${flag}</td><td>${saved}</td>`;
+    callsBody.appendChild(tr);
+  }
+
+  for (const btn of document.querySelectorAll(".history-row")) {
+    btn.classList.toggle("active", btn.dataset.generationId === turn.generation_id);
+  }
+}
+
+function renderHistory(data) {
+  const list = document.getElementById("history-list");
+  const empty = document.getElementById("history-empty");
+  const count = document.getElementById("history-count");
+  if (!list) return;
+
+  historyTurns = data?.turns ?? [];
+  list.innerHTML = "";
+  if (count) {
+    count.textContent = t("history.count", {
+      count: data?.count ?? historyTurns.length,
+      limit: data?.limit ?? 50,
+    });
+  }
+
+  if (!historyTurns.length) {
+    empty?.classList.remove("hidden");
+    document.getElementById("history-detail")?.classList.add("hidden");
+    return;
+  }
+  empty?.classList.add("hidden");
+
+  for (const turn of historyTurns) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "history-row";
+    btn.dataset.generationId = turn.generation_id ?? "";
+    btn.setAttribute("role", "listitem");
+
+    const title = document.createElement("p");
+    title.className = "history-row-title";
+    title.textContent = `${fmtDate(turn.ts)} · ${historyPreviewLabel(turn)}`;
+
+    const meta = document.createElement("p");
+    meta.className = "history-row-meta";
+    const metrics = turn.metrics ?? {};
+    meta.textContent = t("history.rowSummary", {
+      total: fmt(metrics.total_tokens_est ?? 0),
+      saved: fmt(metrics.saved_tokens_est ?? 0),
+      tools: fmt(metrics.tool_calls ?? 0),
+    });
+
+    btn.appendChild(title);
+    btn.appendChild(meta);
+
+    const chips = document.createElement("div");
+    chips.className = "history-chips";
+    for (const tool of (turn.tools_called ?? []).slice(0, 8)) {
+      const chip = document.createElement("span");
+      chip.className = "history-chip";
+      chip.textContent = tool;
+      chips.appendChild(chip);
+    }
+    if ((turn.tools_called ?? []).length > 8) {
+      const more = document.createElement("span");
+      more.className = "history-chip";
+      more.textContent = `+${turn.tools_called.length - 8}`;
+      chips.appendChild(more);
+    }
+    if (chips.childElementCount) btn.appendChild(chips);
+
+    btn.addEventListener("click", () => renderHistoryDetail(turn));
+    list.appendChild(btn);
+  }
+}
+
+function setupHistoryPanel() {
+  const close = document.getElementById("history-detail-close");
+  if (!close || close.dataset.wired) return;
+  close.dataset.wired = "1";
+  close.addEventListener("click", () => {
+    document.getElementById("history-detail")?.classList.add("hidden");
+    for (const btn of document.querySelectorAll(".history-row")) btn.classList.remove("active");
+  });
+}
+
 function renderRecommendations(data) {
   const list = document.getElementById("rec-list");
   const sections = document.getElementById("rec-sections");
@@ -1879,16 +2015,18 @@ function setupTokenBar(health) {
 
 async function reload(retryGlobal = true) {
   try {
-    const [overview, tools, mcps, recs] = await Promise.all([
+    const [overview, tools, mcps, recs, history] = await Promise.all([
       fetchJson(apiPath("overview")),
       fetchJson(apiPath("tools")),
       fetchJson(apiPath("mcps")),
       fetchJson(apiPath("recommendations")),
+      fetchJson(`${apiPath("history")}?limit=50`).catch(() => ({ turns: [], count: 0, limit: 50 })),
     ]);
     renderOverview(overview);
     renderTools(tools);
     renderMcps(mcps);
     renderRecommendations(recs);
+    renderHistory(history);
     void refreshGateStatus?.();
   } catch (e) {
     if (retryGlobal && activeWorkspaceId && isWorkspaceApiError(e.message)) {
@@ -1954,6 +2092,7 @@ async function main() {
   setupGateSettings();
   setupShieldSettings();
   setupShieldPromptPanel();
+  setupHistoryPanel();
   setupMcpJsonCrud();
   try {
     const uiData = await loadUiSettingsFromApi(fetchJson);
