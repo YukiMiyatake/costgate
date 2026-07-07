@@ -123,6 +123,7 @@ export function mockMultiGateEnv(clientName, extra = {}) {
     COSTGATE_PROMPT_INTENT_DIR: paths.promptIntent,
     COSTGATE_SHIELD_DIR: paths.vault,
     COSTGATE_TRUST_PATH: paths.trust,
+    COSTGATE_TOOL_OVERRIDES: paths.overrides,
     ...extra,
   });
 }
@@ -131,12 +132,15 @@ export function mockMultiGateEnv(clientName, extra = {}) {
 export function mockTestPaths(prefix = "integration") {
   const base = join(tmpdir(), `costgate-${prefix}-${process.pid}`);
   mkdirSync(base, { recursive: true });
+  const overrides = join(base, "tool-overrides.json");
+  writeFileSync(overrides, `${JSON.stringify({ version: 1, tools: {} }, null, 2)}\n`);
   return {
     usage: join(base, "usage.json"),
     logs: join(base, "logs"),
     promptIntent: join(base, "prompt-intent"),
     vault: join(base, "vault"),
     trust: join(base, "mcp-trust.json"),
+    overrides,
   };
 }
 
@@ -168,6 +172,7 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
     COSTGATE_PROMPT_INTENT_DIR: paths.promptIntent,
     COSTGATE_SHIELD_DIR: paths.vault,
     COSTGATE_TRUST_PATH: paths.trust,
+    COSTGATE_TOOL_OVERRIDES: paths.overrides,
     ...extra,
   });
 }

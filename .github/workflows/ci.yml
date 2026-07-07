@@ -34,6 +34,9 @@ jobs:
         working-directory: packages/gate
         run: go test ./...
 
+      - name: Gate filter integration
+        run: npm run test:gate:filter
+
       - name: Goreleaser config check
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -42,6 +45,9 @@ jobs:
 
       - name: Token counter tests
         run: npm run test:tokens
+
+      - name: CLI package tests
+        run: npm run test:cli
 
       - name: Schema validation tests
         run: npm run test:schema
