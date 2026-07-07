@@ -131,7 +131,7 @@ export function projectGateSettingsPath(projectRoot) {
   return join(projectRoot, ".costgate", "gate-settings.json");
 }
 
-function normalizeSettings(raw = {}) {
+export function normalizeSettings(raw = {}) {
   const out = { version: GATE_SETTINGS_VERSION, ...DEFAULT_GATE_SETTINGS };
   if (raw.gate_mode === "filter" || raw.gate_mode === "transparent") {
     out.gate_mode = raw.gate_mode;

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "id": "sample-github-session",
+  "name": "Replay session sess-001",
+  "session_id": "sess-001",
+  "seed_probe_log": [
+    { "tool": "search_issues" },
+    { "tool": "create_pull_request" },
+    { "tool": "fork_repository" }
+  ],
+  "seed_prompt_intent": {
+    "keywords": "search issues create pull request fork repository",
+    "templates": []
+  },
+  "metadata": {
+    "tool_call_count": 1,
+    "unique_tools": ["search_issues", "create_pull_request", "fork_repository"],
+    "source": "test/fixtures/dashboard/probe-sample.jsonl",
+    "exported_at": "2026-07-07T00:00:00.000Z"
+  }
+}
