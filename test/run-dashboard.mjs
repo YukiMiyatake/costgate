@@ -11,6 +11,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const TESTS = [
   "dashboard-api.test.mjs",
   "dashboard-backend-probe.test.mjs",
+  "tool-exclude-score.test.mjs",
   "dashboard-control.test.mjs",
   "dashboard-marketplace.test.mjs",
   "dashboard-project-recommend.test.mjs",

@@ -119,7 +119,7 @@ export default {
     unhideAction: "tools/list に掲載",
     hideHint:
       "Gate の tools/list から除外し、モデルへツール定義を送らなくします（チャット内の実行結果履歴とは別です）。",
-    noCatalogBanner: "Tier カタログなし backend: {list} — MCP の tools/list から取得したツールを表示します（キャッシュ 10 分）。",
+    noCatalogBanner: "Tier カタログなし backend: {list} — MCP の tools/list から取得（URL キャッシュ 24h、stdio 6h）。",
     probeErrorBanner: "backend の probe に失敗: {list}",
     sortBackend: "Backend",
     colTool: "ツール",
@@ -129,6 +129,8 @@ export default {
     colCalls: "呼び出し",
     colLastUsed: "最終利用",
     colListTokens: "List トークン",
+    colExcludeScore: "除外スコア",
+    excludeScoreHint: "高いほど tools/list から除外する候補（未使用・高コスト・Tier C）。",
     colVisibility: "tools/list",
     colFlag: "フラグ",
     colAction: "操作",

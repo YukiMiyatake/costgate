@@ -119,7 +119,7 @@ export default {
     unhideAction: "Include in tools/list",
     hideHint:
       "Exclude from Gate tools/list so the tool schema is not sent to the model (separate from tool call results in chat).",
-    noCatalogBanner: "No tier catalog for: {list} — tools loaded live via MCP tools/list (10 min cache).",
+    noCatalogBanner: "No tier catalog for: {list} — tools loaded live via MCP tools/list (URL cache 24h, stdio 6h).",
     probeErrorBanner: "Backend probe failed for: {list}",
     sortBackend: "Backend",
     colTool: "Tool",
@@ -129,6 +129,8 @@ export default {
     colCalls: "Calls",
     colLastUsed: "Last used",
     colListTokens: "List tokens",
+    colExcludeScore: "Exclude score",
+    excludeScoreHint: "Higher = stronger candidate to exclude from tools/list (unused, costly, Tier C).",
     colVisibility: "tools/list",
     colFlag: "Flag",
     colAction: "Action",

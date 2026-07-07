@@ -73,6 +73,7 @@ async function testBuildData() {
 
   const fork = data.tools.tools.find((t) => t.name === "fork_repository");
   assert(fork?.recommendation === "stale_90d", "fork_repository should be stale_90d");
+  assert(typeof fork?.exclude_score === "number" && fork.exclude_score >= 65, "exclude_score set");
 
   const listPR = data.tools.tools.find((t) => t.name === "list_pull_requests");
   assert(listPR?.call_count === 1, "gate tool_call should merge list_pull_requests");
