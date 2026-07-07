@@ -620,7 +620,7 @@ function summarizeExcludeCandidates(tools) {
   let tokensUnknown = 0;
   for (const tool of tools ?? []) {
     if (tool.tier === "hidden") continue;
-    if (tool.exclude_lock) continue;
+    if (tool.exclude_lock || tool.always_expose) continue;
     if ((tool.exclude_score ?? 0) < EXCLUDE_RECOMMEND_MIN_SCORE) continue;
     candidates.push(tool);
     const tok = tool.estimated_list_tokens;
@@ -886,6 +886,26 @@ function renderToolRow(tool) {
       showToast(e.message);
     }
   };
+  const pinBtn = document.createElement("button");
+  pinBtn.type = "button";
+  pinBtn.className = tool.always_expose ? "btn-sm btn-primary" : "btn-sm";
+  pinBtn.title = tool.always_expose ? t("tools.listUnpinHint") : t("tools.listPinHint");
+  pinBtn.textContent = tool.always_expose ? t("tools.listPinned") : t("tools.listPin");
+  pinBtn.onclick = async () => {
+    try {
+      await fetchJson(apiPath(`tools/${encodeURIComponent(tool.name)}`), {
+        method: "PATCH",
+        body: JSON.stringify({ always_expose: !tool.always_expose }),
+      });
+      await reload();
+      showToast(
+        tool.always_expose ? t("tools.listUnpinned") : t("tools.listPinnedToast"),
+        { kind: "success" }
+      );
+    } catch (e) {
+      showToast(e.message);
+    }
+  };
   const lockBtn = document.createElement("button");
   lockBtn.type = "button";
   lockBtn.className = tool.exclude_lock ? "btn-sm btn-primary" : "btn-sm";
@@ -919,13 +939,15 @@ function renderToolRow(tool) {
     <td></td>
     <td></td>
     <td></td>
+    <td></td>
     <td></td>`;
   tr.children[2].appendChild(tierBadge(tool.tier, tool.forced_tier));
   tr.children[3].appendChild(listData);
   tr.children[8].appendChild(toolVisibilityBadge(tool));
   tr.children[9].appendChild(flag);
-  tr.children[10].appendChild(lockBtn);
-  tr.children[11].appendChild(hideBtn);
+  tr.children[10].appendChild(pinBtn);
+  tr.children[11].appendChild(lockBtn);
+  tr.children[12].appendChild(hideBtn);
   return tr;
 }
 

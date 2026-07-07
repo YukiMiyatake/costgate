@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import {
   setToolForceTier,
   setToolExcludeLock,
+  setToolAlwaysExpose,
   patchToolOverride,
   bulkHideTools,
   setMcpServerEnabled,
@@ -58,14 +59,27 @@ function testBulkHideSkipsLock() {
   console.error("[dashboard-control] bulk hide skip lock ok");
 }
 
+function testBulkHideSkipsPinned() {
+  const dir = tempDir();
+  const path = join(dir, "tool-overrides.json");
+  setToolAlwaysExpose("pinned_tool", true, path);
+  const result = bulkHideTools(["pinned_tool", "hide_me"], path);
+  assert(result.count === 1, "only unpinned hidden");
+  assert(result.hidden.includes("hide_me"), "hide_me hidden");
+  assert(!result.hidden.includes("pinned_tool"), "pinned skipped");
+  console.error("[dashboard-control] bulk hide skip pin ok");
+}
+
 function testPatchToolOverride() {
   const dir = tempDir();
   const path = join(dir, "tool-overrides.json");
   patchToolOverride("search_code", { exclude_lock: true }, path);
   patchToolOverride("search_code", { force_tier: "A" }, path);
+  patchToolOverride("search_code", { always_expose: true }, path);
   const data = loadToolOverrides(path);
   assert(data.tools.search_code.force_tier === "A", "tier set");
   assert(data.tools.search_code.exclude_lock === true, "lock set");
+  assert(data.tools.search_code.always_expose === true, "pin set");
   console.error("[dashboard-control] patch override ok");
 }
 
@@ -179,6 +193,7 @@ async function testHttpPatch() {
 async function main() {
   testToolOverrides();
   testBulkHideSkipsLock();
+  testBulkHideSkipsPinned();
   testPatchToolOverride();
   testMcpEnableDisable();
   testBackendEnableDisable();

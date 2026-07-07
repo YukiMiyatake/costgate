@@ -11,7 +11,9 @@ import (
 
 // ToolOverride is a per-tool tier force from ~/.costgate/tool-overrides.json.
 type ToolOverride struct {
-	ForceTier string `json:"force_tier"`
+	ForceTier    string `json:"force_tier"`
+	AlwaysExpose bool   `json:"always_expose,omitempty"`
+	ExcludeLock  bool   `json:"exclude_lock,omitempty"`
 }
 
 // File is the dashboard-written tool override store (Phase 24).
@@ -67,6 +69,10 @@ func (f *File) Apply(classified map[string]filter.Tier) map[string]filter.Tier {
 	for name, ov := range f.Tools {
 		if tier, ok := parseForceTier(ov.ForceTier); ok {
 			out[name] = tier
+			continue
+		}
+		if ov.AlwaysExpose {
+			out[name] = filter.TierA
 		}
 	}
 	return out
