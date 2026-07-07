@@ -75,3 +75,19 @@ func TestSelectExposedHidden(t *testing.T) {
 		t.Fatalf("hidden tool must not expose: %v", exposed)
 	}
 }
+
+func TestCopyTiers(t *testing.T) {
+	src := map[string]Tier{"a": TierA, "b": TierB}
+	dup := CopyTiers(src)
+	if len(dup) != len(src) {
+		t.Fatalf("copy length: got %d want %d", len(dup), len(src))
+	}
+	dup["a"] = TierHidden
+	if src["a"] != TierA {
+		t.Fatal("copy should not mutate source map values in place")
+	}
+	delete(dup, "b")
+	if _, ok := src["b"]; !ok {
+		t.Fatal("delete on copy should not affect source")
+	}
+}

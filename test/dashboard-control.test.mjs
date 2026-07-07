@@ -181,6 +181,28 @@ async function testHttpPatch() {
     assert(patch.ok, `patch status ${patch.status}`);
     const body = await patch.json();
     assert(body.ok === true, "patch ok");
+    assert(body.requires_gate_restart === false, "no gate restart");
+    assert(body.gate_reload === "auto", "gate hot-reload hint");
+
+    const pin = await fetch(`${base}/api/tools/search_code`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ always_expose: true }),
+    });
+    assert(pin.ok, `pin status ${pin.status}`);
+    const pinBody = await pin.json();
+    assert(pinBody.requires_gate_restart === false, "pin no restart");
+    assert(pinBody.gate_reload === "auto", "pin gate_reload");
+
+    const lock = await fetch(`${base}/api/tools/search_code`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exclude_lock: true }),
+    });
+    assert(lock.ok, `lock status ${lock.status}`);
+    const lockBody = await lock.json();
+    assert(lockBody.requires_gate_restart === false, "lock no restart");
+    assert(lockBody.gate_reload === undefined, "lock no gate_reload");
 
     const ov = readFileSync(overridesPath, "utf8");
     assert(ov.includes("create_issue"), "override written");

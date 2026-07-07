@@ -41,6 +41,8 @@ async function main() {
     assert(body.count === 2, "hidden count");
     assert((body.skipped ?? []).length === 0, "none skipped");
     assert(body.tokens_saved === 1059, "tokens echoed");
+    assert(body.requires_gate_restart === false, "bulk no restart");
+    assert(body.gate_reload === "auto", "bulk gate_reload");
     assert(body.overrides.tools["serena/find_symbol"]?.force_tier === "hidden", "override saved");
     console.error("[dashboard-bulk-exclude] ok");
 
