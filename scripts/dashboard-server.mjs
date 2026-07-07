@@ -69,6 +69,12 @@ import { clearDashboardBrowserOpenedFlag } from "./lib/dashboard-browser-flag.mj
 import { scheduleDashboardRestart } from "./lib/dashboard-restart.mjs";
 import { evaluateGateSettings } from "./lib/dashboard-gate-eval.mjs";
 import { gateBin } from "./lib/paths.mjs";
+import {
+  exportHistoryTurns,
+  getHistoryTurn,
+  historyOptionsFromPaths,
+  listHistoryTurns,
+} from "./lib/prompt-history.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -433,6 +439,33 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     return true;
   }
 
+  const wsHistoryDetail = pathname.match(/^\/api\/workspaces\/([^/]+)\/history\/([^/]+)$/);
+  if (method === "GET" && wsHistoryDetail) {
+    const resolved = resolveWorkspaceRequest(wsHistoryDetail[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    const generationId = decodeURIComponent(wsHistoryDetail[2]);
+    const turn = getHistoryTurn(generationId, historyOptionsFromPaths(paths, url));
+    if (!turn) {
+      json(res, 404, { error: "turn not found", generation_id: generationId });
+      return true;
+    }
+    json(res, 200, { workspace_id: wsId, turn });
+    return true;
+  }
+
+  const wsHistory = pathname.match(/^\/api\/workspaces\/([^/]+)\/history$/);
+  if (method === "GET" && wsHistory) {
+    const resolved = resolveWorkspaceRequest(wsHistory[1], res);
+    if (!resolved) return true;
+    const { wsId, paths } = resolved;
+    json(res, 200, {
+      workspace_id: wsId,
+      ...listHistoryTurns(historyOptionsFromPaths(paths, url)),
+    });
+    return true;
+  }
+
   const wsMatch = pathname.match(
     /^\/api\/workspaces\/([^/]+)(?:\/(overview|tools|mcps|recommendations|overrides|marketplace|gate-settings|mcp-trust|shield-prompt|shield-settings))?$/
   );
@@ -717,6 +750,23 @@ function createDashboardServer(options = {}) {
           json(res, 200, marketplacePayload(url, paths, marketplaceDirPath));
           return;
         }
+        if (pathname === "/api/history") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          json(res, 200, listHistoryTurns(historyOptionsFromPaths(paths, url)));
+          return;
+        }
+        const historyDetail = pathname.match(/^\/api\/history\/([^/]+)$/);
+        if (historyDetail) {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const generationId = decodeURIComponent(historyDetail[1]);
+          const turn = getHistoryTurn(generationId, historyOptionsFromPaths(paths, url));
+          if (!turn) {
+            json(res, 404, { error: "turn not found", generation_id: generationId });
+            return;
+          }
+          json(res, 200, { turn });
+          return;
+        }
         const mcpDetail = pathname.match(/^\/api\/mcps\/([^/]+)$/);
         if (method === "GET" && mcpDetail) {
           const name = decodeURIComponent(mcpDetail[1]);
@@ -758,6 +808,18 @@ function createDashboardServer(options = {}) {
           } catch (e) {
             json(res, 400, { error: e.message ?? String(e) });
           }
+          return;
+        }
+
+        if (pathname === "/api/history/export") {
+          const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
+          const body = await readBody(req);
+          const ids = body.generation_ids ?? body.ids ?? [];
+          if (!Array.isArray(ids) || ids.length === 0) {
+            json(res, 400, { error: "generation_ids array required" });
+            return;
+          }
+          json(res, 200, exportHistoryTurns(ids, historyOptionsFromPaths(paths, url)));
           return;
         }
 

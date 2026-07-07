@@ -1,0 +1,2 @@
+{"type":"turn","ts":"2026-06-10T08:59:00.000Z","conversation_id":"conv-fixture","generation_id":"gen-fixture-1","workspace_root":"/work/costgate","client":"cursor","keywords":"github pull request","templates":["github"],"intent_scores":{"github":1}}
+{"type":"turn","ts":"2026-06-20T09:59:00.000Z","conversation_id":"conv-fixture","generation_id":"gen-fixture-2","workspace_root":"/work/costgate","client":"cursor","keywords":"search issues","templates":["github"],"intent_scores":{"github":1},"prompt_preview":"Find open issues"}

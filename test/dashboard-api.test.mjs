@@ -2,7 +2,7 @@
 /**
  * Phase 23: dashboard API snapshot tests (fixture-based, no live Gate).
  */
-import { mkdirSync, copyFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -14,15 +14,25 @@ const FIX = join(ROOT, "test/fixtures/dashboard");
 
 function fixtureOptions(now) {
   const logDir = join(FIX, ".generated-logs");
+  const historyDir = join(FIX, ".generated-history-api");
+  const mockRoot = join(FIX, "mock-workspace");
   mkdirSync(logDir, { recursive: true });
+  mkdirSync(historyDir, { recursive: true });
+  mkdirSync(mockRoot, { recursive: true });
   copyFileSync(
     join(FIX, "probe-sample.jsonl"),
     join(logDir, "probe-fixture.jsonl")
   );
-  copyFileSync(
-    join(FIX, "gate-sample.jsonl"),
-    join(logDir, "gate-fixture.jsonl")
+  const gateContent = readFileSync(join(FIX, "gate-sample.jsonl"), "utf8").replaceAll(
+    "/work/costgate",
+    mockRoot
   );
+  writeFileSync(join(logDir, "gate-fixture.jsonl"), gateContent);
+  const turnsContent = readFileSync(join(FIX, "turns-sample.jsonl"), "utf8").replaceAll(
+    "/work/costgate",
+    mockRoot
+  );
+  writeFileSync(join(historyDir, "turns.jsonl"), turnsContent);
   const promptIntentDir = join(tmpdir(), `costgate-dash-pi-${process.pid}`);
   mkdirSync(promptIntentDir, { recursive: true });
   writeFileSync(
@@ -40,8 +50,11 @@ function fixtureOptions(now) {
     gateLogDir: logDir,
     usagePath: join(FIX, "usage.json"),
     configPath: join(FIX, "backends.json"),
+    overridesPath: join(FIX, "tool-overrides.json"),
     mcpPath: join(FIX, "mcp.json"),
     promptIntentDir,
+    historyDir,
+    projectRoot: mockRoot,
     windowDays: 30,
     now,
   };
@@ -130,6 +143,23 @@ async function testHttpApi() {
 
     const shield = await fetchJson(port, "/api/shield-prompt");
     assert(typeof shield.block_count === "number", "shield-prompt payload");
+
+    const history = await fetchJson(port, "/api/history?limit=10");
+    assert(history.count === 2, "history count");
+    assert(history.turns[0].generation_id === "gen-fixture-2", "history newest first");
+    assert(history.turns[0].metrics.tool_calls >= 1, "history tool_calls");
+
+    const turn = await fetchJson(port, "/api/history/gen-fixture-1");
+    assert(turn.turn.generation_id === "gen-fixture-1", "history detail");
+
+    const exported = await fetch(`http://127.0.0.1:${port}/api/history/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generation_ids: ["gen-fixture-2"] }),
+    });
+    assert(exported.ok, "history export status");
+    const exportBody = await exported.json();
+    assert(exportBody.turns.length === 1, "history export count");
 
     const html = await fetch(`http://127.0.0.1:${port}/`);
     assert(html.ok, "index html");
