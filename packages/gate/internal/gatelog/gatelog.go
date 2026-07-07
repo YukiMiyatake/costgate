@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/env"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/usage"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/workspace"
 )
 
@@ -126,6 +127,7 @@ func (l *Logger) append(row map[string]any) {
 	if !l.enabled {
 		return
 	}
+	mergeCorrelation(row)
 	row["type"] = "gate_event"
 	row["ts"] = time.Now().UTC().Format(time.RFC3339)
 
@@ -174,4 +176,17 @@ func BytesToTokens(bytes int) int {
 		return 0
 	}
 	return (bytes + 3) / 4
+}
+
+func mergeCorrelation(row map[string]any) {
+	root := ""
+	if v, ok := row["project_root"].(string); ok {
+		root = v
+	}
+	if root == "" {
+		root = workspace.ResolveProjectRoot()
+	}
+	for k, v := range usage.LogCorrelationFields("", root) {
+		row[k] = v
+	}
 }

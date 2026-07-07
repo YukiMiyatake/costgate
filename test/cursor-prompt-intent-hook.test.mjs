@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { handleCursorPromptIntentHook } from "../scripts/cursor-prompt-intent-hook.mjs";
 import { readLatestPromptIntent } from "../scripts/lib/prompt-intent.mjs";
+import { readTurns } from "../scripts/lib/history-store.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -16,7 +17,15 @@ function tempDir() {
   const base = join(tmpdir(), `costgate-prompt-hook-${process.pid}-${Date.now()}`);
   mkdirSync(base, { recursive: true });
   process.env.COSTGATE_PROMPT_INTENT_DIR = base;
+  process.env.COSTGATE_HISTORY_DIR = join(base, "history");
+  process.env.COSTGATE_HISTORY = "1";
   return base;
+}
+
+function cleanupEnv() {
+  delete process.env.COSTGATE_PROMPT_INTENT_DIR;
+  delete process.env.COSTGATE_HISTORY_DIR;
+  delete process.env.COSTGATE_HISTORY;
 }
 
 function testBeforeSubmitPrompt() {
@@ -32,8 +41,10 @@ function testBeforeSubmitPrompt() {
   assert(result.keywords.includes("github"), "keywords");
   const loaded = readLatestPromptIntent({ dir });
   assert(loaded?.conversation_id === "conv-hook", "persisted");
+  const turns = readTurns({ dir: join(dir, "history") });
+  assert(turns.length === 1 && turns[0].generation_id === "gen-hook", "history turn");
   console.error("[prompt-hook] beforeSubmitPrompt ok");
-  delete process.env.COSTGATE_PROMPT_INTENT_DIR;
+  cleanupEnv();
 }
 
 function testSkipOtherEvents() {
@@ -60,7 +71,7 @@ function testTranscriptOptIn() {
   assert(result.keywords.includes("postgres") || result.keywords.includes("database"), "transcript boost");
   console.error("[prompt-hook] transcript opt-in ok");
   delete process.env.COSTGATE_PROMPT_INTENT_TRANSCRIPT;
-  delete process.env.COSTGATE_PROMPT_INTENT_DIR;
+  cleanupEnv();
 }
 
 async function main() {

@@ -83,7 +83,7 @@
 
     "test:cursor:gate": "node test/cursor-gate-session.mjs",
     "test:cursor:registry": "node test/resolve-workspace-root.test.mjs && node test/cursor-registry-hook.test.mjs && node test/install-cursor-registry-hook.test.mjs",
-    "test:cursor:prompt-intent": "node test/prompt-intent.test.mjs && node test/cursor-prompt-intent-hook.test.mjs",
+    "test:cursor:prompt-intent": "node test/prompt-intent.test.mjs && node test/cursor-prompt-intent-hook.test.mjs && node test/history-store.test.mjs",
     "test:cursor:shield-mcp": "node test/cursor-shield-mcp-hook.test.mjs",
     "test:cursor:shield-read": "node test/cursor-shield-read-hook.test.mjs",
     "test:cursor:shield-prompt": "node test/cursor-shield-prompt-hook.test.mjs",

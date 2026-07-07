@@ -68,12 +68,18 @@ Gate writes `gate-YYYY-MM-DD.jsonl` when Probe is off. No `session_id`.
   "type": "gate_event",
   "event": "tool_call",
   "ts": "2026-07-04T08:00:05.000Z",
+  "generation_id": "gen-xyz",
+  "conversation_id": "conv-abc",
   "tool": "search_issues",
   "response_bytes": 4096,
   "compressed": true,
   "saved_bytes": 32000
 }
 ```
+
+`generation_id` / `conversation_id` are copied from `~/.costgate/prompt-intent/latest.json` when fresh (default 10m) and workspace matches `COSTGATE_PROJECT_ROOT`.
+
+Turn index (Dashboard history): `~/.costgate/history/turns.jsonl` — see [dev/prompt-history.md](./dev/prompt-history.md).
 
 ## Environment variables
 

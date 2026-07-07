@@ -6,6 +6,7 @@
  * Install: npm run cursor:registry
  */
 import { inferPromptIntent, writePromptIntent } from "./lib/prompt-intent.mjs";
+import { appendTurn } from "./lib/history-store.mjs";
 import { pathToFileURL } from "node:url";
 
 function readStdin() {
@@ -24,7 +25,8 @@ export function handleCursorPromptIntentHook(payload) {
   }
   const record = inferPromptIntent(payload);
   const path = writePromptIntent(record);
-  return { ok: true, event, path, keywords: record.keywords, templates: record.templates };
+  const historyPath = appendTurn(record, { prompt: payload?.prompt ?? "" });
+  return { ok: true, event, path, historyPath, keywords: record.keywords, templates: record.templates };
 }
 
 async function main() {
