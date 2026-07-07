@@ -102,3 +102,11 @@ export function summarizeCallResult(result) {
     estimated_tokens: countTokens(serialized) || bytesToTokens(response_bytes),
   };
 }
+
+/** Concatenate text parts from an MCP tools/call result. */
+export function extractResultText(result) {
+  return (result?.content ?? [])
+    .filter((c) => c?.type === "text" && c.text)
+    .map((c) => c.text)
+    .join("\n");
+}

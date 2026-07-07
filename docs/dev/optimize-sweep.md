@@ -220,7 +220,32 @@ npm run optimize:sweep -- --mock \
 | `scripts/lib/session-replay.mjs` | パース、fixture 変換、eval task 化 |
 | `test/eval/replay-fixtures/` | コミット済み replay fixture |
 
-### Phase D — LLM Judge バッチ ⏳ P7（後回し）
+### Phase D — LLM Judge バッチ
+
+#### P7a — 圧縮品質 judge ✅
+
+```bash
+# fixture のみ（CI / smoke）
+npm run judge:compress:smoke
+
+# Gate から original/compressed ペアを収集して判定
+npm run judge:compress -- --mock --collect --json
+
+# 外部 API（要 API key）
+COSTGATE_JUDGE_PROVIDER=openai npm run judge:compress -- --collect
+COSTGATE_JUDGE_PROVIDER=anthropic npm run judge:compress -- --collect
+```
+
+| パス | 役割 |
+|------|------|
+| `scripts/compress-judge.mjs` | CLI |
+| `scripts/lib/llm-judge.mjs` | provider 抽象（mock / OpenAI / Anthropic） |
+| `scripts/lib/compress-judge.mjs` | rubric、ペア収集、バッチ判定 |
+| `test/fixtures/compress-judge/` | オフライン fixture |
+
+環境変数: `COSTGATE_JUDGE_PROVIDER`, `COSTGATE_JUDGE_MODEL`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+
+#### P7b — Shield 副作用 judge ⏳
 
 ```
 sweep 結果の Pareto 前沿（token↓ & eval pass）
@@ -298,8 +323,8 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 | **P6a** | `optimize:sweep.mjs` — グリッド runner + JSON 集計 | ✅ Done |
 | **P6b** | eval と benchmark の **統合レポート**（token × pass rate） | ✅ Done |
 | **P6c** | セッション replay fixture（Probe JSONL → seed） | ✅ Done |
-| **P7a** | LLM judge モジュール（圧縮品質） | 2 週 | Haiku/mini |
-| **P7b** | Shield 副作用 judge | 1 週 | 同上 |
+| **P7a** | LLM judge モジュール（圧縮品質） | ✅ Done |
+| **P7b** | Shield 副作用 judge | 1 週 | Haiku/mini |
 | **P7c** | Dashboard「推奨設定を eval で検証」ボタン | 1 週 | 不要 |
 | **P8** | Cursor E2E スポット（週次 workflow） | 継続 | Agent 本体 |
 
