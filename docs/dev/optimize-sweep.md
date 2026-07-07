@@ -245,7 +245,27 @@ COSTGATE_JUDGE_PROVIDER=anthropic npm run judge:compress -- --collect
 
 環境変数: `COSTGATE_JUDGE_PROVIDER`, `COSTGATE_JUDGE_MODEL`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
 
-#### P7b — Shield 副作用 judge ⏳
+#### P7b — Shield 副作用 judge ✅
+
+```bash
+npm run judge:shield:smoke
+npm run judge:shield -- --mock --collect --json
+```
+
+| パス | 役割 |
+|------|------|
+| `scripts/shield-judge.mjs` | CLI |
+| `scripts/lib/shield-judge.mjs` | rubric、ペア収集、判定 |
+| `test/fixtures/shield-judge/` | オフライン fixture |
+
+#### P7c — Dashboard eval 検証 ✅
+
+Gate 設定パネルの **「eval で検証」** ボタン → `POST /api/admin/gate-eval`
+
+| パス | 役割 |
+|------|------|
+| `scripts/lib/dashboard-gate-eval.mjs` | mock sweep tasks で token × pass rate |
+| `scripts/dashboard-ui/app.js` | UI ボタン + トースト |
 
 ```
 sweep 結果の Pareto 前沿（token↓ & eval pass）
@@ -324,8 +344,8 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 | **P6b** | eval と benchmark の **統合レポート**（token × pass rate） | ✅ Done |
 | **P6c** | セッション replay fixture（Probe JSONL → seed） | ✅ Done |
 | **P7a** | LLM judge モジュール（圧縮品質） | ✅ Done |
-| **P7b** | Shield 副作用 judge | 1 週 | Haiku/mini |
-| **P7c** | Dashboard「推奨設定を eval で検証」ボタン | 1 週 | 不要 |
+| **P7b** | Shield 副作用 judge | ✅ Done |
+| **P7c** | Dashboard「推奨設定を eval で検証」ボタン | ✅ Done |
 | **P8** | Cursor E2E スポット（週次 workflow） | 継続 | Agent 本体 |
 
 ---
