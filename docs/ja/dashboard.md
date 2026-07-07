@@ -43,10 +43,11 @@ npx @costgate/cli@latest init   # 初回のみ
 | 環境変数 | 既定 | 説明 |
 |---------|------|------|
 | `COSTGATE_DASHBOARD_AUTO` | `1` | Gate 起動時に Dashboard を自動起動 |
-| `COSTGATE_DASHBOARD_AUTO_OPEN` | `1` | 新規起動時にブラウザを開く |
+| `COSTGATE_DASHBOARD_AUTO_OPEN` | `once` | ブラウザ: `once`（既定）/ `always` / `never` |
 | `COSTGATE_DASHBOARD_PORT` | `8787` | ポート |
 
-無効化: `COSTGATE_DASHBOARD_AUTO=0` または `COSTGATE_DASHBOARD_AUTO_OPEN=0`
+Dashboard 無効: `COSTGATE_DASHBOARD_AUTO=0`  
+ブラウザ無効: `COSTGATE_DASHBOARD_AUTO_OPEN=never`
 
 ### 手動（開発・デバッグ）
 

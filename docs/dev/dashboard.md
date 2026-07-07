@@ -168,7 +168,8 @@ recommend_delete if:
 }
 ```
 
-Gate の `catalog` / `classify` 読み込み後に overlay。既存 tier JSON は変更しない。
+Gate の `catalog` / `classify` 読み込み後に overlay。既存 tier JSON は変更しない。  
+Dashboard からの変更は Gate が `tool-overrides.json` を監視して **数秒以内に hot-reload**（`COSTGATE_GATE_HOT_RELOAD=1`、既定 ON）。Gate 再起動は不要。
 
 ### MCP enable/disable
 
