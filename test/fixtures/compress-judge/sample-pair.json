@@ -1,0 +1,7 @@
+{
+  "id": "mock-lockfile",
+  "tool": "get_file_contents",
+  "context": "invoke_tool get_file_contents package-lock.json",
+  "original": "{\"dependencies\":{\"mock\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"express\":\"4.18.2\",\"typescript\":\"5.7.0\"},\"lockfileVersion\":3}",
+  "compressed": "[costgate: json summary] dependencies mock xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx express 4.18.2 typescript 5.7.0 lockfileVersion 3"
+}
