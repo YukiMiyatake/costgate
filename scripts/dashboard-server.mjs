@@ -73,7 +73,7 @@ import {
   exportHistoryTurns,
   getHistoryTurn,
   historyOptionsFromPaths,
-  listHistoryTurns,
+  listHistory,
 } from "./lib/prompt-history.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
@@ -461,7 +461,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     const { wsId, paths } = resolved;
     json(res, 200, {
       workspace_id: wsId,
-      ...listHistoryTurns(historyOptionsFromPaths(paths, url)),
+      ...listHistory(historyOptionsFromPaths(paths, url)),
     });
     return true;
   }
@@ -752,7 +752,7 @@ function createDashboardServer(options = {}) {
         }
         if (pathname === "/api/history") {
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
-          json(res, 200, listHistoryTurns(historyOptionsFromPaths(paths, url)));
+          json(res, 200, listHistory(historyOptionsFromPaths(paths, url)));
           return;
         }
         const historyDetail = pathname.match(/^\/api\/history\/([^/]+)$/);
@@ -819,7 +819,9 @@ function createDashboardServer(options = {}) {
             json(res, 400, { error: "generation_ids array required" });
             return;
           }
-          json(res, 200, exportHistoryTurns(ids, historyOptionsFromPaths(paths, url)));
+          const opts = historyOptionsFromPaths(paths, url);
+          if (body.source === "probe") opts.source = "probe";
+          json(res, 200, exportHistoryTurns(ids, opts));
           return;
         }
 

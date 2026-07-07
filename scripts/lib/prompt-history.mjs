@@ -21,6 +21,20 @@ function parseJsonlLines(text) {
   return rows;
 }
 
+export function readProbeEvents(logDir) {
+  const events = [];
+  if (!logDir || !existsSync(logDir)) return events;
+  const files = readdirSync(logDir)
+    .filter((f) => f.startsWith("probe-") && f.endsWith(".jsonl"))
+    .sort();
+  for (const file of files) {
+    for (const row of parseJsonlLines(readFileSync(join(logDir, file), "utf8"))) {
+      if (row?.session_id) events.push(row);
+    }
+  }
+  return events;
+}
+
 export function readGateEvents(gateLogDir) {
   const events = [];
   if (!gateLogDir || !existsSync(gateLogDir)) return events;
@@ -128,6 +142,7 @@ function buildTurnSummary(turn, events) {
 
   return {
     generation_id: turn.generation_id,
+    source: "turns",
     conversation_id: turn.conversation_id ?? "",
     ts: turn.ts,
     workspace_root: turn.workspace_root ?? "",
@@ -142,6 +157,110 @@ function buildTurnSummary(turn, events) {
     tool_calls: agg.toolCalls,
     tools_called: agg.toolsCalled,
   };
+}
+
+function buildProbeSessionSummary(sessionId, events) {
+  const toolsList = [];
+  const toolCalls = [];
+  const toolsCalled = new Set();
+  let toolsListTokens = 0;
+  let toolCallTokens = 0;
+  let ts = null;
+  let client = "unknown";
+
+  for (const row of events) {
+    if (row.client) client = row.client;
+    if (row.ts && (!ts || row.ts < ts)) ts = row.ts;
+
+    if (row.type === "tools_list") {
+      const tokens = row.estimated_tokens ?? bytesToTokens(row.total_schema_bytes ?? 0);
+      toolsListTokens += tokens;
+      toolsList.push({
+        ts: row.ts,
+        backend: row.backend ?? "probe",
+        tools_exposed: row.tool_count ?? row.tools?.length ?? 0,
+        tokens_est: tokens,
+      });
+    }
+
+    if (row.type === "tool_call") {
+      const req = row.request_bytes ?? 0;
+      const res = row.response_bytes ?? 0;
+      const tokens = row.estimated_tokens ?? bytesToTokens(req + res);
+      toolCallTokens += tokens;
+      if (row.tool) toolsCalled.add(row.tool);
+      toolCalls.push({
+        ts: row.ts,
+        tool: row.tool,
+        response_bytes: res,
+        compressed: false,
+        saved_bytes: 0,
+        ok: true,
+        error: null,
+        estimated_tokens: tokens,
+      });
+    }
+  }
+
+  const tools = [...toolsCalled];
+  return {
+    generation_id: sessionId,
+    session_id: sessionId,
+    source: "probe",
+    conversation_id: "",
+    ts: ts ?? new Date(0).toISOString(),
+    workspace_root: "",
+    prompt_preview: null,
+    prompt: null,
+    keywords: tools.length ? tools.join(" ") : `probe session ${sessionId}`,
+    templates: [],
+    intent_scores: {},
+    client,
+    correlation: "probe_session",
+    metrics: {
+      tools_list_events: toolsList.length,
+      tools_list_tokens_est: toolsListTokens,
+      tool_calls: toolCalls.length,
+      tool_call_tokens_est: toolCallTokens,
+      saved_tokens_est: 0,
+      total_tokens_est: toolsListTokens + toolCallTokens,
+    },
+    tools_list: toolsList,
+    tool_calls: toolCalls,
+    tools_called: tools,
+  };
+}
+
+export function listProbeHistorySessions(options = {}) {
+  const limit = options.limit ?? historyLimit();
+  const logDir = options.logDir ?? options.gateLogDir;
+  const bySession = new Map();
+
+  for (const row of readProbeEvents(logDir)) {
+    const sid = row.session_id;
+    if (!bySession.has(sid)) bySession.set(sid, []);
+    bySession.get(sid).push(row);
+  }
+
+  const summaries = [...bySession.entries()]
+    .map(([sessionId, events]) => buildProbeSessionSummary(sessionId, events))
+    .sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
+    .slice(0, limit);
+
+  return {
+    source: "probe",
+    limit,
+    count: summaries.length,
+    turns: summaries,
+  };
+}
+
+export function listHistory(options = {}) {
+  const source = options.source ?? "turns";
+  if (source === "probe") {
+    return listProbeHistorySessions(options);
+  }
+  return { source: "turns", ...listHistoryTurns(options) };
 }
 
 export function listHistoryTurns(options = {}) {
@@ -163,6 +282,7 @@ export function listHistoryTurns(options = {}) {
   });
 
   return {
+    source: "turns",
     limit,
     count: summaries.length,
     turns: [...summaries].reverse(),
@@ -171,16 +291,17 @@ export function listHistoryTurns(options = {}) {
 
 export function getHistoryTurn(generationId, options = {}) {
   if (!generationId) return null;
-  const payload = listHistoryTurns({ ...options, limit: 10_000 });
+  const payload = listHistory({ ...options, limit: 10_000 });
   return payload.turns.find((t) => t.generation_id === generationId) ?? null;
 }
 
 export function exportHistoryTurns(generationIds, options = {}) {
   const ids = new Set(generationIds ?? []);
-  const payload = listHistoryTurns({ ...options, limit: 10_000 });
+  const payload = listHistory({ ...options, limit: 10_000 });
   return {
     export_version: 1,
     exported_at: new Date().toISOString(),
+    source: payload.source ?? options.source ?? "turns",
     turns: payload.turns.filter((t) => ids.has(t.generation_id)),
   };
 }
@@ -188,10 +309,13 @@ export function exportHistoryTurns(generationIds, options = {}) {
 export function historyOptionsFromPaths(paths = {}, url = null) {
   const limitRaw = url?.searchParams?.get("limit");
   const limit = limitRaw ? Number.parseInt(limitRaw, 10) : undefined;
+  const source = url?.searchParams?.get("source") ?? "turns";
   return {
     historyDir: paths.historyDir,
     gateLogDir: paths.gateLogDir ?? paths.logDir,
+    logDir: paths.logDir ?? paths.gateLogDir,
     workspaceRoot: paths.projectRoot ?? url?.searchParams?.get("workspace_root") ?? undefined,
     limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+    source: source === "probe" ? "probe" : "turns",
   };
 }

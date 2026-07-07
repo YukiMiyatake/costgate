@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import {
   exportHistoryTurns,
   getHistoryTurn,
+  listHistory,
   listHistoryTurns,
+  listProbeHistorySessions,
 } from "../scripts/lib/prompt-history.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -24,12 +26,13 @@ function fixtureHistoryOptions() {
     mockRoot
   );
   writeFileSync(join(logDir, "gate-fixture.jsonl"), gateContent);
+  copyFileSync(join(FIX, "probe-sample.jsonl"), join(logDir, "probe-fixture.jsonl"));
   const turnsContent = readFileSync(join(FIX, "turns-sample.jsonl"), "utf8").replaceAll(
     "/work/costgate",
     mockRoot
   );
   writeFileSync(join(historyDir, "turns.jsonl"), turnsContent);
-  return { gateLogDir: logDir, historyDir, projectRoot: mockRoot, limit: 50 };
+  return { gateLogDir: logDir, logDir, historyDir, projectRoot: mockRoot, limit: 50 };
 }
 
 function testListTurns() {
@@ -67,7 +70,26 @@ function testExportTurns() {
   console.log("ok exportTurns");
 }
 
+function testListProbeSessions() {
+  const opts = fixtureHistoryOptions();
+  const payload = listProbeHistorySessions({ ...opts, logDir: opts.gateLogDir });
+  assert.equal(payload.source, "probe");
+  assert.equal(payload.count, 2);
+  assert.equal(payload.turns[0].session_id, "sess-002");
+  assert.equal(payload.turns[0].metrics.tool_calls, 1);
+  console.log("ok listProbeSessions");
+}
+
+function testListHistorySource() {
+  const opts = fixtureHistoryOptions();
+  assert.equal(listHistory({ ...opts, source: "turns" }).source, "turns");
+  assert.equal(listHistory({ ...opts, source: "probe", logDir: opts.gateLogDir }).count, 2);
+  console.log("ok listHistorySource");
+}
+
 testListTurns();
 testGetTurn();
 testExportTurns();
+testListProbeSessions();
+testListHistorySource();
 console.log("prompt-history tests passed");

@@ -96,6 +96,13 @@
         <p class="panel-desc" data-i18n="history.desc">Recent prompt turns with MCP token usage and tool calls (estimates).</p>
       </header>
       <div class="panel-toolbar history-toolbar">
+        <label>
+          <span data-i18n="history.source">Source</span>
+          <select id="history-source">
+            <option value="turns" data-i18n="history.sourceTurns">Production turns</option>
+            <option value="probe" data-i18n="history.sourceProbe">Probe sessions</option>
+          </select>
+        </label>
         <span id="history-count" class="note"></span>
         <button type="button" id="history-export-btn" class="btn-sm btn-primary" disabled data-i18n="history.exportSelected">Export selected</button>
       </div>
