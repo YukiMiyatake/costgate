@@ -13,6 +13,7 @@ func TestLoggerWritesGateEvents(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("COSTGATE_GATE_LOG", "1")
 	t.Setenv("COSTGATE_GATE_LOG_DIR", dir)
+	t.Setenv("COSTGATE_PROJECT_ROOT", "/work/costgate")
 
 	l := New()
 	l.logToolsList("github", 8, 1200)
@@ -63,6 +64,9 @@ func TestLoggerWritesGateEvents(t *testing.T) {
 	}
 	if call["compressed"] != true || call["ok"] != true {
 		t.Fatalf("expected compressed=true ok=true, got %#v", call)
+	}
+	if call["project_root"] != "/work/costgate" {
+		t.Fatalf("expected project_root, got %#v", call["project_root"])
 	}
 }
 

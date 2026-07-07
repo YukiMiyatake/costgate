@@ -3,7 +3,7 @@
  * Reuses parse-probe-logs patterns; no writes to config or mcp.json.
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import {
   ensureBackendToolsCache,
@@ -111,7 +111,7 @@ function loadMcpServers(mcpPath) {
 /**
  * Per-tool stats from Probe + Gate JSONL (list cost, calls, backend, last_used).
  */
-export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logDir) {
+export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logDir, options = {}) {
   const byTool = new Map();
   const byBackend = new Map();
   let cutoff = null;
@@ -121,7 +121,18 @@ export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logD
 
   const listTokenSamples = [];
   ingestProbeToolStats(logDir, cutoff, byTool, byBackend, listTokenSamples);
-  ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend);
+  const gateOpts = {
+    projectRootFilter: options.projectRoot ?? null,
+    strictProjectRoot: false,
+  };
+  ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend, gateOpts);
+  const globalGateLogDir = options.globalGateLogDir ?? null;
+  if (gateOpts.projectRootFilter && globalGateLogDir && globalGateLogDir !== gateLogDir) {
+    ingestGateToolStats(globalGateLogDir, cutoff, byTool, byBackend, {
+      projectRootFilter: gateOpts.projectRootFilter,
+      strictProjectRoot: true,
+    });
+  }
 
   return { byTool, byBackend, listTokenSamples };
 }
@@ -172,8 +183,12 @@ function ingestProbeToolStats(logDir, cutoff, byTool, byBackend, listTokenSample
   }
 }
 
-function ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend) {
+function ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend, options = {}) {
   if (!existsSync(gateLogDir)) return;
+  const projectRootFilter = options.projectRootFilter
+    ? resolve(options.projectRootFilter)
+    : null;
+  const strictProjectRoot = Boolean(options.strictProjectRoot);
 
   for (const file of readdirSync(gateLogDir).filter(
     (f) => f.startsWith("gate-") && f.endsWith(".jsonl")
@@ -193,6 +208,14 @@ function ingestGateToolStats(gateLogDir, cutoff, byTool, byBackend) {
       }
 
       if (row.event === "tool_call" && row.tool) {
+        if (projectRootFilter) {
+          const rowRoot = row.project_root ? resolve(row.project_root) : null;
+          if (strictProjectRoot) {
+            if (!rowRoot || rowRoot !== projectRootFilter) continue;
+          } else if (rowRoot && rowRoot !== projectRootFilter) {
+            continue;
+          }
+        }
         mergeToolCallRow(
           { tool: row.tool, backend: row.backend ?? null, ts: row.ts },
           byTool,
@@ -478,7 +501,13 @@ export function buildDashboardData(options = {}) {
   const { byTool, byBackend, listTokenSamples } = parseProbeToolStats(
     paths.logDir,
     windowDays,
-    paths.gateLogDir
+    paths.gateLogDir,
+    {
+      projectRoot: paths.scoped ? paths.projectRoot : null,
+      globalGateLogDir: paths.scoped
+        ? (options.globalPaths?.gateLogDir ?? globalPaths.gateLogDir)
+        : null,
+    }
   );
   if (options.backendToolsCache) {
     mergeBackendToolsCache(byTool, options.backendToolsCache, backends);

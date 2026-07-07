@@ -19,6 +19,7 @@ const TESTS = [
   "dashboard-routes.test.mjs",
   "dashboard-ui-settings.test.mjs",
   "dashboard-workspaces.test.mjs",
+  "dashboard-gate-log-workspace.test.mjs",
   "resolve-workspace-root.test.mjs",
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",
