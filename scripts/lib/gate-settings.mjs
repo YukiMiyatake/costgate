@@ -23,6 +23,8 @@ export const DEFAULT_GATE_SETTINGS = {
   exposure_mode: "conservative",
   exposure_max_b: 5,
   exposure_token_budget: 4000,
+  slim_list: false,
+  slim_list_max_chars: 120,
 };
 
 export const GATE_SETTING_DEFS = [
@@ -105,6 +107,20 @@ export const GATE_SETTING_DEFS = [
     label: "List token budget",
     hint: "Max estimated tools/list tokens when exposure_mode=budget",
   },
+  {
+    key: "slim_list",
+    env: "COSTGATE_SLIM_LIST",
+    type: "boolean",
+    label: "Slim tools/list",
+    hint: "Truncate long tool descriptions in tools/list definitions",
+  },
+  {
+    key: "slim_list_max_chars",
+    env: "COSTGATE_SLIM_LIST_MAX_CHARS",
+    type: "number",
+    label: "Slim description max",
+    hint: "Max characters per tool description when slim_list is on",
+  },
 ];
 
 export function globalGateSettingsPath() {
@@ -120,7 +136,7 @@ function normalizeSettings(raw = {}) {
   if (raw.gate_mode === "filter" || raw.gate_mode === "transparent") {
     out.gate_mode = raw.gate_mode;
   }
-  for (const key of ["compress", "code_mode", "intent_dynamic", "intent_probe", "intent_prompt"]) {
+  for (const key of ["compress", "code_mode", "intent_dynamic", "intent_probe", "intent_prompt", "slim_list"]) {
     if (typeof raw[key] === "boolean") out[key] = raw[key];
   }
   if (typeof raw.static_intent === "string") out.static_intent = raw.static_intent;
@@ -135,6 +151,9 @@ function normalizeSettings(raw = {}) {
   }
   if (typeof raw.exposure_token_budget === "number" && raw.exposure_token_budget >= 0) {
     out.exposure_token_budget = Math.floor(raw.exposure_token_budget);
+  }
+  if (typeof raw.slim_list_max_chars === "number" && raw.slim_list_max_chars >= 32) {
+    out.slim_list_max_chars = Math.floor(raw.slim_list_max_chars);
   }
   return out;
 }
@@ -215,6 +234,8 @@ export function gateSettingsToEnv(settings) {
     COSTGATE_EXPOSURE_MODE: s.exposure_mode,
     COSTGATE_EXPOSURE_MAX_B: String(s.exposure_max_b),
     COSTGATE_EXPOSURE_TOKEN_BUDGET: String(s.exposure_token_budget),
+    COSTGATE_SLIM_LIST: boolEnv(s.slim_list),
+    COSTGATE_SLIM_LIST_MAX_CHARS: String(s.slim_list_max_chars),
   };
 }
 

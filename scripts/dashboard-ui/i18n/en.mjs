@@ -248,6 +248,14 @@ export default {
       label: "List token budget",
       hint: "Max estimated tools/list tokens when exposure_mode=budget",
     },
+    slim_list: {
+      label: "Slim tools/list",
+      hint: "Truncate long tool descriptions in tools/list definitions",
+    },
+    slim_list_max_chars: {
+      label: "Slim description max",
+      hint: "Max characters per tool description when slim_list is on",
+    },
   },
   rec: {
     title: "Recommendations",

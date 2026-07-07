@@ -250,6 +250,14 @@ export default {
       label: "List トークン予算",
       hint: "exposure_mode=budget 時の tools/list 推定トークン上限",
     },
+    slim_list: {
+      label: "tools/list をスリム化",
+      hint: "tools/list の長い description を切り詰めます",
+    },
+    slim_list_max_chars: {
+      label: "スリム化の最大文字数",
+      hint: "slim_list ON 時の description 上限",
+    },
   },
   rec: {
     title: "おすすめ",
