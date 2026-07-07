@@ -60,6 +60,10 @@ export default {
     promptIntentStale: "Prompt intent (stale)",
     lastShieldBlock: "Last shield block",
     lastShieldBlockStale: "Last shield block (stale)",
+    gateActivity: "Last Gate activity",
+    gateActivityStale: "Last Gate activity (stale)",
+    gateActivityMissing: " No Gate tool events in logs yet — usage stats may be empty.",
+    gateActivityStaleNote: " Gate activity is {age} old; call counts may not reflect recent Cursor use.",
     periodNote:
       "Period: {from} → {to}. MCPs outside Gate/Probe are shown as blind spots.",
     probeMissing:
@@ -150,6 +154,9 @@ export default {
     bulkExcludeConfirmTokensUnknown: "Some tools have no list-token measurement.",
     bulkExcludeConfirmMore: "…and {count} more",
     bulkExcludeDone: "Excluded {count} tools. Est. list-token savings ~{tokens}. Restart Gate to apply.",
+    gateFreshness: "Gate data: {age}",
+    gateFreshnessStale: "Gate data (stale): {age}",
+    gateFreshnessNone: "Gate data: no events logged",
     empty: "No tools match your filters.",
     blindBanner: "Outside measurement MCPs: {list}",
     savedOverride: "Saved. Restart Gate (Cursor MCP reload) to apply tool overrides.",

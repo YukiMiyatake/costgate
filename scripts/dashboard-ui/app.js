@@ -486,6 +486,14 @@ function renderOverview(data) {
   } else {
     items.push([t("overview.lastShieldBlock"), dash]);
   }
+  const glf = data.gate_log_freshness;
+  if (glf?.has_events) {
+    const age = relativeAgeSec(glf.age_sec);
+    const label = glf.stale ? t("overview.gateActivityStale") : t("overview.gateActivity");
+    items.push([label, age || dash]);
+  } else {
+    items.push([t("overview.gateActivity"), dash]);
+  }
   for (const [label, value] of items) {
     const card = document.createElement("div");
     card.className = "card";
@@ -515,6 +523,13 @@ function renderOverview(data) {
   }
   if (data.shield_prompt?.aggressive) {
     noteText += t("overview.shieldAggressive");
+  }
+  if (data.gate_log_freshness?.has_events && data.gate_log_freshness.stale) {
+    noteText += t("overview.gateActivityStaleNote", {
+      age: relativeAgeSec(data.gate_log_freshness.age_sec) || dash,
+    });
+  } else if (data.gate_log_freshness && !data.gate_log_freshness.has_events) {
+    noteText += t("overview.gateActivityMissing");
   }
   note.textContent = noteText;
   renderShieldPromptPanel(data.shield_prompt);
@@ -906,6 +921,20 @@ function summarizeListTokens(tools) {
   return { total, count, listed, listedCount };
 }
 
+function renderToolsGateFreshness(freshness) {
+  const el = document.getElementById("tools-gate-freshness");
+  if (!el) return;
+  if (!freshness?.has_events) {
+    el.textContent = t("tools.gateFreshnessNone");
+    el.classList.add("note");
+    return;
+  }
+  const age = relativeAgeSec(freshness.age_sec) || "—";
+  const key = freshness.stale ? "tools.gateFreshnessStale" : "tools.gateFreshness";
+  el.textContent = t(key, { age });
+  el.classList.toggle("note", freshness.stale);
+}
+
 function renderToolsTokenSummary(filtered, all) {
   const el = document.getElementById("tools-token-summary");
   if (!el) return;
@@ -946,6 +975,7 @@ function renderToolsTable() {
         : t("tools.count", { shown: filtered.length, total: all.length });
   }
   renderToolsTokenSummary(filtered, all);
+  renderToolsGateFreshness(toolsData.gate_log_freshness);
   renderToolsBulkExcludeBar(all);
 }
 
