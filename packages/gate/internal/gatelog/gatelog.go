@@ -63,6 +63,14 @@ func LogToolCall(tool string, responseBytes int, compressed bool, savedBytes int
 	defaultLogger.logToolCall(tool, responseBytes, compressed, savedBytes)
 }
 
+// LogSettingsReload records a gate-settings hot-reload.
+func LogSettingsReload(configGeneration string) {
+	defaultLogger.append(map[string]any{
+		"event":              "settings_reload",
+		"config_generation": configGeneration,
+	})
+}
+
 // LogToolCallError records a failed backend tool invocation.
 func LogToolCallError(tool string, err error) {
 	defaultLogger.logToolCallError(tool, err)

@@ -116,7 +116,7 @@ export function mockMultiGateEnv(clientName, extra = {}) {
       2
     )}\n`
   );
-  return baseGateEnv(clientName, {
+  const env = baseGateEnv(clientName, {
     COSTGATE_CONFIG: mockMultiBackendsConfigPath(),
     COSTGATE_USAGE_PATH: paths.usage,
     COSTGATE_PROBE_LOG_DIR: paths.logs,
@@ -124,8 +124,11 @@ export function mockMultiGateEnv(clientName, extra = {}) {
     COSTGATE_SHIELD_DIR: paths.vault,
     COSTGATE_TRUST_PATH: paths.trust,
     COSTGATE_TOOL_OVERRIDES: paths.overrides,
+    COSTGATE_GATE_SETTINGS_PATH: paths.gateSettings,
     ...extra,
   });
+  syncMockGateSettingsFile(paths.gateSettings, env);
+  return env;
 }
 
 /** Isolated usage + log paths for integration tests. */
@@ -134,6 +137,22 @@ export function mockTestPaths(prefix = "integration") {
   mkdirSync(base, { recursive: true });
   const overrides = join(base, "tool-overrides.json");
   writeFileSync(overrides, `${JSON.stringify({ version: 1, tools: {} }, null, 2)}\n`);
+  const gateSettings = join(base, "gate-settings.json");
+  writeFileSync(
+    gateSettings,
+    `${JSON.stringify(
+      {
+        version: 1,
+        gate_mode: "filter",
+        intent_dynamic: false,
+        intent_probe: false,
+        intent_prompt: false,
+        static_intent: "",
+      },
+      null,
+      2
+    )}\n`
+  );
   return {
     usage: join(base, "usage.json"),
     logs: join(base, "logs"),
@@ -141,7 +160,27 @@ export function mockTestPaths(prefix = "integration") {
     vault: join(base, "vault"),
     trust: join(base, "mcp-trust.json"),
     overrides,
+    gateSettings,
   };
+}
+
+/** Keep gate-settings.json aligned with COSTGATE_* env for mock Gate tests. */
+function syncMockGateSettingsFile(path, env = {}) {
+  const settings = {
+    version: 1,
+    gate_mode: env.COSTGATE_GATE_MODE === "transparent" ? "transparent" : "filter",
+    compress: env.COSTGATE_COMPRESS !== "0",
+    code_mode: env.COSTGATE_CODE_MODE !== "0",
+    intent_dynamic: env.COSTGATE_INTENT_DYNAMIC !== "0",
+    intent_probe: env.COSTGATE_INTENT_PROBE !== "0",
+    intent_prompt: env.COSTGATE_INTENT_PROMPT !== "0",
+    static_intent: env.COSTGATE_INTENT ?? "",
+    exposure_mode: env.COSTGATE_EXPOSURE_MODE ?? "conservative",
+    exposure_max_b: Number(env.COSTGATE_EXPOSURE_MAX_B ?? 5),
+    exposure_token_budget: Number(env.COSTGATE_EXPOSURE_TOKEN_BUDGET ?? 4000),
+    slim_list: env.COSTGATE_SLIM_LIST === "1",
+  };
+  writeFileSync(path, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
 /** Base env for Gate/Probe against mock MCP. */
@@ -165,7 +204,7 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
       2
     )}\n`
   );
-  return baseGateEnv(clientName, {
+  const env = baseGateEnv(clientName, {
     COSTGATE_CONFIG: mockBackendsConfigPath(backend, fixtureJs),
     COSTGATE_USAGE_PATH: paths.usage,
     COSTGATE_PROBE_LOG_DIR: paths.logs,
@@ -173,8 +212,11 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
     COSTGATE_SHIELD_DIR: paths.vault,
     COSTGATE_TRUST_PATH: paths.trust,
     COSTGATE_TOOL_OVERRIDES: paths.overrides,
+    COSTGATE_GATE_SETTINGS_PATH: paths.gateSettings,
     ...extra,
   });
+  syncMockGateSettingsFile(paths.gateSettings, env);
+  return env;
 }
 
 /** Base env for Gate MCP subprocesses. */

@@ -203,13 +203,21 @@ export function saveGateSettings(settings, paths = {}) {
   return { path, settings: payload };
 }
 
+export function gateSettingsReloadHints(prev, next) {
+  const normalized = normalizeSettings(next);
+  if (prev.gate_mode !== normalized.gate_mode) {
+    return { requires_gate_restart: true };
+  }
+  return { requires_gate_restart: false, gate_reload: "auto" };
+}
+
 export function patchGateSettings(partial, paths = {}) {
   const current = loadGateSettings(paths);
   const next = normalizeSettings({ ...current.settings, ...partial });
   const saved = saveGateSettings(next, paths);
   return {
     ...saved,
-    requires_gate_restart: true,
+    ...gateSettingsReloadHints(current.settings, next),
     origins: loadGateSettings(paths).origins,
     config_merge: current.config_merge,
   };
@@ -258,6 +266,7 @@ export function buildGateSettingsApiPayload(paths = {}) {
     paths: loaded.paths,
     origins: loaded.origins,
     config_merge: loaded.config_merge,
-    requires_gate_restart: true,
+    hot_reload: true,
+    gate_mode_requires_restart: true,
   };
 }

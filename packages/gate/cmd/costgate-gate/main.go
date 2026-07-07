@@ -11,6 +11,7 @@ import (
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/config"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/gatesettings"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/proxy"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/version"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/workspace"
@@ -35,6 +36,10 @@ func main() {
 	configPath := config.ResolveConfigPath()
 	backendNames := config.BackendNames(cfg)
 	log.Printf("[costgate-gate] v%s backends=%v config=%s mode=%s", version.Version, backendNames, configPath, proxy.GateModeLabel())
+
+	if err := gatesettings.ApplyEffective(); err != nil {
+		log.Printf("[costgate-gate] gate settings: %v", err)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()

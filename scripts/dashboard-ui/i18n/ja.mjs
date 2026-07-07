@@ -182,10 +182,11 @@ export default {
     gateSettingsTitle: "costgate-gate 設定",
     gateSave: "Gate 設定を保存",
     gateNoteGlobal:
-      "~/.costgate/gate-settings.json に保存されます。反映には Cursor MCP の再起動が必要です。",
+      "~/.costgate/gate-settings.json に保存されます。多くの設定は Gate が自動反映します（gate_mode のみ MCP 再起動）。",
     gateNoteProject:
-      "プロジェクトの .costgate/gate-settings.json が Global を上書きします。Cursor MCP の再起動が必要です。",
-    gateSaved: "Gate 設定を保存しました。Cursor MCP（またはウィンドウの再読み込み）で反映してください。",
+      "プロジェクトの .costgate/gate-settings.json が Global を上書きします。Gate が多くの設定を自動反映します。",
+    gateSaved: "Gate 設定を保存しました。自動反映されます（gate_mode のみ MCP 再起動）。",
+    gateSavedRestart: "Gate 設定を保存しました。gate_mode の変更は Cursor MCP の再起動が必要です。",
     colServer: "サーバー",
     colRole: "役割",
     colTrust: "Trust",
