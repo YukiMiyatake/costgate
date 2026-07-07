@@ -597,6 +597,77 @@ function setupShieldPromptPanel() {
 
 let toolsData = null;
 let toolsTierFilter = "all";
+let toolsSortKey = "call_count";
+let toolsSortDir = "desc";
+
+const TOOLS_SORT_DEFAULTS = {
+  name: "asc",
+  backend: "asc",
+  tier: "asc",
+  call_count: "desc",
+  last_used: "desc",
+  list_tokens: "desc",
+  exclude_score: "desc",
+  visibility: "asc",
+  recommendation: "asc",
+};
+
+function tierSortRank(tool) {
+  if (tool.tier === "hidden") return 5;
+  const letter = String(tool.tier ?? "").toUpperCase();
+  if (letter === "A") return 1;
+  if (letter === "B") return 2;
+  if (letter === "C") return 3;
+  return 4;
+}
+
+function compareTools(a, b, key, dir) {
+  const mul = dir === "asc" ? 1 : -1;
+  let cmp = 0;
+  if (key === "name") cmp = a.name.localeCompare(b.name);
+  else if (key === "backend") {
+    cmp = (a.backend ?? "").localeCompare(b.backend ?? "") || a.name.localeCompare(b.name);
+  } else if (key === "tier") cmp = tierSortRank(a) - tierSortRank(b);
+  else if (key === "call_count") cmp = (a.call_count ?? 0) - (b.call_count ?? 0);
+  else if (key === "last_used") {
+    const aTs = a.last_used ? Date.parse(a.last_used) : 0;
+    const bTs = b.last_used ? Date.parse(b.last_used) : 0;
+    cmp = aTs - bTs;
+  } else if (key === "list_tokens") {
+    cmp = (a.estimated_list_tokens ?? -1) - (b.estimated_list_tokens ?? -1);
+  } else if (key === "exclude_score") cmp = (a.exclude_score ?? 0) - (b.exclude_score ?? 0);
+  else if (key === "visibility") {
+    cmp = (a.tier === "hidden" ? 1 : 0) - (b.tier === "hidden" ? 1 : 0);
+  } else if (key === "recommendation") {
+    cmp = (a.recommendation ?? "").localeCompare(b.recommendation ?? "");
+  }
+  return cmp * mul || a.name.localeCompare(b.name);
+}
+
+function sortTools(tools) {
+  return [...tools].sort((a, b) => compareTools(a, b, toolsSortKey, toolsSortDir));
+}
+
+function renderToolsSortHeaders() {
+  for (const th of document.querySelectorAll("#tools-head-row th.sortable")) {
+    const key = th.dataset.sortKey;
+    th.classList.toggle("sort-active", key === toolsSortKey);
+    const labelKey = th.dataset.i18n;
+    const label = labelKey ? t(labelKey) : th.textContent.replace(/\s*[↑↓]\s*$/, "").trim();
+    const arrow =
+      key === toolsSortKey ? `<span class="sort-indicator">${toolsSortDir === "asc" ? "↑" : "↓"}</span>` : "";
+    th.innerHTML = `${label}${arrow}`;
+    if (key === "exclude_score") th.title = t("tools.excludeScoreHint");
+  }
+}
+
+function excludeScoreHtml(tool) {
+  const score = tool.exclude_score ?? 0;
+  let cls = "exclude-score-low";
+  if (score >= 70) cls = "exclude-score-high";
+  else if (score >= 40) cls = "exclude-score-mid";
+  return `<span class="exclude-score ${cls}" title="${t("tools.excludeScoreHint")}">${score}</span>`;
+}
 
 function isToolMeasured(tool) {
   return tool.estimated_list_tokens != null;
@@ -639,32 +710,6 @@ function filterTools(tools) {
     if (measured === "unmeasured" && isToolMeasured(t)) return false;
     return true;
   });
-}
-
-function sortTools(tools) {
-  const sortKey = document.getElementById("tools-sort")?.value ?? "call_count";
-  const sorted = [...tools];
-  sorted.sort((a, b) => {
-    if (sortKey === "name") return a.name.localeCompare(b.name);
-    if (sortKey === "backend") {
-      return (a.backend ?? "").localeCompare(b.backend ?? "") || a.name.localeCompare(b.name);
-    }
-    if (sortKey === "call_count") {
-      return b.call_count - a.call_count || a.name.localeCompare(b.name);
-    }
-    if (sortKey === "last_used") {
-      const aTs = a.last_used ? Date.parse(a.last_used) : 0;
-      const bTs = b.last_used ? Date.parse(b.last_used) : 0;
-      return bTs - aTs || a.name.localeCompare(b.name);
-    }
-    if (sortKey === "list_tokens") {
-      const aTok = a.estimated_list_tokens ?? -1;
-      const bTok = b.estimated_list_tokens ?? -1;
-      return bTok - aTok || a.name.localeCompare(b.name);
-    }
-    return 0;
-  });
-  return sorted;
 }
 
 function renderToolsTierTabs() {
@@ -746,14 +791,15 @@ function renderToolRow(tool) {
     <td>${fmt(tool.call_count)}</td>
     <td>${fmtDate(tool.last_used)}</td>
     <td>${tool.estimated_list_tokens != null ? `~${fmt(tool.estimated_list_tokens)}` : t("common.dash")}</td>
+    <td>${excludeScoreHtml(tool)}</td>
     <td></td>
     <td></td>
     <td></td>`;
   tr.children[2].appendChild(tierBadge(tool.tier, tool.forced_tier));
   tr.children[3].appendChild(listData);
-  tr.children[7].appendChild(toolVisibilityBadge(tool));
-  tr.children[8].appendChild(flag);
-  tr.children[9].appendChild(hideBtn);
+  tr.children[8].appendChild(toolVisibilityBadge(tool));
+  tr.children[9].appendChild(flag);
+  tr.children[10].appendChild(hideBtn);
   return tr;
 }
 
@@ -795,6 +841,7 @@ function renderToolsTokenSummary(filtered, all) {
 
 function renderToolsTable() {
   if (!toolsData) return;
+  renderToolsSortHeaders();
   const all = toolsData.tools ?? [];
   const filtered = sortTools(filterTools(all));
   const body = document.getElementById("tools-body");
@@ -854,12 +901,30 @@ function renderTools(data) {
   renderToolsTable();
 }
 
+function setupToolsSortHeaders() {
+  const row = document.getElementById("tools-head-row");
+  if (!row || row.dataset.sortBound) return;
+  row.dataset.sortBound = "1";
+  row.addEventListener("click", (e) => {
+    const th = e.target.closest("th.sortable");
+    if (!th?.dataset.sortKey) return;
+    const key = th.dataset.sortKey;
+    if (toolsSortKey === key) {
+      toolsSortDir = toolsSortDir === "asc" ? "desc" : "asc";
+    } else {
+      toolsSortKey = key;
+      toolsSortDir = TOOLS_SORT_DEFAULTS[key] ?? "desc";
+    }
+    renderToolsTable();
+  });
+}
+
 function setupToolsControls() {
+  setupToolsSortHeaders();
   const rerender = () => renderToolsTable();
   document.getElementById("tools-search")?.addEventListener("input", rerender);
   document.getElementById("tools-backend-filter")?.addEventListener("change", rerender);
   document.getElementById("tools-tier-filter")?.addEventListener("change", rerender);
-  document.getElementById("tools-sort")?.addEventListener("change", rerender);
   document.getElementById("tools-measured-filter")?.addEventListener("change", rerender);
   for (const id of ["tools-rec-only", "tools-forced-only", "tools-catalog-only"]) {
     document.getElementById(id)?.addEventListener("change", rerender);

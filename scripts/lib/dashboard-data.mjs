@@ -25,6 +25,7 @@ import { repoRoot } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
+import { applyExcludeScores } from "./tool-exclude-score.mjs";
 import { enrichMcpsWithTrust, loadMcpTrust } from "./mcp-trust.mjs";
 import { readLatestPromptIntent, promptIntentDir } from "./prompt-intent.mjs";
 import { buildShieldPromptSnapshot, shieldPromptBlockDir } from "./shield-prompt.mjs";
@@ -327,6 +328,7 @@ function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, 
         : null,
       stale_days: staleDays(lastUsed, now),
       recommendation: null,
+      exclude_score: 0,
     });
   }
 
@@ -363,6 +365,8 @@ function scoreRecommendations(tools, listTokenSamples, byBackend, backends, now)
       });
     }
   }
+
+  applyExcludeScores(tools, listTokenSamples);
 
   for (const [backend, stats] of byBackend) {
     if (stats.call_count > 0) continue;

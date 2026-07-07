@@ -447,6 +447,43 @@ th {
   background: var(--surface-raised);
 }
 
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+th.sortable:hover {
+  color: var(--text);
+}
+
+th.sort-active {
+  color: var(--accent);
+}
+
+th .sort-indicator {
+  margin-left: 0.2em;
+  opacity: 0.85;
+  font-size: 0.7rem;
+}
+
+.exclude-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.exclude-score-high {
+  color: var(--warn);
+}
+
+.exclude-score-mid {
+  color: #fbbf24;
+}
+
+.exclude-score-low {
+  color: var(--muted);
+}
+
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: var(--accent-soft); }
 

@@ -113,16 +113,6 @@
             <option value="hidden" data-i18n="tools.tierHidden">Excluded</option>
           </select>
         </label>
-        <label>
-          <span data-i18n="tools.sort">Sort</span>
-          <select id="tools-sort">
-            <option value="call_count" data-i18n="tools.sortCallCount">Call count</option>
-            <option value="name" data-i18n="tools.sortName">Name</option>
-            <option value="backend" data-i18n="tools.sortBackend">Backend</option>
-            <option value="last_used" data-i18n="tools.sortLastUsed">Last used</option>
-            <option value="list_tokens" data-i18n="tools.sortListTokens">List tokens</option>
-          </select>
-        </label>
       </div>
       <div id="tools-summary" class="tools-summary">
         <span id="tools-count" class="tools-summary-item"></span>
@@ -143,18 +133,19 @@
         <label><input type="checkbox" id="tools-forced-only" /> <span data-i18n="tools.forcedOnly">Forced tier only</span></label>
       </div>
       <div class="table-wrap">
-        <table>
+        <table id="tools-table">
           <thead>
-            <tr>
-              <th data-i18n="tools.colTool">Tool</th>
-              <th data-i18n="tools.colBackend">Backend</th>
-              <th data-i18n="tools.colTier">Tier</th>
+            <tr id="tools-head-row">
+              <th class="sortable" data-sort-key="name" data-i18n="tools.colTool">Tool</th>
+              <th class="sortable" data-sort-key="backend" data-i18n="tools.colBackend">Backend</th>
+              <th class="sortable" data-sort-key="tier" data-i18n="tools.colTier">Tier</th>
               <th data-i18n="tools.colListData">List data</th>
-              <th data-i18n="tools.colCalls">Calls</th>
-              <th data-i18n="tools.colLastUsed">Last used</th>
-              <th data-i18n="tools.colListTokens">List tokens</th>
-              <th data-i18n="tools.colVisibility">Visibility</th>
-              <th data-i18n="tools.colFlag">Flag</th>
+              <th class="sortable" data-sort-key="call_count" data-i18n="tools.colCalls">Calls</th>
+              <th class="sortable" data-sort-key="last_used" data-i18n="tools.colLastUsed">Last used</th>
+              <th class="sortable" data-sort-key="list_tokens" data-i18n="tools.colListTokens">List tokens</th>
+              <th class="sortable" data-sort-key="exclude_score" data-i18n="tools.colExcludeScore">Exclude score</th>
+              <th class="sortable" data-sort-key="visibility" data-i18n="tools.colVisibility">tools/list</th>
+              <th class="sortable" data-sort-key="recommendation" data-i18n="tools.colFlag">Flag</th>
               <th data-i18n="tools.colAction">Action</th>
             </tr>
           </thead>

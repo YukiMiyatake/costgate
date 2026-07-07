@@ -11,8 +11,11 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { summarizeTools } from "@costgate/probe/metrics";
 import { readJson } from "./read-json.mjs";
 
-const DEFAULT_TTL_MS = 10 * 60 * 1000;
-const SERENA_TTL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
+/** HTTP/url backends: cheap probe, tool defs change rarely. */
+export const URL_BACKEND_TTL_MS = 24 * 60 * 60 * 1000;
+/** stdio backends that spawn heavy processes (e.g. serena). */
+export const SERENA_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 const SERENA_PROBE_FLAGS = [
@@ -41,14 +44,19 @@ function probeTimeoutMs() {
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_TIMEOUT_MS;
 }
 
-function backendProbeTtlMs(backendName) {
+export function isUrlBackend(config = {}) {
+  return Boolean(config.url || config.probe_url || config.probeUrl);
+}
+
+export function backendProbeTtlMs(backendName, config = {}) {
   const envKey = `COSTGATE_BACKEND_PROBE_TTL_${String(backendName).toUpperCase()}_MS`;
   const raw = process.env[envKey];
   if (raw != null && raw !== "") {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) return n;
   }
-  if (backendName === "serena") return SERENA_TTL_MS;
+  if (isUrlBackend(config)) return URL_BACKEND_TTL_MS;
+  if (backendName === "serena" || isSerenaBackend(backendName, config)) return SERENA_TTL_MS;
   return cacheTtlMs();
 }
 
@@ -130,7 +138,7 @@ export function isBackendCacheStale(cache, backendName, config) {
   if (!entry?.probed_at) return true;
   if (entry.fingerprint !== backendConfigFingerprint(config)) return true;
   const age = Date.now() - Date.parse(entry.probed_at);
-  return Number.isNaN(age) || age > backendProbeTtlMs(backendName);
+  return Number.isNaN(age) || age > backendProbeTtlMs(backendName, config);
 }
 
 export function isBackendCacheMissing(cache, backendName) {

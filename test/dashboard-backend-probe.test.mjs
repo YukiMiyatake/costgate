@@ -10,6 +10,9 @@ import {
   backendsNeedingProbe,
   prepareProbeConfig,
   isSerenaBackend,
+  isUrlBackend,
+  backendProbeTtlMs,
+  URL_BACKEND_TTL_MS,
   isBackendCacheStale,
   isBackendCacheMissing,
 } from "../scripts/lib/dashboard-backend-probe.mjs";
@@ -38,6 +41,17 @@ function testPrepareProbeConfig() {
   const unchanged = prepareProbeConfig("github", { command: "npx", args: ["-y", "github"] });
   assert(!unchanged.args.includes("--open-web-dashboard"), "non-serena unchanged");
   console.error("[backend-probe] prepareProbeConfig ok");
+}
+
+function testProbeTtl() {
+  assert(isUrlBackend({ url: "https://aieph.dev/mcp" }), "url backend");
+  assert(!isUrlBackend({ command: "node" }), "stdio not url");
+  assert(
+    backendProbeTtlMs("aieph", { url: "https://aieph.dev/mcp" }) === URL_BACKEND_TTL_MS,
+    "url ttl 24h"
+  );
+  assert(backendProbeTtlMs("mock", { command: "node" }) >= 6 * 60 * 60 * 1000, "stdio ttl >= 6h");
+  console.error("[backend-probe] probe TTL ok");
 }
 
 async function testProbeMockMcp() {
@@ -138,6 +152,7 @@ async function testBuildToolsPayload() {
 
 async function main() {
   testPrepareProbeConfig();
+  testProbeTtl();
   await testProbeMockMcp();
   await testEnsureCacheAndMerge();
   await testBuildToolsPayload();
