@@ -67,6 +67,8 @@ import {
 } from "./lib/dashboard-probe.mjs";
 import { clearDashboardBrowserOpenedFlag } from "./lib/dashboard-browser-flag.mjs";
 import { scheduleDashboardRestart } from "./lib/dashboard-restart.mjs";
+import { evaluateGateSettings } from "./lib/dashboard-gate-eval.mjs";
+import { gateBin } from "./lib/paths.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -755,6 +757,21 @@ function createDashboardServer(options = {}) {
             json(res, 200, { ok: true, ...result });
           } catch (e) {
             json(res, 400, { error: e.message ?? String(e) });
+          }
+          return;
+        }
+
+        if (pathname === "/api/admin/gate-eval") {
+          const body = await readBody(req);
+          try {
+            if (!existsSync(gateBin())) {
+              json(res, 503, { error: "gate_binary_missing", hint: "npm run build:gate" });
+              return;
+            }
+            const result = await evaluateGateSettings(body.settings ?? body ?? {});
+            json(res, 200, { ok: true, ...result });
+          } catch (e) {
+            json(res, 500, { error: e.message ?? String(e) });
           }
           return;
         }

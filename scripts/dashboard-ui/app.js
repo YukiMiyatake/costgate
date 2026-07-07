@@ -1255,6 +1255,42 @@ async function loadGateSettings() {
   return data;
 }
 
+let gateEvalEnabled = false;
+
+function setupGateEvalButton() {
+  const btn = document.getElementById("gate-settings-eval");
+  if (!gateEvalEnabled) {
+    btn?.classList.add("hidden");
+    return;
+  }
+  btn?.classList.remove("hidden");
+  btn?.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = t("mcps.gateEvalRunning");
+    try {
+      const settings = collectGateSettingsForm();
+      const result = await fetchJson(globalApiPath("admin/gate-eval"), {
+        method: "POST",
+        body: JSON.stringify({ settings }),
+      });
+      const pass = result.eval?.passed ?? 0;
+      const total = result.eval?.total ?? 0;
+      const reduction = result.tokens?.reduction_pct ?? 0;
+      const key = result.ok ? "mcps.gateEvalOk" : "mcps.gateEvalFail";
+      showToast(t(key, { pass, total, reduction }), {
+        kind: result.ok ? "success" : "error",
+      });
+    } catch (e) {
+      showToast(e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  });
+}
+
 function setupGateSettings() {
   document.getElementById("gate-settings-save")?.addEventListener("click", async () => {
     try {
@@ -1926,6 +1962,8 @@ async function main() {
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
     setupGateStatus(health);
+    gateEvalEnabled = Boolean(health?.capabilities?.gate_eval);
+    setupGateEvalButton();
     document.getElementById("health-status").textContent = t("app.health", {
       status: health.status,
       version: health.version,

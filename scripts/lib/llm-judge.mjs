@@ -50,14 +50,6 @@ export function parseJudgeJson(text) {
   };
 }
 
-function extractKeywords(text) {
-  const words = String(text ?? "")
-    .toLowerCase()
-    .match(/[a-z0-9_./-]{5,}/g);
-  if (!words) return [];
-  return [...new Set(words)].slice(0, 40);
-}
-
 /** Deterministic mock judge for CI (keyword retention heuristic). */
 export function mockJudgeCompression({ original, compressed }) {
   const keywords = extractKeywords(original);
@@ -77,6 +69,55 @@ export function mockJudgeCompression({ original, compressed }) {
     score,
     missing_facts: missing,
     rationale: `mock keyword retention ${Math.round(ratio * 100)}% (${retained.length}/${keywords.length})`,
+    provider: "mock",
+  };
+}
+
+function extractKeywords(text) {
+  const words = String(text ?? "")
+    .toLowerCase()
+    .match(/[a-z0-9_./-]{5,}/g);
+  if (!words) return [];
+  return [...new Set(words)].slice(0, 40);
+}
+
+const SECRET_PATTERNS = [/ghp_[a-zA-Z0-9]{10,}/, /sk-[a-zA-Z0-9]{10,}/];
+
+/** Deterministic mock judge for Shield redaction pairs. */
+export function mockJudgeShield({ original, redacted, task_intent }) {
+  let score = 5;
+  const issues = [];
+
+  for (const pattern of SECRET_PATTERNS) {
+    const match = original.match(pattern);
+    if (!match) continue;
+    const secret = match[0];
+    if (redacted.includes(secret)) {
+      score -= 2.5;
+      issues.push(`secret leaked: ${secret.slice(0, 10)}…`);
+    } else if (!redacted.includes("[[CG:") && !redacted.toLowerCase().includes("redact")) {
+      score -= 0.5;
+      issues.push("no redaction marker");
+    }
+  }
+
+  const contextTokens = ["deploy", "repo", "costgate", "main", "token"];
+  const retained = contextTokens.filter((t) => redacted.toLowerCase().includes(t));
+  if (retained.length < 2) {
+    score -= 1.5;
+    issues.push("task context lost");
+  }
+
+  if (redacted.trim().length < 12) {
+    score -= 2;
+    issues.push("over-redacted");
+  }
+
+  score = Math.max(0, Math.min(5, Math.round(score * 10) / 10));
+  return {
+    score,
+    missing_facts: issues,
+    rationale: `mock shield: context ${retained.length}/${contextTokens.length}${task_intent ? "" : ""}`,
     provider: "mock",
   };
 }
@@ -141,6 +182,9 @@ export async function callJudge(opts) {
   if (provider === "mock") {
     if (opts.task === "compression") {
       return mockJudgeCompression(opts.pair ?? {});
+    }
+    if (opts.task === "shield") {
+      return mockJudgeShield(opts.pair ?? {});
     }
     throw new Error(`mock judge: unsupported task ${opts.task ?? "(none)"}`);
   }

@@ -1,0 +1,6 @@
+{
+  "id": "mock-echo-token",
+  "task_intent": "Echo deployment message without exposing secrets",
+  "original": "Deploy token=ghp_1234567890abcdefghijklmnopqrst for repo costgate/main",
+  "redacted": "Deploy token=[[CG:GITHUB_PAT:1]] for repo costgate/main"
+}

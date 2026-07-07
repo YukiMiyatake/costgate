@@ -21,7 +21,7 @@ import {
   fixedSharePct,
   bytesToTokens,
 } from "./parse-probe-logs.mjs";
-import { repoRoot } from "./paths.mjs";
+import { repoRoot, gateBin } from "./paths.mjs";
 import { loadToolOverrides, loadMcpDisabled } from "./dashboard-control.mjs";
 import { buildProjectRecommendations } from "./dashboard-project-recommend.mjs";
 import { resolveEffectiveConfig } from "./dashboard-config-merge.mjs";
@@ -798,6 +798,7 @@ export function buildHealth(extra = {}) {
       workspace_deep_routes: true,
       gate_status: true,
       admin_restart: true,
+      gate_eval: existsSync(gateBin()),
     },
   };
 }
