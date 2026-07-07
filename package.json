@@ -41,6 +41,9 @@
     "eval": "node test/eval/run.mjs",
     "eval:live": "node test/eval/run.mjs --live --tasks test/eval/tasks-live.json",
     "benchmark:ci": "node scripts/benchmark-ci.mjs",
+    "optimize:sweep": "node scripts/optimize-sweep.mjs",
+    "optimize:sweep:smoke": "node scripts/optimize-sweep.mjs --mock --grid exposure_mode=conservative,aggressive --skip-eval --json",
+    "session-replay:export": "node scripts/session-replay-export.mjs",
 
     "feat:start": "node scripts/feat-workflow.mjs start",
     "feat:ship": "node scripts/feat-workflow.mjs ship",
@@ -65,7 +68,7 @@
     "test:gate-launch": "node test/costgate-gate-launch.test.mjs",
     "test:gate:compress": "cd packages/gate && go test ./internal/compress/...",
     "test:gate:codemode": "cd packages/gate && go test ./internal/codemode/...",
-    "test:gate:filter": "node test/gate-filter.mjs && node test/compare-exposure.test.mjs && node test/gate-hot-reload.test.mjs && node test/gate-slim-list.test.mjs && node test/gate-settings-hot-reload.test.mjs",
+    "test:gate:filter": "node test/gate-filter.mjs && node test/compare-exposure.test.mjs && node test/gate-hot-reload.test.mjs && node test/gate-slim-list.test.mjs && node test/gate-settings-hot-reload.test.mjs && node test/optimize-sweep.test.mjs",
 
     "test:integration": "node test/run.mjs",
     "test:schema": "node test/schema.test.mjs",

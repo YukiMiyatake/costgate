@@ -9,7 +9,7 @@ Implementation, design, and internal specs for CostGate. User-facing guides live
 | [dashboard.md](./dashboard.md) | MCP Dashboard — API, data sources, phased implementation |
 | [prompt-intent-hook.md](./prompt-intent-hook.md) | Phase 28 — Hook design for Gate intent from conversation |
 | [shield-trust.md](./shield-trust.md) | Phase 31+ — Shield (redact), MCP Trust, task list |
-| [optimize-sweep.md](./optimize-sweep.md) | Batch comparison, LLM-as-judge, optimal settings research plan |
+| [optimize-sweep.md](./optimize-sweep.md) | P6 — Batch sweep, replay fixtures, LLM-judge plan (P7+) |
 | [../structure.md](../structure.md) | Repository layout |
 | [../log-schema.md](../log-schema.md) | JSONL event schema |
 | [../architecture.md](../architecture.md) | Probe / Gate / Cursor placement |

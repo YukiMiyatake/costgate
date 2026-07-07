@@ -1,0 +1,42 @@
+{
+  "tasks": [
+    {
+      "id": "sweep_filter_meta_tools",
+      "name": "Filter exposes meta tools with bounded list size",
+      "steps": [
+        {
+          "action": "list_tools",
+          "assert": {
+            "min_count": 3,
+            "max_count": 20,
+            "includes": ["discover_tools", "invoke_tool"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sweep_discover_fork",
+      "name": "discover_tools finds hidden fork tool",
+      "steps": [
+        {
+          "action": "call",
+          "tool": "discover_tools",
+          "args": { "query": "fork", "limit": 3 },
+          "assert_text_contains": "fork"
+        }
+      ]
+    },
+    {
+      "id": "sweep_invoke_echo",
+      "name": "invoke_tool delegates to backend echo",
+      "steps": [
+        {
+          "action": "call",
+          "tool": "invoke_tool",
+          "args": { "name": "echo", "arguments": { "message": "sweep" } },
+          "assert_text_contains": "sweep"
+        }
+      ]
+    }
+  ]
+}

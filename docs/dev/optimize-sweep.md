@@ -175,40 +175,52 @@ flowchart TB
 
 ## 5. バッチ比較パイプライン案
 
-### Phase A — Sweep Runner（インフラ、LLM 不要）
+### Phase A — Sweep Runner（インフラ、LLM 不要）✅ P6a
 
 ```bash
-# 将来イメージ
-npm run optimize:sweep -- \
+npm run optimize:sweep -- --mock \
   --grid exposure_mode=conservative,aggressive,budget \
-  --grid exposure_token_budget=8000,12000,16000 \
-  --grid intent_source=env,probe,prompt \
-  --tasks test/eval/tasks.json \
-  --out reports/sweep-$(date +%Y%m%d).json
+  --grid intent_source=env,probe \
+  --tasks test/eval/sweep-tasks.json \
+  --out reports/sweep.json
+
+# トークン計測のみ（高速 smoke）
+npm run optimize:sweep:smoke
 ```
 
-**各セルで記録:**
+| パス | 役割 |
+|------|------|
+| `scripts/optimize-sweep.mjs` | CLI — グリッド sweep |
+| `scripts/lib/optimize-sweep.mjs` | グリッド展開、トークン計測、eval、Pareto |
+| `scripts/lib/eval-harness.mjs` | eval 共通（`test/eval/run.mjs` からも利用） |
+| `test/eval/sweep-tasks.json` | sweep 用 config 非依存タスク |
 
-- `tools_list_tokens`, `tool_count`, `eval_pass_rate`, `p50_latency`
-- Gate 起動は **プロセスプール** or **設定 hot-reload** で並列化（現状 ~4s/起動がボトルネック）
+**各セルで記録:** `tools_list_tokens`, `tool_count`, `token_reduction_pct`, `eval_pass_rate`, `p50_duration_ms`, `pareto`
 
-**既存をラップするだけで MVP 可能:**
+### Phase B — 統合レポート（token × pass rate）✅ P6b
 
-- `compare-report.mjs --json` + shell loop
-- `eval --json --out` + `jq` 集計
+`sweep` 出力 JSON の `summary` + `pareto` + `results[]` に統合。CLI は Markdown 表も表示。
 
-### Phase B — セッション Replay Fixture
+### Phase C — セッション Replay Fixture ✅ P6c
 
+```bash
+npm run session-replay:export -- \
+  --file test/fixtures/dashboard/probe-sample.jsonl \
+  --session sess-001 \
+  --out test/eval/replay-fixtures/sample-github-session.json
+
+npm run optimize:sweep -- --mock \
+  --replay test/eval/replay-fixtures/sample-github-session.json \
+  --tasks test/eval/sweep-tasks.json
 ```
-本番 Probe/Gate JSONL
-  → 代表セッション N 件を匿名化 fixture 化
-  → sweep 時に seed_probe_log / seed_prompt_intent で再現
-```
 
-**メリット:** 合成タスクより実世界の intent 分布に近い。  
-**ギャップ:** replay harness は未実装。
+| パス | 役割 |
+|------|------|
+| `scripts/session-replay-export.mjs` | CLI — export / `--list` |
+| `scripts/lib/session-replay.mjs` | パース、fixture 変換、eval task 化 |
+| `test/eval/replay-fixtures/` | コミット済み replay fixture |
 
-### Phase C — LLM Judge バッチ
+### Phase D — LLM Judge バッチ ⏳ P7（後回し）
 
 ```
 sweep 結果の Pareto 前沿（token↓ & eval pass）
@@ -224,7 +236,7 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 | aggressive_8k_prompt | 4200 | 16/17 | 4.2 | ★ |
 | budget_12k_probe | 5100 | 17/17 | 4.8 | ★★ |
 
-### Phase D — Cursor Agent E2E（スポット検証）
+### Phase E — Cursor Agent E2E（スポット検証）⏳ P8
 
 週次 or リリース前に **上位 3 設定**だけ:
 
@@ -283,9 +295,9 @@ sweep 結果の Pareto 前沿（token↓ & eval pass）
 
 | 段階 | 成果物 | 期間感 | LLM |
 |------|--------|--------|-----|
-| **P6a** | `optimize:sweep.mjs` — グリッド runner + JSON 集計 | 1–2 週 | 不要 |
-| **P6b** | eval と benchmark の **統合レポート**（token × pass rate） | 1 週 | 不要 |
-| **P6c** | セッション replay fixture（Probe JSONL → seed） | 2 週 | 不要 |
+| **P6a** | `optimize:sweep.mjs` — グリッド runner + JSON 集計 | ✅ Done |
+| **P6b** | eval と benchmark の **統合レポート**（token × pass rate） | ✅ Done |
+| **P6c** | セッション replay fixture（Probe JSONL → seed） | ✅ Done |
 | **P7a** | LLM judge モジュール（圧縮品質） | 2 週 | Haiku/mini |
 | **P7b** | Shield 副作用 judge | 1 週 | 同上 |
 | **P7c** | Dashboard「推奨設定を eval で検証」ボタン | 1 週 | 不要 |
