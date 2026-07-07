@@ -54,7 +54,7 @@ func callBackendFromRequest(ctx context.Context, registry *backend.Registry, req
 			h = fc.shield
 		}
 	}
-	result, callMeta, err := shield.CallTool(ctx, session, backendName, h, rawTool, req.Params.Arguments)
+	result, callMeta, err := shield.CallTool(ctx, registry, session, backendName, h, rawTool, req.Params.Arguments)
 	if err == nil && !meta.IsMeta(req.Params.Name) {
 		gatelog.LogToolCall(req.Params.Name, callMeta.ResponseBytes, callMeta.Compressed, callMeta.SavedBytes)
 	}

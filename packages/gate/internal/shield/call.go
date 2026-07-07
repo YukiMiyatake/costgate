@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/backend"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/result"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/toolcall"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -12,7 +13,8 @@ import (
 // CallTool invokes a backend MCP tool with optional redact/unredact.
 func CallTool(
 	ctx context.Context,
-	backend *mcp.ClientSession,
+	registry *backend.Registry,
+	session *mcp.ClientSession,
 	backendName string,
 	h *Handler,
 	name string,
@@ -24,7 +26,7 @@ func CallTool(
 	if h != nil {
 		rawArgs = h.UnredactArguments(rawArgs)
 	}
-	out, meta, err := toolcall.Call(ctx, backend, name, rawArgs)
+	out, meta, err := toolcall.Call(ctx, registry, backendName, session, name, rawArgs)
 	if err == nil && h != nil {
 		out = h.RedactResult(backendName, out)
 	}

@@ -150,7 +150,7 @@ func handleInvoke(ctx context.Context, cat *catalog.Catalog, registry *backend.R
 	if shields != nil {
 		shieldH = shields[backendName]
 	}
-	result, callMeta, err := shield.CallTool(ctx, session, backendName, shieldH, rawTool, args.Arguments)
+	result, callMeta, err := shield.CallTool(ctx, registry, session, backendName, shieldH, rawTool, args.Arguments)
 	if err == nil && onInvoke != nil {
 		onInvoke(args.Name)
 	}
