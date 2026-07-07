@@ -66,6 +66,7 @@ import {
   killProcessOnPort,
 } from "./lib/dashboard-probe.mjs";
 import { clearDashboardBrowserOpenedFlag } from "./lib/dashboard-browser-flag.mjs";
+import { scheduleDashboardRestart } from "./lib/dashboard-restart.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -640,7 +641,7 @@ function createDashboardServer(options = {}) {
   const marketplaceDirPath = resolveMarketplaceDir(controlPaths, dataOptions);
   const routeCtx = { dataOptions, controlPaths, marketplaceDirPath };
 
-  return createServer(async (req, res) => {
+  const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
     const pathname = normalizePathname(url.pathname);
     const method = req.method ?? "GET";
@@ -920,6 +921,22 @@ function createDashboardServer(options = {}) {
           return;
         }
 
+        if (pathname === "/api/admin/restart") {
+          const body = await readBody(req);
+          const delayMs =
+            typeof body.delay_ms === "number" && body.delay_ms >= 0
+              ? Math.floor(body.delay_ms)
+              : 200;
+          json(res, 200, { ok: true, restarting: true, delay_ms: delayMs });
+          scheduleDashboardRestart(server, {
+            host: HOST,
+            port: PORT,
+            delayMs,
+            projectRoot: process.env.COSTGATE_PROJECT_ROOT,
+          });
+          return;
+        }
+
         if (pathname === "/api/shield-settings") {
           const body = await readBody(req);
           try {
@@ -958,6 +975,7 @@ function createDashboardServer(options = {}) {
       json(res, 500, { error: err.message ?? String(err) });
     }
   });
+  return server;
 }
 
 async function main() {
