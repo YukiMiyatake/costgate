@@ -10,6 +10,7 @@ Implementation, design, and internal specs for CostGate. User-facing guides live
 | [prompt-intent-hook.md](./prompt-intent-hook.md) | Phase 28 — Hook design for Gate intent from conversation |
 | [shield-trust.md](./shield-trust.md) | Phase 31+ — Shield (redact), MCP Trust, task list |
 | [optimize-sweep.md](./optimize-sweep.md) | P6 — Batch sweep, replay fixtures, LLM-judge plan (P7+) |
+| [prompt-history.md](./prompt-history.md) | P9 — Dashboard prompt / MCP turn history, export |
 | [../structure.md](../structure.md) | Repository layout |
 | [../log-schema.md](../log-schema.md) | JSONL event schema |
 | [../architecture.md](../architecture.md) | Probe / Gate / Cursor placement |
