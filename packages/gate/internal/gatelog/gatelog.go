@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/env"
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/workspace"
 )
 
 // Logger appends gate_event rows to daily JSONL files.
@@ -87,6 +88,9 @@ func (l *Logger) logToolCall(tool string, responseBytes int, compressed bool, sa
 	if savedBytes > 0 {
 		row["saved_bytes"] = savedBytes
 	}
+	if root := workspace.ResolveProjectRoot(); root != "" {
+		row["project_root"] = root
+	}
 	l.append(row)
 }
 
@@ -98,12 +102,16 @@ func (l *Logger) logToolCallError(tool string, err error) {
 			msg = msg[:200]
 		}
 	}
-	l.append(map[string]any{
+	row := map[string]any{
 		"event": "tool_call",
 		"tool":  tool,
 		"ok":    false,
 		"error": msg,
-	})
+	}
+	if root := workspace.ResolveProjectRoot(); root != "" {
+		row["project_root"] = root
+	}
+	l.append(row)
 }
 
 func (l *Logger) append(row map[string]any) {
