@@ -22,6 +22,7 @@ const TESTS = [
   "dashboard-gate-log-workspace.test.mjs",
   "dashboard-gate-freshness.test.mjs",
   "dashboard-gate-status.test.mjs",
+  "dashboard-admin-restart.test.mjs",
   "resolve-workspace-root.test.mjs",
   "dashboard-config-merge.test.mjs",
   "dashboard-launcher.test.mjs",
