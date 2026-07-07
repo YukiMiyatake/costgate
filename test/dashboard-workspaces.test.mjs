@@ -72,7 +72,7 @@ function testRegistrySource() {
   const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
   assert(list.workspaces[0].source === "gate", "gate source");
   assert(list.workspaces[0].source_label === "Gate", "gate label");
-  assert(list.help?.includes("Gate"), "help text");
+  assert(list.help?.includes("project"), "help text");
   console.error("[workspaces] registry source ok");
 }
 
@@ -204,12 +204,28 @@ async function testHttpScopedApi() {
   }
 }
 
+function testCollapseNestedInList() {
+  const base = tempRoot();
+  const regPath = join(base, "registry.json");
+  const mono = join(base, "costgate");
+  const pkg = join(mono, "packages", "gate");
+  setupWorkspace(mono);
+  mkdirSync(pkg, { recursive: true });
+  touchRegistryPath(mono, { registryPath: regPath, source: "cursor:workspace" });
+  touchRegistryPath(pkg, { registryPath: regPath, source: "cursor:file" });
+  const list = listWorkspaces({ registryPath: regPath, includeCurrent: false });
+  assert(list.workspaces.length === 1, "nested entry collapsed in list");
+  assert(list.workspaces[0].path === resolve(mono), "parent root shown");
+  console.error("[workspaces] collapse nested list ok");
+}
+
 async function main() {
   testEncodeDecode();
   testScopedPaths();
   testPinAndList();
   testRegistrySource();
   testSkipMissingRegistryPaths();
+  testCollapseNestedInList();
   await testHttpScopedApi();
   console.error("[workspaces] all passed");
 }

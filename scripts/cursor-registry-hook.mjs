@@ -9,8 +9,9 @@
  *
  * Install: npm run cursor:registry
  */
-import { touchRegistryPath } from "./lib/dashboard-workspaces.mjs";
-import { resolveWorkspaceRootFromPath } from "./lib/resolve-workspace-root.mjs";
+import { touchRegistryPath, loadRegistry, registryPath } from "./lib/dashboard-workspaces.mjs";
+import { normalizeRegistryWorkspacePath } from "./lib/resolve-workspace-root.mjs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 function readStdin() {
@@ -34,10 +35,15 @@ export function extractFilePathFromHook(payload) {
   );
 }
 
-function touchFileActivity(filePath, touched) {
-  const root = resolveWorkspaceRootFromPath(filePath);
+function touchFileActivity(filePath, touched, payload) {
+  const reg = loadRegistry(registryPath());
+  const knownRoots = [
+    ...(payload.workspace_roots ?? []),
+    ...reg.workspaces.map((w) => w.path),
+  ];
+  const root = normalizeRegistryWorkspacePath(filePath, knownRoots);
   if (!root) return;
-  touchRegistryPath(root, { source: "cursor:file" });
+  touchRegistryPath(root, { source: "cursor:file", knownRoots });
   if (!touched.includes(root)) touched.push(root);
 }
 
@@ -49,7 +55,7 @@ export function handleCursorRegistryHook(payload) {
     for (const root of payload.workspace_roots ?? []) {
       if (!root) continue;
       touchRegistryPath(root, { source: "cursor:workspace" });
-      touched.push(root);
+      touched.push(resolve(root));
     }
   }
 
@@ -57,13 +63,13 @@ export function handleCursorRegistryHook(payload) {
     const tool = String(payload.tool_name ?? payload.tool ?? "");
     if (tool === "Read" || tool.endsWith(" Read")) {
       const filePath = extractFilePathFromHook(payload);
-      if (filePath) touchFileActivity(filePath, touched);
+      if (filePath) touchFileActivity(filePath, touched, payload);
     }
   }
 
   if (event === "beforeTabFileRead") {
     const filePath = extractFilePathFromHook(payload);
-    if (filePath) touchFileActivity(filePath, touched);
+    if (filePath) touchFileActivity(filePath, touched, payload);
   }
 
   return { ok: true, event, touched };
