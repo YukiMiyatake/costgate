@@ -51,6 +51,7 @@
 
   <nav id="tabs" class="tab-nav">
     <button type="button" data-tab="overview" class="active" data-i18n="tabs.overview">Overview</button>
+    <button type="button" data-tab="history" data-i18n="tabs.history">History</button>
     <button type="button" data-tab="tools" data-i18n="tabs.tools">Tools</button>
     <button type="button" data-tab="mcps" data-i18n="tabs.mcps">MCPs</button>
     <button type="button" data-tab="recommendations" data-i18n="tabs.recommendations">Recommendations</button>
@@ -87,6 +88,54 @@
         </div>
       </div>
       <p class="note panel-note" id="overview-note"></p>
+    </section>
+
+    <section id="panel-history" class="panel">
+      <header class="panel-header">
+        <h2 class="panel-title" data-i18n="history.title">History</h2>
+        <p class="panel-desc" data-i18n="history.desc">Recent prompt turns with MCP token usage and tool calls (estimates).</p>
+      </header>
+      <div class="panel-toolbar history-toolbar">
+        <span id="history-count" class="note"></span>
+      </div>
+      <div id="history-empty" class="banner banner-info hidden" data-i18n="history.empty">No turns recorded yet. Send a prompt in Cursor with the prompt-intent hook enabled.</div>
+      <div id="history-list" class="history-list" role="list"></div>
+      <article id="history-detail" class="history-detail hidden" aria-live="polite">
+        <header class="history-detail-header">
+          <h3 id="history-detail-title" class="subsection-title"></h3>
+          <button type="button" id="history-detail-close" class="btn-sm" data-i18n="history.closeDetail">Close</button>
+        </header>
+        <p id="history-detail-meta" class="note"></p>
+        <div id="history-detail-metrics" class="cards history-detail-cards"></div>
+        <h4 class="subsection-title" data-i18n="history.toolsListSection">tools/list</h4>
+        <div class="table-wrap">
+          <table id="history-tools-list-table">
+            <thead>
+              <tr>
+                <th data-i18n="history.colTime">Time</th>
+                <th data-i18n="history.colBackend">Backend</th>
+                <th data-i18n="history.colExposed">Exposed</th>
+                <th data-i18n="history.colTokens">Tokens (est.)</th>
+              </tr>
+            </thead>
+            <tbody id="history-tools-list-body"></tbody>
+          </table>
+        </div>
+        <h4 class="subsection-title" data-i18n="history.toolCallsSection">tool_call</h4>
+        <div class="table-wrap">
+          <table id="history-tool-calls-table">
+            <thead>
+              <tr>
+                <th data-i18n="history.colTime">Time</th>
+                <th data-i18n="history.colTool">Tool</th>
+                <th data-i18n="history.colResponse">Response</th>
+                <th data-i18n="history.colSaved">Saved (est.)</th>
+              </tr>
+            </thead>
+            <tbody id="history-tool-calls-body"></tbody>
+          </table>
+        </div>
+      </article>
     </section>
 
     <section id="panel-tools" class="panel">
