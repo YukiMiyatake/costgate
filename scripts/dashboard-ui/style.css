@@ -46,10 +46,31 @@ h1 {
 
 .workspace-bar,
 .prefs-bar,
-.token-bar {
+.token-bar,
+.gate-status-bar {
   padding: 0.55rem 1.5rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
+}
+
+.gate-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  background: var(--surface);
+}
+
+.gate-status-text {
+  flex: 1;
+  min-width: 12rem;
+  margin: 0;
+}
+
+.gate-status-badge-wrap .badge {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .workspace-bar,
@@ -958,6 +979,7 @@ footer {
   .app-header { background: #fff; }
   .workspace-bar,
   .prefs-bar { background: #eef2f7; }
+  .gate-status-bar { background: #fff; }
   tbody tr:hover td { background: rgba(37, 99, 235, 0.05); }
 
   .badge-installed { background: #dcfce7; color: #15803d; }

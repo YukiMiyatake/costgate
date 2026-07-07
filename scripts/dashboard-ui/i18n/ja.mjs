@@ -21,6 +21,18 @@ export default {
     save: "保存",
     delete: "削除",
   },
+  gateStatus: {
+    connected: "Gate 接続中",
+    stale: "Gate 応答なし",
+    offline: "Gate 未接続",
+    pending: "同期待ち",
+    detail: "Gate 最終アクティビティ: {age}{pending}",
+    pendingHint: " · 設定が未反映",
+    noActivity: "最近のログなし",
+    restart: "Dashboard を再起動",
+    restartConfirm: "Dashboard サーバーを再起動しますか？ 一時的に切断される場合があります。",
+    restartStarted: "Dashboard を再起動しています… 復帰しない場合はページを再読み込みしてください。",
+  },
   workspace: {
     label: "ワークスペース",
     global: "Global (~/.costgate)",
