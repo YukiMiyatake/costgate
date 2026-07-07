@@ -9,8 +9,20 @@ import (
 )
 
 type promptIntentRecord struct {
-	Keywords string `json:"keywords"`
-	TS       int64  `json:"ts"`
+	Keywords       string `json:"keywords"`
+	ConversationID string `json:"conversation_id"`
+	GenerationID   string `json:"generation_id"`
+	WorkspaceRoot  string `json:"workspace_root"`
+	TS             int64  `json:"ts"`
+}
+
+// PromptIntentRecord is the latest Cursor prompt-intent snapshot.
+type PromptIntentRecord struct {
+	Keywords       string
+	ConversationID string
+	GenerationID   string
+	WorkspaceRoot  string
+	TS             time.Time
 }
 
 // ResolvePromptIntentDir returns COSTGATE_PROMPT_INTENT_DIR or ~/.costgate/prompt-intent.
@@ -40,23 +52,64 @@ func promptIntentWindow(within time.Duration) time.Duration {
 	return 10 * time.Minute
 }
 
-// RecentPromptIntentKeywords reads ~/.costgate/prompt-intent/latest.json when fresh.
-func RecentPromptIntentKeywords(dir string, within time.Duration) string {
+func readPromptIntentRecord(dir string) (promptIntentRecord, bool) {
 	path := filepath.Join(ResolvePromptIntentDir(dir), "latest.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return promptIntentRecord{}, false
 	}
 	var rec promptIntentRecord
 	if err := json.Unmarshal(data, &rec); err != nil {
-		return ""
+		return promptIntentRecord{}, false
 	}
 	if rec.TS <= 0 {
-		return ""
+		return promptIntentRecord{}, false
+	}
+	return rec, true
+}
+
+// RecentPromptIntentRecord reads latest.json when within the freshness window.
+func RecentPromptIntentRecord(dir string, within time.Duration) (PromptIntentRecord, bool) {
+	rec, ok := readPromptIntentRecord(dir)
+	if !ok {
+		return PromptIntentRecord{}, false
 	}
 	ts := time.UnixMilli(rec.TS)
 	if time.Since(ts) > promptIntentWindow(within) {
+		return PromptIntentRecord{}, false
+	}
+	return PromptIntentRecord{
+		Keywords:       strings.TrimSpace(rec.Keywords),
+		ConversationID: strings.TrimSpace(rec.ConversationID),
+		GenerationID:   strings.TrimSpace(rec.GenerationID),
+		WorkspaceRoot:  strings.TrimSpace(rec.WorkspaceRoot),
+		TS:             ts,
+	}, true
+}
+
+// RecentPromptIntentKeywords reads ~/.costgate/prompt-intent/latest.json when fresh.
+func RecentPromptIntentKeywords(dir string, within time.Duration) string {
+	rec, ok := RecentPromptIntentRecord(dir, within)
+	if !ok {
 		return ""
 	}
-	return strings.TrimSpace(rec.Keywords)
+	return rec.Keywords
+}
+
+// LogCorrelationFields returns generation/conversation IDs for gate JSONL when fresh.
+func LogCorrelationFields(dir, projectRoot string) map[string]string {
+	rec, ok := RecentPromptIntentRecord(dir, 0)
+	if !ok || rec.GenerationID == "" {
+		return nil
+	}
+	if rec.WorkspaceRoot != "" && projectRoot != "" {
+		if filepath.Clean(rec.WorkspaceRoot) != filepath.Clean(projectRoot) {
+			return nil
+		}
+	}
+	out := map[string]string{"generation_id": rec.GenerationID}
+	if rec.ConversationID != "" {
+		out["conversation_id"] = rec.ConversationID
+	}
+	return out
 }

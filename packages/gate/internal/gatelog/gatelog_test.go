@@ -5,15 +5,26 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoggerWritesGateEvents(t *testing.T) {
 	dir := t.TempDir()
+	intentDir := t.TempDir()
 	t.Setenv("COSTGATE_GATE_LOG", "1")
 	t.Setenv("COSTGATE_GATE_LOG_DIR", dir)
 	t.Setenv("COSTGATE_PROJECT_ROOT", "/work/costgate")
+	t.Setenv("COSTGATE_PROMPT_INTENT_DIR", intentDir)
+
+	ts := time.Now().UnixMilli()
+	body := `{"keywords":"github","conversation_id":"conv-1","generation_id":"gen-1","workspace_root":"/work/costgate","ts":` +
+		strconv.FormatInt(ts, 10) + `}`
+	if err := os.WriteFile(filepath.Join(intentDir, "latest.json"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	l := New()
 	l.logToolsList("github", 8, 1200)
@@ -67,6 +78,9 @@ func TestLoggerWritesGateEvents(t *testing.T) {
 	}
 	if call["project_root"] != "/work/costgate" {
 		t.Fatalf("expected project_root, got %#v", call["project_root"])
+	}
+	if call["generation_id"] != "gen-1" || call["conversation_id"] != "conv-1" {
+		t.Fatalf("expected correlation ids, got %#v", call)
 	}
 }
 

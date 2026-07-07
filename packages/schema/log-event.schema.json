@@ -115,7 +115,10 @@
       "properties": {
         "type": { "const": "gate_event" },
         "event": { "type": "string" },
-        "ts": { "type": "string", "format": "date-time" }
+        "ts": { "type": "string", "format": "date-time" },
+        "generation_id": { "type": "string" },
+        "conversation_id": { "type": "string" },
+        "project_root": { "type": "string" }
       }
     },
     "gateEventToolsList": {
