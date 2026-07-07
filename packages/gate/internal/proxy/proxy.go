@@ -91,10 +91,12 @@ func runFiltered(ctx context.Context, registry *backend.Registry) error {
 		}
 		log.Printf("[costgate-gate] tier catalog: %s (%d overrides)", backendName, len(rules.Overrides))
 	}
+	classifiedTiers := filter.CopyTiers(tiers)
+	effectiveTiers := filter.CopyTiers(tiers)
 	if ov, err := overrides.Load(); err != nil {
 		return fmt.Errorf("load tool overrides: %w", err)
 	} else if ov != nil && len(ov.Tools) > 0 {
-		tiers = ov.Apply(tiers)
+		ov.ApplyInPlace(classifiedTiers, effectiveTiers)
 		log.Printf("[costgate-gate] tool overrides: %d entries", len(ov.Tools))
 	}
 	fcs, err := newForwardContexts(registry)
@@ -102,7 +104,7 @@ func runFiltered(ctx context.Context, registry *backend.Registry) error {
 		return fmt.Errorf("shield init: %w", err)
 	}
 	server := newServer()
-	rt := newFilterRuntime(server, cat, tiers, registry, store, intentKeywords(), fcs)
+	rt := newFilterRuntime(server, cat, classifiedTiers, effectiveTiers, registry, store, intentKeywords(), fcs)
 	rt.logStartup()
 	return serve(ctx, server)
 }

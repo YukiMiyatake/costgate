@@ -3,11 +3,19 @@
  * Idempotent: reuses an existing server on the same host/port.
  */
 import { spawn, execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import {
+  existsSync,
+} from "node:fs";
 import { platform } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDashboardServer } from "../dashboard-server.mjs";
+import {
+  browserOpenedFlagPath,
+  clearDashboardBrowserOpenedFlag,
+  markDashboardBrowserOpened,
+  shouldOpenDashboardBrowser as shouldOpenForMode,
+} from "./dashboard-browser-flag.mjs";
 import {
   dashboardUrl,
   fetchDashboardHealth,
@@ -48,9 +56,37 @@ export function isDashboardAutoEnabled(env = process.env) {
   return envTruthy(env.COSTGATE_DASHBOARD_AUTO, true);
 }
 
-export function isDashboardAutoOpenEnabled(env = process.env) {
-  return envTruthy(env.COSTGATE_DASHBOARD_AUTO_OPEN, true);
+/** @returns {"always"|"once"|"never"} */
+export function resolveDashboardAutoOpen(env = process.env) {
+  const raw = env.COSTGATE_DASHBOARD_AUTO_OPEN;
+  if (raw == null || raw === "") return "once";
+  const v = String(raw).trim().toLowerCase();
+  if (["0", "false", "no", "off", "never"].includes(v)) return "never";
+  if (["1", "true", "yes", "on", "always"].includes(v)) return "always";
+  if (v === "once") return "once";
+  return "once";
 }
+
+/** @deprecated prefer resolveDashboardAutoOpen */
+export function isDashboardAutoOpenEnabled(env = process.env) {
+  return resolveDashboardAutoOpen(env) === "always";
+}
+
+export function shouldOpenDashboardBrowser(host, port, options = {}) {
+  const mode =
+    options.openBrowser === false
+      ? "never"
+      : options.openBrowser === true
+        ? "always"
+        : resolveDashboardAutoOpen(options.env ?? process.env);
+  return shouldOpenForMode(host, port, mode);
+}
+
+export {
+  browserOpenedFlagPath,
+  clearDashboardBrowserOpenedFlag,
+  markDashboardBrowserOpened,
+} from "./dashboard-browser-flag.mjs";
 
 /** @deprecated prefer isDashboardFresh for gate sidecar */
 export async function probeDashboardHealth(options = {}) {
@@ -120,8 +156,8 @@ export async function ensureDashboard(options = {}) {
   const port = Number(options.port ?? env.COSTGATE_DASHBOARD_PORT ?? 8787);
   const url = dashboardUrl(host, port);
   const auto = options.auto ?? isDashboardAutoEnabled(env);
-  const openBrowser =
-    options.openBrowser ?? isDashboardAutoOpenEnabled(env);
+  const openIfNeeded = (host, port) =>
+    shouldOpenDashboardBrowser(host, port, { env, openBrowser: options.openBrowser });
 
   if (!auto) {
     const running = await isDashboardFresh({ host, port });
@@ -130,7 +166,13 @@ export async function ensureDashboard(options = {}) {
 
   const already = await fetchDashboardHealth({ host, port });
   if (already.ok && (await isDashboardFresh({ host, port }))) {
-    return { url, running: true, started: false, opened: false };
+    let opened = false;
+    if (openIfNeeded(host, port)) {
+      openDashboardInBrowser(url);
+      markDashboardBrowserOpened(host, port);
+      opened = true;
+    }
+    return { url, running: true, started: false, opened };
   }
   if (already.ok) {
     await killProcessOnPort(port);
@@ -146,8 +188,9 @@ export async function ensureDashboard(options = {}) {
 
   const running = await waitForDashboardHealth({ host, port });
   let opened = false;
-  if (running && openBrowser) {
+  if (running && openIfNeeded(host, port)) {
     openDashboardInBrowser(url);
+    markDashboardBrowserOpened(host, port);
     opened = true;
   }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 )
@@ -76,6 +77,32 @@ func (f *File) Apply(classified map[string]filter.Tier) map[string]filter.Tier {
 		}
 	}
 	return out
+}
+
+// FileModTime returns the overrides file mtime, or zero if missing.
+func FileModTime() (time.Time, error) {
+	path := ResolvePath()
+	st, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return time.Time{}, nil
+		}
+		return time.Time{}, err
+	}
+	return st.ModTime(), nil
+}
+
+// ApplyInPlace overlays overrides onto classified tiers into dest (same map meta uses).
+func (f *File) ApplyInPlace(classified map[string]filter.Tier, dest map[string]filter.Tier) {
+	merged := f.Apply(classified)
+	for k := range dest {
+		if _, ok := merged[k]; !ok {
+			delete(dest, k)
+		}
+	}
+	for k, v := range merged {
+		dest[k] = v
+	}
 }
 
 func parseForceTier(label string) (filter.Tier, bool) {

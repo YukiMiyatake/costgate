@@ -55,6 +55,32 @@ func TestApplyForceHidden(t *testing.T) {
 	}
 }
 
+func TestApplyInPlace(t *testing.T) {
+	base := map[string]filter.Tier{
+		"a": filter.TierB,
+		"b": filter.TierC,
+		"c": filter.TierA,
+	}
+	dest := filter.CopyTiers(base)
+	f := &File{
+		Version: 1,
+		Tools: map[string]ToolOverride{
+			"a": {ForceTier: "hidden"},
+			"b": {AlwaysExpose: true},
+		},
+	}
+	f.ApplyInPlace(base, dest)
+	if dest["a"] != filter.TierHidden {
+		t.Fatalf("a: got %v", dest["a"])
+	}
+	if dest["b"] != filter.TierA {
+		t.Fatalf("b: got %v", dest["b"])
+	}
+	if dest["c"] != filter.TierA {
+		t.Fatalf("c unchanged: got %v", dest["c"])
+	}
+}
+
 func TestApplyAlwaysExpose(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tool-overrides.json")

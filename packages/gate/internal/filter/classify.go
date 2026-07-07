@@ -123,6 +123,15 @@ func MatchIntent(intent string, tool *mcp.Tool) bool {
 	return false
 }
 
+// CopyTiers returns a shallow copy of a tier map.
+func CopyTiers(in map[string]Tier) map[string]Tier {
+	out := make(map[string]Tier, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
 // CountTiers returns how many tools fall in each tier (hidden counted separately).
 func CountTiers(tiers map[string]Tier) (a, b, c, hidden int) {
 	for _, t := range tiers {

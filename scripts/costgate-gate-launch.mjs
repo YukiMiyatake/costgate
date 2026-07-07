@@ -6,7 +6,7 @@
  * Dashboard can start when Gate connects (Serena-style UX).
  *
  * Disable: COSTGATE_DASHBOARD_AUTO=0
- * Skip browser: COSTGATE_DASHBOARD_AUTO_OPEN=0
+ * Browser: COSTGATE_DASHBOARD_AUTO_OPEN=once|always|never (default once)
  */
 import { spawn } from "node:child_process";
 import { ensureDashboard } from "./lib/dashboard-launcher.mjs";

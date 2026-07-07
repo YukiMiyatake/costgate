@@ -64,6 +64,7 @@ import {
   isDashboardFresh,
   killProcessOnPort,
 } from "./lib/dashboard-probe.mjs";
+import { clearDashboardBrowserOpenedFlag } from "./lib/dashboard-browser-flag.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
@@ -381,10 +382,7 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
         force_tier: data.tools[name]?.force_tier ?? null,
         exclude_lock: Boolean(data.tools[name]?.exclude_lock),
         always_expose: Boolean(data.tools[name]?.always_expose),
-        requires_gate_restart:
-          body.force_tier !== undefined ||
-          body.enabled !== undefined ||
-          body.always_expose !== undefined,
+        ...toolOverrideGateHints(body),
         overrides: data,
       });
     } catch (e) {
@@ -576,6 +574,17 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
   return false;
 }
 
+function toolOverrideGateHints(body) {
+  const tierChange =
+    body.force_tier !== undefined ||
+    body.enabled !== undefined ||
+    body.always_expose !== undefined;
+  if (tierChange) {
+    return { requires_gate_restart: false, gate_reload: "auto" };
+  }
+  return { requires_gate_restart: false };
+}
+
 async function handleBulkExclude(req, res, overridesPath, workspaceId = null) {
   const body = await readBody(req);
   const names = body.names;
@@ -593,7 +602,8 @@ async function handleBulkExclude(req, res, overridesPath, workspaceId = null) {
       typeof body.tokens_saved === "number" && body.tokens_saved >= 0
         ? body.tokens_saved
         : null,
-    requires_gate_restart: true,
+    requires_gate_restart: false,
+    gate_reload: "auto",
     overrides: result.overrides,
   };
   if (workspaceId) payload.workspace_id = workspaceId;
@@ -841,10 +851,7 @@ function createDashboardServer(options = {}) {
               force_tier: data.tools[name]?.force_tier ?? null,
               exclude_lock: Boolean(data.tools[name]?.exclude_lock),
               always_expose: Boolean(data.tools[name]?.always_expose),
-              requires_gate_restart:
-                body.force_tier !== undefined ||
-                body.enabled !== undefined ||
-                body.always_expose !== undefined,
+              ...toolOverrideGateHints(body),
               overrides: data,
             });
           } catch (e) {
@@ -968,6 +975,13 @@ async function main() {
     }
     console.log(`  Ctrl+C to stop`);
   });
+
+  const shutdown = () => {
+    clearDashboardBrowserOpenedFlag();
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 const isMain =
