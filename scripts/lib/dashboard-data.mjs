@@ -796,6 +796,7 @@ export function buildHealth(extra = {}) {
       gate_settings: true,
       mcp_trust: true,
       workspace_deep_routes: true,
+      gate_status: true,
     },
   };
 }
