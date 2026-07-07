@@ -21,6 +21,18 @@ export default {
     save: "Save",
     delete: "Delete",
   },
+  gateStatus: {
+    connected: "Gate connected",
+    stale: "Gate stale",
+    offline: "Gate offline",
+    pending: "Sync pending",
+    detail: "Last Gate activity: {age}{pending}",
+    pendingHint: " · settings not yet applied",
+    noActivity: "no recent activity",
+    restart: "Restart Dashboard",
+    restartConfirm: "Restart the Dashboard server? The page may disconnect briefly.",
+    restartStarted: "Dashboard is restarting… reload the page if it does not recover.",
+  },
   workspace: {
     label: "Workspace",
     global: "Global (~/.costgate)",

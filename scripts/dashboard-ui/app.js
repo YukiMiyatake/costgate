@@ -983,6 +983,90 @@ function renderToolsGateFreshness(freshness) {
   el.classList.toggle("note", freshness.stale);
 }
 
+let gateStatusEnabled = false;
+let gateAdminRestartEnabled = false;
+let refreshGateStatus = null;
+
+async function loadGateStatus() {
+  if (!gateStatusEnabled) return null;
+  try {
+    return await fetchJson(apiPath("gate/status"));
+  } catch {
+    return null;
+  }
+}
+
+function renderGateStatus(status) {
+  const bar = document.getElementById("gate-status-bar");
+  const text = document.getElementById("gate-status-text");
+  const badgeWrap = document.getElementById("gate-status-badge");
+  if (!bar || !text || !badgeWrap) return;
+  if (!status) {
+    bar.classList.add("hidden");
+    return;
+  }
+  bar.classList.remove("hidden");
+
+  let label;
+  let ok = false;
+  if (status.pending_changes) {
+    label = t("gateStatus.pending");
+  } else if (status.connected) {
+    label = t("gateStatus.connected");
+    ok = true;
+  } else if (status.gate_log?.has_events) {
+    label = t("gateStatus.stale");
+  } else {
+    label = t("gateStatus.offline");
+  }
+
+  badgeWrap.replaceChildren(badge(label, ok, "gate-status-pill"));
+  const age = status.gate_log?.has_events
+    ? relativeAgeSec(status.gate_log.age_sec) || "—"
+    : t("gateStatus.noActivity");
+  const pending = status.pending_changes ? t("gateStatus.pendingHint") : "";
+  text.textContent = t("gateStatus.detail", { age, pending });
+}
+
+function setupGateStatus(health) {
+  gateStatusEnabled = Boolean(health?.capabilities?.gate_status);
+  gateAdminRestartEnabled = Boolean(health?.capabilities?.admin_restart);
+  const bar = document.getElementById("gate-status-bar");
+  const btn = document.getElementById("gate-admin-restart");
+  if (!gateStatusEnabled) {
+    bar?.classList.add("hidden");
+    return;
+  }
+  if (!gateAdminRestartEnabled) {
+    btn?.classList.add("hidden");
+  } else {
+    btn?.classList.remove("hidden");
+  }
+
+  refreshGateStatus = async () => {
+    renderGateStatus(await loadGateStatus());
+  };
+
+  btn?.addEventListener("click", async () => {
+    if (!gateAdminRestartEnabled) return;
+    if (!confirm(t("gateStatus.restartConfirm"))) return;
+    try {
+      await fetchJson(globalApiPath("admin/restart"), {
+        method: "POST",
+        body: JSON.stringify({ delay_ms: 300 }),
+      });
+      showToast(t("gateStatus.restartStarted"), { kind: "success" });
+    } catch (e) {
+      showToast(e.message);
+    }
+  });
+
+  void refreshGateStatus();
+  setInterval(() => {
+    void refreshGateStatus?.();
+  }, 15000);
+}
+
 function renderToolsTokenSummary(filtered, all) {
   const el = document.getElementById("tools-token-summary");
   if (!el) return;
@@ -1180,6 +1264,7 @@ function setupGateSettings() {
         body: JSON.stringify({ settings }),
       });
       await loadGateSettings();
+      void refreshGateStatus?.();
       const msg = result.requires_gate_restart
         ? t("mcps.gateSavedRestart")
         : t("mcps.gateSaved");
@@ -1768,6 +1853,7 @@ async function reload(retryGlobal = true) {
     renderTools(tools);
     renderMcps(mcps);
     renderRecommendations(recs);
+    void refreshGateStatus?.();
   } catch (e) {
     if (retryGlobal && activeWorkspaceId && isWorkspaceApiError(e.message)) {
       clearWorkspaceSelection();
@@ -1839,6 +1925,7 @@ async function main() {
     applyStaticI18n();
     const health = await fetchJson("/api/health");
     setupTokenBar(health);
+    setupGateStatus(health);
     document.getElementById("health-status").textContent = t("app.health", {
       status: health.status,
       version: health.version,
