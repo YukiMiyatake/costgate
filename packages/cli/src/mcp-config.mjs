@@ -20,7 +20,7 @@ export function gateMcpServer(cliVersion = readCliPackageVersion()) {
       COSTGATE_USAGE_PATH: "${workspaceFolder}/.costgate/usage.json",
       COSTGATE_GATE_LOG_DIR: "${workspaceFolder}/.costgate/logs",
       COSTGATE_DASHBOARD_AUTO: "1",
-      COSTGATE_DASHBOARD_AUTO_OPEN: "1",
+      COSTGATE_DASHBOARD_AUTO_OPEN: "once",
       COSTGATE_CLIENT: "cursor",
       COSTGATE_GATE_MODE: "filter",
       COSTGATE_COMPRESS: "1",

@@ -2,7 +2,7 @@
  * @costgate/cli tests (runtime resolution, mcp config, install helpers).
  */
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -16,6 +16,11 @@ import {
   releaseAssetName,
   gateInstallDir,
   installedGatePath,
+  normalizeVersion,
+  parseGateVersionOutput,
+  gateBinaryMatchesCliVersion,
+  writeInstalledGateVersionMeta,
+  readInstalledGateVersionMeta,
 } from "../packages/cli/src/install-gate.mjs";
 import { gateMcpServer } from "../packages/cli/src/mcp-config.mjs";
 
@@ -66,12 +71,39 @@ test("gateMcpServer uses npx @costgate/cli gate", () => {
   assert.deepEqual(s.args, ["-y", "@costgate/cli@0.5.0", "gate"]);
   assert.equal(s.env.COSTGATE_SHIELD, "1");
   assert.equal(s.env.COSTGATE_DASHBOARD_AUTO, "1");
+  assert.equal(s.env.COSTGATE_DASHBOARD_AUTO_OPEN, "once");
 });
 
 test("installedGatePath under ~/.costgate/bin", () => {
   const p = installedGatePath(gateInstallDir());
   assert.ok(p.includes(".costgate"));
   assert.ok(p.endsWith("costgate-gate") || p.endsWith("costgate-gate.exe"));
+});
+
+test("parseGateVersionOutput", () => {
+  assert.equal(parseGateVersionOutput("costgate-gate 0.6.0 (abc1234)\n"), "0.6.0");
+  assert.equal(parseGateVersionOutput("costgate-gate v0.6.0 (abc)"), "0.6.0");
+  assert.equal(parseGateVersionOutput(""), null);
+});
+
+test("normalizeVersion strips v prefix", () => {
+  assert.equal(normalizeVersion("v0.6.0"), "0.6.0");
+  assert.equal(normalizeVersion("0.6.0"), "0.6.0");
+});
+
+test("gateBinaryMatchesCliVersion uses version meta", () => {
+  const dir = join(REPO, ".tmp-gate-version-test");
+  mkdirSync(dir, { recursive: true });
+  const gatePath = join(dir, "costgate-gate");
+  writeFileSync(gatePath, "");
+  writeInstalledGateVersionMeta("0.6.0", dir);
+  try {
+    assert.equal(gateBinaryMatchesCliVersion(gatePath, "0.6.0", dir), true);
+    assert.equal(gateBinaryMatchesCliVersion(gatePath, "0.7.0", dir), false);
+    assert.equal(readInstalledGateVersionMeta(dir), "0.6.0");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 if (process.exitCode) {

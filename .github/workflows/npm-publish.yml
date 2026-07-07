@@ -54,6 +54,24 @@ jobs:
       - name: Build publishable packages
         run: npm run build -w @costgate/schema && npm run build -w @costgate/probe && npm run build -w @costgate/cli
 
+      - name: Wait for Gate release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          TAG="v${VERSION}"
+          ASSET="costgate-gate_${VERSION}_linux_amd64.tar.gz"
+          for attempt in $(seq 1 36); do
+            if gh release view "$TAG" --repo YukiMiyatake/costgate --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$ASSET"; then
+              echo "Gate release assets ready ($ASSET)"
+              exit 0
+            fi
+            echo "waiting for Gate release ($attempt/36)..."
+            sleep 10
+          done
+          echo "Gate release assets not found for $TAG after 6 minutes"
+          exit 1
+
       - name: Publish @costgate/schema
         run: npm publish -w @costgate/schema --access public
         env:

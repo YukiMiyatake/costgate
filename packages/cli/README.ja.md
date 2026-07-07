@@ -26,16 +26,18 @@ npx @costgate/cli@latest init
 | `costgate gate` | Cursor MCP エントリ（Dashboard 自動起動 + Gate） |
 | `costgate dashboard` | Dashboard 手動起動 |
 | `costgate registry` | Cursor Hooks のみ再登録 |
-| `costgate update` | Gate バイナリ再取得 + hooks 更新 |
+| `costgate update` | Gate バイナリ再取得 + mcp.json 更新 + hooks 更新 |
 | `costgate shield sanitize-prompt` | プロンプトサニタイズ（CLI） |
 
 ## 配布モデル
 
 | 層 | 配布 | 備考 |
 |----|------|------|
-| **Gate** | GitHub Releases（Go バイナリ） | `init` / `update` が取得 |
+| **Gate** | GitHub Releases（Go バイナリ） | `init` / `update` / `gate` 起動時に CLI と同版を取得 |
 | **CLI** | npm（本パッケージ） | runtime に scripts / catalog を同梱 |
 | **Probe** | npm `@costgate/probe` | 計測専用（別パッケージ） |
+
+`costgate gate` 起動時は `~/.costgate/bin/` の Gate が CLI 版と一致するか確認し、古ければ GitHub Releases から再取得します。`npm update -g @costgate/cli` 後は `costgate update` を実行してください（Gate + `mcp.json` の `@costgate/cli@x.y.z` ピンを更新）。
 
 ## 開発（monorepo）
 

@@ -26,7 +26,7 @@ What `init` does:
 | `costgate gate` | Cursor MCP entry (Dashboard + Gate) |
 | `costgate dashboard` | Start dashboard manually |
 | `costgate registry` | Re-install Cursor hooks only |
-| `costgate update` | Re-download Gate binary + refresh hooks |
+| `costgate update` | Re-download Gate binary + refresh mcp.json + hooks |
 | `costgate shield sanitize-prompt` | Sanitize prompt (CLI) |
 
 ## Distribution model

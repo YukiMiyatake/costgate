@@ -15,7 +15,7 @@ npx @costgate/cli@latest init
 |---------|-------------|
 | `costgate init` | Full setup |
 | `costgate gate` | MCP entry (used by Cursor via npx) |
-| `costgate update` | Re-download Gate + refresh hooks |
+| `costgate update` | Re-download Gate + refresh `mcp.json` version pin + hooks |
 | `costgate registry` | Hooks only |
 
 Global install: `npm install -g @costgate/cli && costgate init`
