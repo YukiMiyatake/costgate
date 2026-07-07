@@ -620,6 +620,7 @@ function summarizeExcludeCandidates(tools) {
   let tokensUnknown = 0;
   for (const tool of tools ?? []) {
     if (tool.tier === "hidden") continue;
+    if (tool.exclude_lock) continue;
     if ((tool.exclude_score ?? 0) < EXCLUDE_RECOMMEND_MIN_SCORE) continue;
     candidates.push(tool);
     const tok = tool.estimated_list_tokens;
@@ -762,6 +763,9 @@ function renderToolsSortHeaders() {
 }
 
 function excludeScoreHtml(tool) {
+  if (tool.exclude_lock) {
+    return `<span class="exclude-score exclude-score-locked" title="${t("tools.excludeLockHint")}">—</span>`;
+  }
   const score = tool.exclude_score ?? 0;
   let cls = "exclude-score-low";
   if (score >= 70) cls = "exclude-score-high";
@@ -882,6 +886,26 @@ function renderToolRow(tool) {
       showToast(e.message);
     }
   };
+  const lockBtn = document.createElement("button");
+  lockBtn.type = "button";
+  lockBtn.className = tool.exclude_lock ? "btn-sm btn-primary" : "btn-sm";
+  lockBtn.title = tool.exclude_lock ? t("tools.excludeUnlockHint") : t("tools.excludeLockHint");
+  lockBtn.textContent = tool.exclude_lock ? t("tools.excludeLocked") : t("tools.excludeLock");
+  lockBtn.onclick = async () => {
+    try {
+      await fetchJson(apiPath(`tools/${encodeURIComponent(tool.name)}`), {
+        method: "PATCH",
+        body: JSON.stringify({ exclude_lock: !tool.exclude_lock }),
+      });
+      await reload();
+      showToast(
+        tool.exclude_lock ? t("tools.excludeUnlocked") : t("tools.excludeLockedToast"),
+        { kind: "success" }
+      );
+    } catch (e) {
+      showToast(e.message);
+    }
+  };
   const listData = isToolMeasured(tool) ? badge(t("tools.measured"), true) : badge(t("tools.unmeasured"));
   tr.innerHTML = `
     <td>${tool.name}</td>
@@ -894,12 +918,14 @@ function renderToolRow(tool) {
     <td>${excludeScoreHtml(tool)}</td>
     <td></td>
     <td></td>
+    <td></td>
     <td></td>`;
   tr.children[2].appendChild(tierBadge(tool.tier, tool.forced_tier));
   tr.children[3].appendChild(listData);
   tr.children[8].appendChild(toolVisibilityBadge(tool));
   tr.children[9].appendChild(flag);
-  tr.children[10].appendChild(hideBtn);
+  tr.children[10].appendChild(lockBtn);
+  tr.children[11].appendChild(hideBtn);
   return tr;
 }
 

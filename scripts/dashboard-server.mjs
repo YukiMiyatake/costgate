@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildDashboardData, buildHealth, buildToolsPayload, defaultPaths } from "./lib/dashboard-data.mjs";
 import {
   loadToolOverrides,
-  setToolForceTier,
+  patchToolOverride,
   bulkHideTools,
   setMcpServerEnabled,
   previewMcpDisable,
@@ -372,22 +372,20 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     const { wsId, paths } = resolved;
     const name = decodeURIComponent(toolPatch[2]);
     const body = await readBody(req);
-    const forceTier =
-      body.force_tier ??
-      (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
-    if (!forceTier) {
-      json(res, 400, { error: "force_tier or enabled required" });
-      return true;
+    try {
+      const data = patchToolOverride(name, body, paths.overridesPath);
+      json(res, 200, {
+        ok: true,
+        workspace_id: wsId,
+        tool: name,
+        force_tier: data.tools[name]?.force_tier ?? null,
+        exclude_lock: Boolean(data.tools[name]?.exclude_lock),
+        requires_gate_restart: body.force_tier !== undefined || body.enabled !== undefined,
+        overrides: data,
+      });
+    } catch (e) {
+      json(res, 400, { error: e.message ?? String(e) });
     }
-    const data = setToolForceTier(name, forceTier, paths.overridesPath);
-    json(res, 200, {
-      ok: true,
-      workspace_id: wsId,
-      tool: name,
-      force_tier: forceTier === "default" ? null : forceTier,
-      requires_gate_restart: true,
-      overrides: data,
-    });
     return true;
   }
 
@@ -826,23 +824,24 @@ function createDashboardServer(options = {}) {
         if (toolMatch) {
           const name = decodeURIComponent(toolMatch[1]);
           const body = await readBody(req);
-          const forceTier = body.force_tier ?? (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
-          if (!forceTier) {
-            json(res, 400, { error: "force_tier or enabled required" });
-            return;
+          try {
+            const data = patchToolOverride(
+              name,
+              body,
+              controlPaths.overridesPath ?? toolOverridesPath()
+            );
+            json(res, 200, {
+              ok: true,
+              tool: name,
+              force_tier: data.tools[name]?.force_tier ?? null,
+              exclude_lock: Boolean(data.tools[name]?.exclude_lock),
+              requires_gate_restart:
+                body.force_tier !== undefined || body.enabled !== undefined,
+              overrides: data,
+            });
+          } catch (e) {
+            json(res, 400, { error: e.message ?? String(e) });
           }
-          const data = setToolForceTier(
-            name,
-            forceTier,
-            controlPaths.overridesPath ?? toolOverridesPath()
-          );
-          json(res, 200, {
-            ok: true,
-            tool: name,
-            force_tier: forceTier === "default" ? null : forceTier,
-            requires_gate_restart: true,
-            overrides: data,
-          });
           return;
         }
 

@@ -7,6 +7,9 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   setToolForceTier,
+  setToolExcludeLock,
+  patchToolOverride,
+  bulkHideTools,
   setMcpServerEnabled,
   loadToolOverrides,
   loadMcpJson,
@@ -28,10 +31,42 @@ function testToolOverrides() {
   setToolForceTier("fork_repository", "hidden", path);
   const data = loadToolOverrides(path);
   assert(data.tools.fork_repository.force_tier === "hidden", "hidden tier");
+  setToolExcludeLock("fork_repository", true, path);
+  const locked = loadToolOverrides(path);
+  assert(locked.tools.fork_repository.exclude_lock === true, "exclude lock preserved");
+  assert(locked.tools.fork_repository.force_tier === "hidden", "force tier preserved");
   setToolForceTier("fork_repository", "default", path);
+  const clearedTier = loadToolOverrides(path);
+  assert(clearedTier.tools.fork_repository.exclude_lock === true, "lock survives tier clear");
+  setToolExcludeLock("fork_repository", false, path);
   const cleared = loadToolOverrides(path);
   assert(!cleared.tools.fork_repository, "cleared override");
   console.error("[dashboard-control] tool overrides ok");
+}
+
+function testBulkHideSkipsLock() {
+  const dir = tempDir();
+  const path = join(dir, "tool-overrides.json");
+  setToolExcludeLock("keep_me", true, path);
+  const result = bulkHideTools(["keep_me", "hide_me"], path);
+  assert(result.count === 1, "only unlocked hidden");
+  assert(result.hidden.includes("hide_me"), "hide_me hidden");
+  assert(!result.hidden.includes("keep_me"), "locked skipped");
+  const data = loadToolOverrides(path);
+  assert(data.tools.keep_me.exclude_lock === true, "lock intact");
+  assert(!data.tools.keep_me.force_tier, "locked tool not hidden");
+  console.error("[dashboard-control] bulk hide skip lock ok");
+}
+
+function testPatchToolOverride() {
+  const dir = tempDir();
+  const path = join(dir, "tool-overrides.json");
+  patchToolOverride("search_code", { exclude_lock: true }, path);
+  patchToolOverride("search_code", { force_tier: "A" }, path);
+  const data = loadToolOverrides(path);
+  assert(data.tools.search_code.force_tier === "A", "tier set");
+  assert(data.tools.search_code.exclude_lock === true, "lock set");
+  console.error("[dashboard-control] patch override ok");
 }
 
 function testMcpEnableDisable() {
@@ -143,6 +178,8 @@ async function testHttpPatch() {
 
 async function main() {
   testToolOverrides();
+  testBulkHideSkipsLock();
+  testPatchToolOverride();
   testMcpEnableDisable();
   testBackendEnableDisable();
   await testHttpPatch();
