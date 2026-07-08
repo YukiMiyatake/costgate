@@ -125,3 +125,11 @@ func TestApplyAlwaysExpose(t *testing.T) {
 		t.Fatalf("always_expose: got %v", out["find_symbol"])
 	}
 }
+
+func TestGenerationEmpty(t *testing.T) {
+	f := &File{Version: 1, Tools: map[string]ToolOverride{}}
+	gen := f.Generation()
+	if len(gen) != 16 {
+		t.Fatalf("expected 16-char hash, got %q", gen)
+	}
+}

@@ -4,6 +4,7 @@ import {
   resolveToolOverride,
   isMultiBackend,
 } from "../scripts/lib/tool-override-names.mjs";
+import { toolOverridesGeneration } from "../scripts/lib/dashboard-control.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -31,5 +32,10 @@ assert(
 );
 assert(isMultiBackend({ a: {}, b: {} }), "multi backend");
 assert(!isMultiBackend({ a: {} }), "single backend");
+assert(
+  toolOverridesGeneration({ version: 1, tools: {} }) ===
+    toolOverridesGeneration({ version: 1, tools: {} }),
+  "stable overrides generation"
+);
 
 console.error("[tool-override-names] ok");

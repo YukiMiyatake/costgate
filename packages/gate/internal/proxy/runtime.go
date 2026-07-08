@@ -146,6 +146,7 @@ func (r *filterRuntime) reloadOverridesIfChanged() bool {
 	}
 	ov.ApplyInPlace(r.classifiedTiers, r.tiers)
 	r.overridesMod = mod
+	gatelog.LogOverridesReload(ov.Generation())
 	log.Printf("[costgate-gate] tool overrides reloaded (%d entries)", len(ov.Tools))
 	return true
 }

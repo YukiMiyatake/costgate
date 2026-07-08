@@ -3,6 +3,7 @@
  * Global: ~/.costgate/gate-settings.json
  * Project: <root>/.costgate/gate-settings.json (overrides Global when scoped)
  */
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -156,6 +157,29 @@ export function normalizeSettings(raw = {}) {
     out.slim_list_max_chars = Math.floor(raw.slim_list_max_chars);
   }
   return out;
+}
+
+/** Content hash aligned with packages/gate/internal/gatesettings.Settings.Generation(). */
+export function gateSettingsGeneration(settings) {
+  const s = normalizeSettings(settings);
+  const payload = [
+    s.gate_mode,
+    s.compress,
+    s.code_mode,
+    s.intent_dynamic,
+    s.intent_probe,
+    s.intent_prompt,
+    s.static_intent ?? "",
+    s.compress_max_chars,
+    s.exposure_mode,
+    s.exposure_max_b,
+    s.exposure_token_budget,
+    s.slim_list,
+    s.slim_list_max_chars,
+  ]
+    .map((v) => (typeof v === "boolean" ? String(v) : String(v ?? "")))
+    .join("|");
+  return createHash("sha256").update(payload).digest("hex").slice(0, 16);
 }
 
 export function loadGateSettingsFile(path) {

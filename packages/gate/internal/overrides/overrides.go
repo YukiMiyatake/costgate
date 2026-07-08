@@ -1,9 +1,13 @@
 package overrides
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -129,6 +133,25 @@ func FileModTime() (time.Time, error) {
 		return time.Time{}, err
 	}
 	return st.ModTime(), nil
+}
+
+// Generation returns a short content hash for override sync status.
+func (f *File) Generation() string {
+	if f == nil || len(f.Tools) == 0 {
+		sum := sha256.Sum256([]byte("empty"))
+		return hex.EncodeToString(sum[:])[:16]
+	}
+	keys := make([]string, 0, len(f.Tools))
+	for k := range f.Tools {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	h := sha256.New()
+	for _, k := range keys {
+		ov := f.Tools[k]
+		_, _ = fmt.Fprintf(h, "%s|%s|%t|%t|", k, ov.ForceTier, ov.AlwaysExpose, ov.ExcludeLock)
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16]
 }
 
 // ApplyInPlace overlays overrides onto classified tiers into dest (same map meta uses).
