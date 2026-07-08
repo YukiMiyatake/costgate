@@ -166,10 +166,30 @@ function testToolsListStaleGenerationId() {
   console.log("ok toolsListStaleGenerationId");
 }
 
+function testToolCallWithoutProjectRoot() {
+  const opts = fixtureHistoryOptions();
+  const gatePath = join(opts.gateLogDir, "gate-fixture.jsonl");
+  const extra = {
+    type: "gate_event",
+    event: "tool_call",
+    ts: "2026-06-10T09:01:00.000Z",
+    tool: "github/search_code",
+    response_bytes: 1024,
+    conversation_id: "conv-fixture",
+  };
+  writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(extra)}\n`);
+  const turn = getHistoryTurn("gen-fixture-1", opts);
+  assert.ok(turn);
+  assert.equal(turn.metrics.tool_calls >= 2, true, "tool_call without project_root joins turn");
+  assert.equal(turn.tools_called.includes("github/search_code") || turn.tools_called.includes("list_pull_requests"), true);
+  console.log("ok toolCallWithoutProjectRoot");
+}
+
 testListTurns();
 testToolsListLookback();
 testToolsListWithoutProjectRoot();
 testToolsListStaleGenerationId();
+testToolCallWithoutProjectRoot();
 testCrossProjectIsolation();
 testGetTurn();
 testExportTurns();

@@ -1066,6 +1066,22 @@ footer {
   background: var(--surface-raised);
 }
 
+.history-row.active {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.history-detail-inline {
+  margin: -0.5rem 0 0.5rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.history-detail-used-tools {
+  margin: 0.35rem 0 1rem;
+}
+
 .history-row-title {
   font-weight: 600;
   margin: 0 0 0.25rem;
