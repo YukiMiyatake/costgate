@@ -10,6 +10,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { summarizeTools } from "@costgate/probe/metrics";
 import { readJson } from "./read-json.mjs";
+import { isMultiBackend, toolRowKey } from "./tool-override-names.mjs";
 
 const DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 /** HTTP/url backends: cheap probe, tool defs change rarely. */
@@ -264,12 +265,14 @@ export async function ensureBackendToolsCache(backends, catalogs, options = {}) 
 /** Merge cached live probe tools into probeByTool map (mutates map). */
 export function mergeBackendToolsCache(probeByTool, cache, backends) {
   if (!cache?.backends) return;
+  const multiBackend = isMultiBackend(backends);
   for (const [backendName, entry] of Object.entries(cache.backends)) {
     if (!backends[backendName]) continue;
     for (const tool of entry.tools ?? []) {
       if (!tool?.name) continue;
-      const cur = probeByTool.get(tool.name) ?? {
-        name: tool.name,
+      const rowKey = toolRowKey(tool.name, backendName, multiBackend);
+      const cur = probeByTool.get(rowKey) ?? probeByTool.get(tool.name) ?? {
+        name: rowKey,
         backend: backendName,
         call_count: 0,
         last_used: null,
@@ -277,6 +280,7 @@ export function mergeBackendToolsCache(probeByTool, cache, backends) {
         list_samples: 0,
         source: "backend_probe",
       };
+      cur.name = rowKey;
       cur.backend = backendName;
       if (tool.estimated_list_tokens != null) {
         const tok = tool.estimated_list_tokens;
@@ -287,7 +291,7 @@ export function mergeBackendToolsCache(probeByTool, cache, backends) {
         cur.list_samples = (cur.list_samples ?? 0) + 1;
       }
       if (!cur.source) cur.source = "backend_probe";
-      probeByTool.set(tool.name, cur);
+      probeByTool.set(rowKey, cur);
     }
   }
 }

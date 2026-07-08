@@ -101,8 +101,8 @@ async function testEnsureCacheAndMerge() {
 
   const byTool = new Map();
   mergeBackendToolsCache(byTool, cache, backends);
-  assert(byTool.has("echo"), "merge should add echo from cache");
-  assert(byTool.get("echo")?.backend === "mock", "echo assigned to mock backend");
+  assert(byTool.has("mock/echo"), "merge should add echo from cache with qualified key");
+  assert(byTool.get("mock/echo")?.backend === "mock", "echo assigned to mock backend");
 
   const data = buildDashboardData({
     logDir,
@@ -114,7 +114,7 @@ async function testEnsureCacheAndMerge() {
     now: Date.now(),
   });
 
-  const echo = data.tools.tools.find((t) => t.name === "echo");
+  const echo = data.tools.tools.find((t) => t.name === "mock/echo");
   assert(echo?.backend === "mock", "dashboard merge should surface probed tools");
 
   rmSync(dir, { recursive: true, force: true });
