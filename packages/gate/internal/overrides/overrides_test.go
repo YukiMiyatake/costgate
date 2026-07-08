@@ -101,6 +101,7 @@ func TestApplyForceHiddenQualifiedMultiBackend(t *testing.T) {
 	}
 }
 
+func TestApplyAlwaysExpose(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tool-overrides.json")
 	t.Setenv("COSTGATE_TOOL_OVERRIDES", path)
