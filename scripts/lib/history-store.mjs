@@ -1,12 +1,15 @@
 /**
  * P9a — append-only turn index for Dashboard prompt history.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const DEFAULT_LIMIT = 50;
 const PREVIEW_CHARS = 120;
+const LOCK_STALE_MS = 30_000;
+const LOCK_TIMEOUT_MS = 5_000;
+const LOCK_RETRY_MS = 5;
 
 function envTruthy(name, defaultVal = false) {
   const v = process.env[name];
@@ -79,13 +82,66 @@ export function buildTurnEntry(record, options = {}) {
   return entry;
 }
 
-export function pruneTurnsFile(path, limit) {
+function sleepSync(ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    // busy wait — appendTurn is sync-only for hook callers
+  }
+}
+
+function withTurnsFileLock(path, fn) {
+  const lockPath = `${path}.lock`;
+  mkdirSync(dirname(path), { recursive: true });
+  const deadline = Date.now() + LOCK_TIMEOUT_MS;
+  let lockFd;
+  while (true) {
+    try {
+      lockFd = openSync(lockPath, "wx");
+      writeFileSync(lockFd, String(process.pid), "utf8");
+      break;
+    } catch (e) {
+      if (e?.code !== "EEXIST") throw e;
+      if (existsSync(lockPath)) {
+        try {
+          const st = statSync(lockPath);
+          if (Date.now() - st.mtimeMs > LOCK_STALE_MS) unlinkSync(lockPath);
+        } catch {
+          // ignore stale lock cleanup errors
+        }
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`history lock timeout: ${path}`);
+      }
+      sleepSync(LOCK_RETRY_MS);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      closeSync(lockFd);
+    } catch {
+      // ignore
+    }
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function pruneTurnsFileUnlocked(path, limit) {
   if (!existsSync(path)) return 0;
   const lines = readFileSync(path, "utf8").split("\n").filter((l) => l.trim());
   if (lines.length <= limit) return lines.length;
   const kept = lines.slice(-limit);
   writeFileSync(path, `${kept.join("\n")}\n`, "utf8");
   return kept.length;
+}
+
+export function pruneTurnsFile(path, limit) {
+  return withTurnsFileLock(path, () => pruneTurnsFileUnlocked(path, limit));
 }
 
 /**
@@ -97,10 +153,12 @@ export function appendTurn(record, options = {}) {
   if (!record?.generation_id) return null;
 
   const path = turnsPath(options);
-  mkdirSync(historyDir(options), { recursive: true });
   const entry = buildTurnEntry(record, options);
-  writeFileSync(path, `${JSON.stringify(entry)}\n`, { flag: "a" });
-  pruneTurnsFile(path, historyLimit(options));
+  const limit = historyLimit(options);
+  withTurnsFileLock(path, () => {
+    writeFileSync(path, `${JSON.stringify(entry)}\n`, { flag: "a" });
+    pruneTurnsFileUnlocked(path, limit);
+  });
   return path;
 }
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   appendTurn,
   buildTurnEntry,
@@ -111,9 +113,51 @@ function testHistoryPromptMode() {
   console.log("ok historyPromptMode");
 }
 
+function testConcurrentAppend() {
+  withHistoryDir((dir) => {
+    process.env.COSTGATE_HISTORY_LIMIT = "200";
+    const storePath = fileURLToPath(new URL("../scripts/lib/history-store.mjs", import.meta.url));
+    const workers = 6;
+    const perWorker = 4;
+    const code = `
+      import { appendTurn } from ${JSON.stringify(storePath)};
+      const n = Number(process.env.WORKER_N);
+      const count = Number(process.env.WORKER_COUNT);
+      for (let i = 0; i < count; i++) {
+        appendTurn({
+          generation_id: \`w\${n}-g\${i}\`,
+          conversation_id: "c",
+          workspace_root: "/ws",
+          keywords: "k",
+          ts: Date.now() + n * 100 + i,
+        });
+      }
+    `;
+    for (let w = 0; w < workers; w++) {
+      const r = spawnSync(process.execPath, ["--input-type=module", "-e", code], {
+        env: {
+          ...process.env,
+          COSTGATE_HISTORY_DIR: dir,
+          COSTGATE_HISTORY: "1",
+          WORKER_N: String(w),
+          WORKER_COUNT: String(perWorker),
+        },
+        encoding: "utf8",
+      });
+      assert.equal(r.status, 0, r.stderr || r.stdout || `worker ${w} failed`);
+    }
+    const turns = readTurns({ dir });
+    assert.equal(turns.length, workers * perWorker);
+    const ids = new Set(turns.map((t) => t.generation_id));
+    assert.equal(ids.size, workers * perWorker);
+    console.log("ok concurrentAppend");
+  });
+}
+
 testBuildTurnPreview();
 testAppendAndPrune();
 testHistoryDisabled();
 testPruneTurnsFile();
 testHistoryPromptMode();
+testConcurrentAppend();
 console.log("history-store tests passed");
