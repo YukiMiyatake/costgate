@@ -19,6 +19,7 @@ import {
   setMcpServerEnabled,
   previewMcpDisable,
   toolOverridesPath,
+  toolOverrideResponseFields,
 } from "./lib/dashboard-control.mjs";
 import {
   addMcpServerRaw,
@@ -397,14 +398,12 @@ async function handleWorkspaceRoute(method, pathname, url, req, res, ctx) {
     try {
       const data = patchToolOverride(name, body, paths.overridesPath);
       json(res, 200, {
-        ok: true,
         workspace_id: wsId,
+        ...toolOverrideResponseFields(name, body.backend ?? null, data),
         tool: name,
-        force_tier: data.tools[name]?.force_tier ?? null,
-        exclude_lock: Boolean(data.tools[name]?.exclude_lock),
-        always_expose: Boolean(data.tools[name]?.always_expose),
         ...toolOverrideGateHints(body),
         overrides: data,
+        ok: true,
       });
     } catch (e) {
       json(res, 400, { error: e.message ?? String(e) });
@@ -973,13 +972,11 @@ function createDashboardServer(options = {}) {
               controlPaths.overridesPath ?? toolOverridesPath()
             );
             json(res, 200, {
-              ok: true,
+              ...toolOverrideResponseFields(name, body.backend ?? null, data),
               tool: name,
-              force_tier: data.tools[name]?.force_tier ?? null,
-              exclude_lock: Boolean(data.tools[name]?.exclude_lock),
-              always_expose: Boolean(data.tools[name]?.always_expose),
               ...toolOverrideGateHints(body),
               overrides: data,
+              ok: true,
             });
           } catch (e) {
             json(res, 400, { error: e.message ?? String(e) });
