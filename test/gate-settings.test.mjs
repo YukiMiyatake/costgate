@@ -24,6 +24,16 @@ function tempRoot() {
   return base;
 }
 
+function testGlobalOrigins() {
+  const root = tempRoot();
+  const globalPath = join(root, "gate-settings.json");
+  patchGateSettings({ intent_probe: false }, { path: globalPath });
+  const loaded = loadGateSettings({ globalPath, projectRoot: join(root, "missing"), scoped: true });
+  assert(loaded.origins.intent_probe === "global", "global origin when only global file");
+  assert(loaded.origins.gate_mode === "global", "global gate_mode origin");
+  console.error("[gate-settings] global origins ok");
+}
+
 function testSettingsGeneration() {
   const gen = gateSettingsGeneration(DEFAULT_GATE_SETTINGS);
   assert(typeof gen === "string" && gen.length === 16, "generation hash");
@@ -157,6 +167,7 @@ async function testHttpApi() {
 
 async function main() {
   testSettingsGeneration();
+  testGlobalOrigins();
   testDefaults();
   testProjectOverride();
   testEnvMapping();
