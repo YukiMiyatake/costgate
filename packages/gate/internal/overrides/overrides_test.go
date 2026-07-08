@@ -101,6 +101,46 @@ func TestApplyForceHiddenQualifiedMultiBackend(t *testing.T) {
 	}
 }
 
+func TestApplyBareOverrideAmbiguousMultiBackend(t *testing.T) {
+	base := map[string]filter.Tier{
+		"github/search_code": filter.TierA,
+		"serena/search_code": filter.TierB,
+	}
+	f := &File{
+		Version: 1,
+		Tools: map[string]ToolOverride{
+			"search_code": {ForceTier: "hidden"},
+		},
+	}
+	out := f.Apply(base)
+	if out["github/search_code"] != filter.TierA {
+		t.Fatalf("ambiguous bare override must not change github/search_code: got %v", out["github/search_code"])
+	}
+	if out["serena/search_code"] != filter.TierB {
+		t.Fatalf("ambiguous bare override must not change serena/search_code: got %v", out["serena/search_code"])
+	}
+}
+
+func TestApplyQualifiedOverrideMultiBackend(t *testing.T) {
+	base := map[string]filter.Tier{
+		"github/search_code": filter.TierA,
+		"serena/search_code": filter.TierB,
+	}
+	f := &File{
+		Version: 1,
+		Tools: map[string]ToolOverride{
+			"github/search_code": {ForceTier: "hidden"},
+		},
+	}
+	out := f.Apply(base)
+	if out["github/search_code"] != filter.TierHidden {
+		t.Fatalf("qualified override: got %v", out["github/search_code"])
+	}
+	if out["serena/search_code"] != filter.TierB {
+		t.Fatalf("other backend unchanged: got %v", out["serena/search_code"])
+	}
+}
+
 func TestApplyAlwaysExpose(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tool-overrides.json")
