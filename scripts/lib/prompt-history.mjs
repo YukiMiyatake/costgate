@@ -68,10 +68,13 @@ function normalizeRoot(path) {
 
 function eventMatchesTurn(event, turn, nextTurnTs) {
   const gen = turn.generation_id;
-  if (event.generation_id && gen) {
-    return event.generation_id === gen;
+  if (event.generation_id && gen && event.generation_id === gen) {
+    return true;
   }
-  if (event.generation_id) return false;
+  // tool_call rows must match generation_id when present.
+  if (event.generation_id && event.event !== "tools_list") {
+    return false;
+  }
 
   const eventTs = Date.parse(event.ts ?? "");
   const turnTs = Date.parse(turn.ts ?? "");
@@ -83,14 +86,18 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
   if (Number.isNaN(windowEnd)) return false;
 
   const lookback =
-    event.event === "tools_list" && !event.generation_id ? TOOLS_LIST_LOOKBACK_MS : 0;
+    event.event === "tools_list" &&
+    (!event.generation_id || (gen && event.generation_id !== gen))
+      ? TOOLS_LIST_LOOKBACK_MS
+      : 0;
   const windowStart = turnTs - lookback;
   if (eventTs < windowStart || eventTs >= windowEnd) return false;
 
   if (turn.workspace_root && event.project_root) {
     return normalizeRoot(turn.workspace_root) === normalizeRoot(event.project_root);
   }
-  if (turn.workspace_root && event.project_root == null) {
+  // Gate tools_list rows historically omitted project_root; allow time-window join.
+  if (turn.workspace_root && event.project_root == null && event.event !== "tools_list") {
     return false;
   }
   return true;

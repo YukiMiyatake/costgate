@@ -194,6 +194,9 @@ func mergeCorrelation(row map[string]any) {
 	if root == "" {
 		root = workspace.ResolveProjectRoot()
 	}
+	if root != "" {
+		row["project_root"] = root
+	}
 	for k, v := range usage.LogCorrelationFields("", root) {
 		row[k] = v
 	}

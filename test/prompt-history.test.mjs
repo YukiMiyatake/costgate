@@ -126,8 +126,50 @@ function testCrossProjectIsolation() {
   console.log("ok crossProjectIsolation");
 }
 
+function testToolsListWithoutProjectRoot() {
+  const opts = fixtureHistoryOptions();
+  const gatePath = join(opts.gateLogDir, "gate-fixture.jsonl");
+  const extra = {
+    type: "gate_event",
+    event: "tools_list",
+    ts: "2026-06-10T08:59:30.000Z",
+    backend: "github",
+    tools_exposed: 66,
+    tokens_est: 4200,
+  };
+  writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(extra)}\n`);
+  const turn = getHistoryTurn("gen-fixture-1", opts);
+  assert.ok(turn);
+  assert.equal(turn.metrics.tools_list_events >= 1, true, "tools_list without project_root joins turn");
+  const joined = turn.tools_list.find((r) => r.tools_exposed === 66);
+  assert.ok(joined, "exposed count preserved");
+  console.log("ok toolsListWithoutProjectRoot");
+}
+
+function testToolsListStaleGenerationId() {
+  const opts = fixtureHistoryOptions();
+  const gatePath = join(opts.gateLogDir, "gate-fixture.jsonl");
+  const extra = {
+    type: "gate_event",
+    event: "tools_list",
+    ts: "2026-06-20T09:59:30.000Z",
+    backend: "github",
+    tools_exposed: 40,
+    tokens_est: 3000,
+    generation_id: "stale-other-gen",
+    project_root: opts.projectRoot,
+  };
+  writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(extra)}\n`);
+  const turn = getHistoryTurn("gen-fixture-2", opts);
+  assert.ok(turn);
+  assert.equal(turn.tools_list.some((r) => r.tools_exposed === 40), true, "stale gen id uses time window");
+  console.log("ok toolsListStaleGenerationId");
+}
+
 testListTurns();
 testToolsListLookback();
+testToolsListWithoutProjectRoot();
+testToolsListStaleGenerationId();
 testCrossProjectIsolation();
 testGetTurn();
 testExportTurns();
