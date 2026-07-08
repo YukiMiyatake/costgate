@@ -106,8 +106,29 @@ function testToolsListLookback() {
   console.log("ok toolsListLookback");
 }
 
+function testCrossProjectIsolation() {
+  const opts = fixtureHistoryOptions();
+  const gatePath = join(opts.gateLogDir, "gate-fixture.jsonl");
+  const otherRoot = "/work/other-project";
+  const foreign = {
+    type: "gate_event",
+    event: "tool_call",
+    ts: "2026-06-20T10:00:00.000Z",
+    tool: "foreign_tool",
+    response_bytes: 512,
+    project_root: otherRoot,
+    generation_id: "gen-fixture-2",
+  };
+  writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(foreign)}\n`);
+  const turn = getHistoryTurn("gen-fixture-2", opts);
+  assert.ok(turn);
+  assert.equal(turn.tools_called.includes("foreign_tool"), false, "foreign project excluded");
+  console.log("ok crossProjectIsolation");
+}
+
 testListTurns();
 testToolsListLookback();
+testCrossProjectIsolation();
 testGetTurn();
 testExportTurns();
 testListProbeSessions();

@@ -37,15 +37,21 @@ export function readProbeEvents(logDir) {
   return events;
 }
 
-export function readGateEvents(gateLogDir) {
+export function readGateEvents(gateLogDir, options = {}) {
   const events = [];
   if (!gateLogDir || !existsSync(gateLogDir)) return events;
+  const projectRoot = options.projectRoot ? normalizeRoot(options.projectRoot) : null;
   const files = readdirSync(gateLogDir)
     .filter((f) => f.startsWith("gate-") && f.endsWith(".jsonl"))
     .sort();
   for (const file of files) {
     for (const row of parseJsonlLines(readFileSync(join(gateLogDir, file), "utf8"))) {
-      if (row?.type === "gate_event") events.push(row);
+      if (row?.type !== "gate_event") continue;
+      if (projectRoot) {
+        const rowRoot = row.project_root ? normalizeRoot(row.project_root) : null;
+        if (rowRoot && rowRoot !== projectRoot) continue;
+      }
+      events.push(row);
     }
   }
   return events;
@@ -83,6 +89,9 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
 
   if (turn.workspace_root && event.project_root) {
     return normalizeRoot(turn.workspace_root) === normalizeRoot(event.project_root);
+  }
+  if (turn.workspace_root && event.project_root == null) {
+    return false;
   }
   return true;
 }
@@ -280,7 +289,9 @@ export function listHistoryTurns(options = {}) {
   }
 
   const selected = turns.slice(-limit);
-  const gateEvents = readGateEvents(options.gateLogDir);
+  const gateEvents = readGateEvents(options.gateLogDir, {
+    projectRoot: options.workspaceRoot ?? options.projectRoot,
+  });
   const summaries = selected.map((turn, index) => {
     const nextTurnTs = selected[index + 1]?.ts;
     const matched = gateEvents.filter((e) => eventMatchesTurn(e, turn, nextTurnTs));
