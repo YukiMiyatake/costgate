@@ -15,7 +15,7 @@ import {
   backendToolsCachePath,
 } from "./dashboard-backend-probe.mjs";
 import { readJson } from "./read-json.mjs";
-import { resolveToolOverride } from "./tool-override-names.mjs";
+import { resolveToolOverride, isMultiBackend, toolRowKey, catalogBareName } from "./tool-override-names.mjs";
 import {
   parseProbeLogs,
   mcpMeasurableTokens,
@@ -345,11 +345,12 @@ function primaryBackend(backends) {
 }
 
 function tierForTool(name, backend, catalogs, defaultBackend) {
+  const bare = catalogBareName(name);
   const b = backend ?? defaultBackend;
   const cat = b ? catalogs[b] : null;
-  if (cat?.overrides?.[name]) return cat.overrides[name];
+  if (cat?.overrides?.[bare]) return cat.overrides[bare];
   for (const catalog of Object.values(catalogs)) {
-    if (catalog?.overrides?.[name]) return catalog.overrides[name];
+    if (catalog?.overrides?.[bare]) return catalog.overrides[bare];
   }
   return null;
 }
@@ -375,36 +376,65 @@ function resolveToolBackend(name, probeBackend, catalogs, backends) {
     if (backends[backend] || catalogs[backend]) return backend;
   }
   for (const [backend, catalog] of Object.entries(catalogs)) {
-    if (catalog?.overrides?.[name] && backends[backend]) return backend;
+    if (catalog?.overrides?.[catalogBareName(name)] && backends[backend]) return backend;
   }
   return null;
 }
 
-function catalogToolNames(backends, catalogs) {
-  const names = new Set();
+function catalogToolEntries(backends, catalogs, multiBackend) {
+  const entries = [];
   for (const backend of Object.keys(backends)) {
     const overrides = catalogs[backend]?.overrides;
     if (!overrides) continue;
-    for (const name of Object.keys(overrides)) {
-      names.add(name);
+    for (const bareName of Object.keys(overrides)) {
+      entries.push({
+        name: toolRowKey(bareName, backend, multiBackend),
+        backend,
+      });
     }
   }
-  return names;
+  return entries;
 }
 
 function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, now, overrides = {}) {
-  const names = new Set([
-    ...probeByTool.keys(),
-    ...Object.keys(usage),
-    ...catalogToolNames(backends, catalogs),
-  ]);
+  const multiBackend = isMultiBackend(backends);
+  const rowMap = new Map();
+
+  const ensureRow = (name, backend) => {
+    const key = toolRowKey(name, backend, multiBackend);
+    if (!rowMap.has(key)) {
+      rowMap.set(key, { name: key, backend: backend ?? defaultBackend });
+    }
+    return rowMap.get(key);
+  };
+
+  for (const [probeKey, probe] of probeByTool) {
+    const backend =
+      resolveToolBackend(probeKey, probe?.backend, catalogs, backends) ?? defaultBackend;
+    ensureRow(probeKey, backend);
+  }
+
+  for (const [usageKey] of Object.entries(usage)) {
+    const backend =
+      resolveToolBackend(usageKey, null, catalogs, backends) ?? defaultBackend;
+    ensureRow(usageKey, backend);
+  }
+
+  for (const entry of catalogToolEntries(backends, catalogs, multiBackend)) {
+    ensureRow(entry.name, entry.backend);
+  }
+
   const tools = [];
 
-  for (const name of names) {
-    const probe = probeByTool.get(name);
-    const u = usage[name];
-    const backend =
-      resolveToolBackend(name, probe?.backend, catalogs, backends) ?? defaultBackend;
+  for (const { name, backend } of rowMap.values()) {
+    const probeKey = probeByTool.has(name)
+      ? name
+      : [...probeByTool.keys()].find(
+          (k) => toolRowKey(k, probeByTool.get(k)?.backend, multiBackend) === name
+        );
+    const probe = probeKey != null ? probeByTool.get(probeKey) : undefined;
+    const usageKey = usage[name] != null ? name : catalogBareName(name);
+    const u = usage[name] ?? usage[usageKey];
     const callCount = Math.max(probe?.call_count ?? 0, u?.call_count ?? 0);
     let lastUsed = probe?.last_used ?? null;
     if (u?.last_used) {

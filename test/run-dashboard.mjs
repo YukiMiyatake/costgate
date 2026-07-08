@@ -11,6 +11,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const TESTS = [
   "dashboard-api.test.mjs",
   "dashboard-backend-probe.test.mjs",
+  "dashboard-multi-backend-tools.test.mjs",
   "tool-exclude-score.test.mjs",
   "dashboard-bulk-exclude.test.mjs",
   "tool-override-names.test.mjs",
@@ -27,6 +28,7 @@ const TESTS = [
   "dashboard-gate-eval.test.mjs",
   "resolve-workspace-root.test.mjs",
   "dashboard-config-merge.test.mjs",
+  "tools-catalog.test.mjs",
   "dashboard-launcher.test.mjs",
   "dashboard-probe.test.mjs",
   "cursor-registry-hook.test.mjs",

@@ -41,10 +41,10 @@ function testCatalogMergeMultiBackend() {
   assert(data.tools.backends.includes("filesystem"), "configured backends include filesystem");
   assert(data.tools.backends_without_catalog.includes("serena"), "serena has no catalog");
 
-  const readFile = data.tools.tools.find((t) => t.name === "read_file");
+  const readFile = data.tools.tools.find((t) => t.name === "filesystem/read_file");
   assert(readFile?.backend === "filesystem", "read_file assigned to filesystem backend");
 
-  const githubTool = data.tools.tools.find((t) => t.name === "list_pull_requests");
+  const githubTool = data.tools.tools.find((t) => t.name === "github/list_pull_requests");
   assert(githubTool?.backend === "github", "github tool stays on github backend");
 
   console.error("[tools-catalog] multi-backend catalog merge ok");

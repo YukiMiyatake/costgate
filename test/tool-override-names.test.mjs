@@ -3,6 +3,9 @@ import {
   qualifyOverrideToolName,
   resolveToolOverride,
   isMultiBackend,
+  catalogBareName,
+  toolNameBackend,
+  toolRowKey,
 } from "../scripts/lib/tool-override-names.mjs";
 import { toolOverridesGeneration } from "../scripts/lib/dashboard-control.mjs";
 
@@ -32,6 +35,11 @@ assert(
 );
 assert(isMultiBackend({ a: {}, b: {} }), "multi backend");
 assert(!isMultiBackend({ a: {} }), "single backend");
+assert(catalogBareName("github/search_code") === "search_code", "catalog bare");
+assert(toolNameBackend("github/search_code") === "github", "tool backend");
+assert(toolRowKey("search_code", "github", true) === "github/search_code", "row key multi");
+assert(toolRowKey("github/search_code", "github", true) === "github/search_code", "row key qualified");
+assert(toolRowKey("search_code", "github", false) === "search_code", "row key single");
 assert(
   toolOverridesGeneration({ version: 1, tools: {} }) ===
     toolOverridesGeneration({ version: 1, tools: {} }),
