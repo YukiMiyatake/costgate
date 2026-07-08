@@ -60,7 +60,7 @@ function gateServer() {
       COSTGATE_DASHBOARD_AUTO_OPEN: "1",
       COSTGATE_CLIENT: "cursor",
       // Token reduction — filter + compress + code-mode (see docs/benchmarks.md)
-      COSTGATE_GATE_MODE: "filter",
+      COSTGATE_GATE_MODE: "transparent",
       COSTGATE_COMPRESS: "1",
       COSTGATE_CODE_MODE: process.env.COSTGATE_CODE_MODE ?? "1",
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",

@@ -282,7 +282,7 @@ export default {
     jsonGateReload: "Gate MCP を再接続してください。",
   },
   gateSetting: {
-    gate_mode: { label: "Gate モード", hint: "filter = Tier 削減 / transparent = 透過" },
+    gate_mode: { label: "Gate モード", hint: "transparent = 透過（既定）/ filter = Tier 削減" },
     compress: { label: "レスポンス圧縮", hint: "大きな MCP 結果を切り詰め" },
     code_mode: { label: "Code mode", hint: "ファイル全文の代わりにアウトラインを返す" },
     intent_dynamic: { label: "Dynamic intent", hint: "直近の利用で Tier B を露出" },
@@ -292,7 +292,7 @@ export default {
     compress_max_chars: { label: "圧縮最大文字数", hint: "圧縮 ON 時に残す最大文字数" },
     exposure_mode: {
       label: "露出モード",
-      hint: "conservative = マッチした Tier B すべて / aggressive = 上位 N 件 / budget = トークン上限",
+      hint: "permissive = A+B 常時 + intent で C / conservative = A + intent で B / aggressive = 上位 N 件 / budget = トークン上限",
     },
     exposure_max_b: {
       label: "Aggressive Tier B 上限",

@@ -280,7 +280,7 @@ export default {
     jsonGateReload: "Reconnect the Gate MCP to apply.",
   },
   gateSetting: {
-    gate_mode: { label: "Gate mode", hint: "filter = Tier A/B/C reduction; transparent = pass-through" },
+    gate_mode: { label: "Gate mode", hint: "transparent = pass-through (default); filter = Tier A/B/C reduction" },
     compress: { label: "Response compression", hint: "Truncate large MCP tool results" },
     code_mode: { label: "Code mode", hint: "Return source outlines instead of full files (via MCP)" },
     intent_dynamic: { label: "Dynamic intent", hint: "Recent tool usage exposes Tier B tools" },
@@ -290,7 +290,7 @@ export default {
     compress_max_chars: { label: "Compress max chars", hint: "Max characters kept per tool result when compression is on" },
     exposure_mode: {
       label: "Exposure mode",
-      hint: "conservative = all matched Tier B; aggressive = top-N Tier B; budget = token cap",
+      hint: "permissive = A+B always + intent-matched C; conservative = A + intent B; aggressive = top-N B; budget = token cap",
     },
     exposure_max_b: {
       label: "Aggressive Tier B cap",

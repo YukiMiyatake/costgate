@@ -678,7 +678,7 @@ function renderToolsBulkExcludeBar(all) {
       const result = await fetchJson(apiPath("tools/bulk-exclude"), {
         method: "POST",
         body: JSON.stringify({
-          names: candidates.map((tool) => tool.name),
+          names: candidates.map((tool) => ({ name: tool.name, backend: tool.backend })),
           tokens_saved: tokensSaved,
         }),
       });
@@ -878,6 +878,7 @@ function renderToolRow(tool) {
         method: "PATCH",
         body: JSON.stringify({
           force_tier: tool.tier === "hidden" ? "default" : "hidden",
+          backend: tool.backend,
         }),
       });
       await reload();
@@ -895,7 +896,7 @@ function renderToolRow(tool) {
     try {
       await fetchJson(apiPath(`tools/${encodeURIComponent(tool.name)}`), {
         method: "PATCH",
-        body: JSON.stringify({ always_expose: !tool.always_expose }),
+        body: JSON.stringify({ always_expose: !tool.always_expose, backend: tool.backend }),
       });
       await reload();
       showToast(
@@ -915,7 +916,7 @@ function renderToolRow(tool) {
     try {
       await fetchJson(apiPath(`tools/${encodeURIComponent(tool.name)}`), {
         method: "PATCH",
-        body: JSON.stringify({ exclude_lock: !tool.exclude_lock }),
+        body: JSON.stringify({ exclude_lock: !tool.exclude_lock, backend: tool.backend }),
       });
       await reload();
       showToast(

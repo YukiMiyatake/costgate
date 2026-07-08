@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YukiMiyatake/costgate/packages/gate/internal/catalog"
 	"github.com/YukiMiyatake/costgate/packages/gate/internal/filter"
 )
 
@@ -69,14 +70,52 @@ func (f *File) Apply(classified map[string]filter.Tier) map[string]filter.Tier {
 	}
 	for name, ov := range f.Tools {
 		if tier, ok := parseForceTier(ov.ForceTier); ok {
-			out[name] = tier
+			applyForceTier(out, classified, name, tier)
 			continue
 		}
 		if ov.AlwaysExpose {
-			out[name] = filter.TierA
+			applyAlwaysExpose(out, classified, name)
 		}
 	}
 	return out
+}
+
+func applyForceTier(out, classified map[string]filter.Tier, name string, tier filter.Tier) {
+	if _, ok := classified[name]; ok {
+		out[name] = tier
+		return
+	}
+	if strings.Contains(name, "/") {
+		return
+	}
+	for toolName := range classified {
+		if toolName == name {
+			out[toolName] = tier
+			continue
+		}
+		if _, tool, ok := catalog.SplitQualified(toolName); ok && tool == name {
+			out[toolName] = tier
+		}
+	}
+}
+
+func applyAlwaysExpose(out, classified map[string]filter.Tier, name string) {
+	if _, ok := classified[name]; ok {
+		out[name] = filter.TierA
+		return
+	}
+	if strings.Contains(name, "/") {
+		return
+	}
+	for toolName := range classified {
+		if toolName == name {
+			out[toolName] = filter.TierA
+			continue
+		}
+		if _, tool, ok := catalog.SplitQualified(toolName); ok && tool == name {
+			out[toolName] = filter.TierA
+		}
+	}
 }
 
 // FileModTime returns the overrides file mtime, or zero if missing.

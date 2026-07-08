@@ -81,7 +81,26 @@ func TestApplyInPlace(t *testing.T) {
 	}
 }
 
-func TestApplyAlwaysExpose(t *testing.T) {
+func TestApplyForceHiddenQualifiedMultiBackend(t *testing.T) {
+	base := map[string]filter.Tier{
+		"github/search_code": filter.TierA,
+		"serena/find_symbol": filter.TierB,
+	}
+	f := &File{
+		Version: 1,
+		Tools: map[string]ToolOverride{
+			"search_code": {ForceTier: "hidden"},
+		},
+	}
+	out := f.Apply(base)
+	if out["github/search_code"] != filter.TierHidden {
+		t.Fatalf("unqualified hidden: got %v", out["github/search_code"])
+	}
+	if out["serena/find_symbol"] != filter.TierB {
+		t.Fatalf("other backend unchanged: got %v", out["serena/find_symbol"])
+	}
+}
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tool-overrides.json")
 	t.Setenv("COSTGATE_TOOL_OVERRIDES", path)

@@ -12,7 +12,7 @@
         "COSTGATE_DASHBOARD_AUTO": "1",
         "COSTGATE_DASHBOARD_AUTO_OPEN": "1",
         "COSTGATE_CLIENT": "cursor",
-        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_GATE_MODE": "transparent",
         "COSTGATE_COMPRESS": "1",
         "COSTGATE_CODE_MODE": "1",
         "COSTGATE_SHIELD": "1",

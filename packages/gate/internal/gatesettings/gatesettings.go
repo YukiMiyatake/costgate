@@ -32,7 +32,7 @@ type Settings struct {
 func defaultSettings() Settings {
 	return Settings{
 		Version:             1,
-		GateMode:            "filter",
+		GateMode:            "transparent",
 		Compress:            true,
 		CodeMode:            true,
 		IntentDynamic:       true,
@@ -40,7 +40,7 @@ func defaultSettings() Settings {
 		IntentPrompt:        true,
 		StaticIntent:        "",
 		CompressMaxChars:    12000,
-		ExposureMode:        "conservative",
+		ExposureMode:        "permissive",
 		ExposureMaxB:        5,
 		ExposureTokenBudget: 4000,
 		SlimList:            false,
@@ -103,7 +103,7 @@ func normalize(raw map[string]any) Settings {
 	}
 	if v, ok := raw["exposure_mode"].(string); ok {
 		switch v {
-		case "conservative", "aggressive", "budget":
+		case "conservative", "aggressive", "budget", "permissive":
 			out.ExposureMode = v
 		}
 	}

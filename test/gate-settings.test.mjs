@@ -24,8 +24,14 @@ function tempRoot() {
 }
 
 function testDefaults() {
-  const loaded = loadGateSettings({ projectRoot: "/nonexistent", scoped: true });
-  assert(loaded.settings.gate_mode === "filter", "default mode");
+  const root = tempRoot();
+  const loaded = loadGateSettings({
+    globalPath: join(root, "missing-gate-settings.json"),
+    projectRoot: root,
+    scoped: true,
+  });
+  assert(loaded.settings.gate_mode === "transparent", "default mode");
+  assert(loaded.settings.exposure_mode === "permissive", "default exposure");
   assert(loaded.settings.compress === true, "default compress");
   console.error("[gate-settings] defaults ok");
 }
@@ -99,7 +105,7 @@ async function testHttpApi() {
   const base = `http://127.0.0.1:${port}`;
   try {
     const get = await fetch(`${base}/api/gate-settings`).then((r) => r.json());
-    assert(get.settings.gate_mode === "filter", "GET settings");
+    assert(get.settings.gate_mode === "transparent", "GET settings");
     assert(get.defs?.length >= 5, "GET defs");
     assert(get.hot_reload === true, "hot_reload flag");
 
@@ -117,10 +123,19 @@ async function testHttpApi() {
     const modePatch = await fetch(`${base}/api/gate-settings`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: { gate_mode: "filter" } }),
+    });
+    assert(modePatch.ok, `filter PATCH ${modePatch.status}`);
+    const filterBody = await modePatch.json();
+    assert(filterBody.requires_gate_restart === true, "filter mode needs restart");
+
+    const transparentPatch = await fetch(`${base}/api/gate-settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings: { gate_mode: "transparent" } }),
     });
-    assert(modePatch.ok, `mode PATCH ${modePatch.status}`);
-    const modeBody = await modePatch.json();
+    assert(transparentPatch.ok, `mode PATCH ${transparentPatch.status}`);
+    const modeBody = await transparentPatch.json();
     assert(modeBody.requires_gate_restart === true, "gate_mode needs restart");
     assert(modeBody.gate_reload === undefined, "no auto reload for mode");
 
