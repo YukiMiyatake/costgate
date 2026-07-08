@@ -274,6 +274,53 @@ async function testShieldSettingsRoutes() {
   }
 }
 
+async function testWriteTokenProtectedRoutes() {
+  const prevToken = process.env.COSTGATE_DASHBOARD_TOKEN;
+  process.env.COSTGATE_DASHBOARD_TOKEN = "route-test-token";
+  const { base, close } = await startServer();
+  try {
+    const exportDenied = await fetch(`${base}/api/history/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generation_ids: ["gen-1"] }),
+    });
+    assert(exportDenied.status === 401, "history export requires token");
+
+    const exportOk = await fetch(`${base}/api/history/export`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Costgate-Dashboard-Token": "route-test-token",
+      },
+      body: JSON.stringify({ generation_ids: ["gen-1"] }),
+    });
+    assert(exportOk.status === 200, "history export with token");
+
+    const evalDenied = await fetch(`${base}/api/admin/gate-eval`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: { exposure_mode: "conservative" } }),
+    });
+    assert(evalDenied.status === 401, "gate-eval requires token");
+
+    const evalRes = await fetch(`${base}/api/admin/gate-eval`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Costgate-Dashboard-Token": "route-test-token",
+      },
+      body: JSON.stringify({ settings: { exposure_mode: "conservative" } }),
+    });
+    assert(evalRes.status === 200 || evalRes.status === 503, "gate-eval with token");
+
+    console.error("[routes] write token protection ok");
+  } finally {
+    if (prevToken === undefined) delete process.env.COSTGATE_DASHBOARD_TOKEN;
+    else process.env.COSTGATE_DASHBOARD_TOKEN = prevToken;
+    await close();
+  }
+}
+
 async function main() {
   testNormalizePathname();
   await testGetRoutes();
@@ -281,6 +328,7 @@ async function main() {
   await testMissingCatalog();
   await testUiSettingsRoutes();
   await testShieldSettingsRoutes();
+  await testWriteTokenProtectedRoutes();
   console.error("[routes] all passed");
 }
 
