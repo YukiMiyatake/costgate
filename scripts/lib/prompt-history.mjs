@@ -7,6 +7,8 @@ import { readTurns, historyLimit } from "./history-store.mjs";
 import { bytesToTokens } from "./parse-probe-logs.mjs";
 
 const JOIN_WINDOW_MS = 5 * 60 * 1000;
+/** tools/list may arrive before the prompt turn (Gate startup / Cursor cache refresh). */
+const TOOLS_LIST_LOOKBACK_MS = 30 * 60 * 1000;
 
 function parseJsonlLines(text) {
   const rows = [];
@@ -73,7 +75,11 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
     ? Date.parse(nextTurnTs)
     : turnTs + JOIN_WINDOW_MS;
   if (Number.isNaN(windowEnd)) return false;
-  if (eventTs < turnTs || eventTs >= windowEnd) return false;
+
+  const lookback =
+    event.event === "tools_list" && !event.generation_id ? TOOLS_LIST_LOOKBACK_MS : 0;
+  const windowStart = turnTs - lookback;
+  if (eventTs < windowStart || eventTs >= windowEnd) return false;
 
   if (turn.workspace_root && event.project_root) {
     return normalizeRoot(turn.workspace_root) === normalizeRoot(event.project_root);

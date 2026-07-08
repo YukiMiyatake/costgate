@@ -87,7 +87,27 @@ function testListHistorySource() {
   console.log("ok listHistorySource");
 }
 
+function testToolsListLookback() {
+  const opts = fixtureHistoryOptions();
+  const gatePath = join(opts.gateLogDir, "gate-fixture.jsonl");
+  const extra = {
+    type: "gate_event",
+    event: "tools_list",
+    ts: "2026-06-10T08:58:00.000Z",
+    backend: "github",
+    tools_exposed: 12,
+    tokens_est: 900,
+    project_root: opts.projectRoot,
+  };
+  writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(extra)}\n`);
+  const turn = getHistoryTurn("gen-fixture-1", opts);
+  assert.ok(turn);
+  assert.equal(turn.metrics.tools_list_events, 2, "lookback includes pre-turn tools_list");
+  console.log("ok toolsListLookback");
+}
+
 testListTurns();
+testToolsListLookback();
 testGetTurn();
 testExportTurns();
 testListProbeSessions();
