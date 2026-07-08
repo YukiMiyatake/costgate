@@ -85,41 +85,43 @@ func (f *File) Apply(classified map[string]filter.Tier) map[string]filter.Tier {
 }
 
 func applyForceTier(out, classified map[string]filter.Tier, name string, tier filter.Tier) {
-	if _, ok := classified[name]; ok {
-		out[name] = tier
-		return
-	}
-	if strings.Contains(name, "/") {
-		return
-	}
-	for toolName := range classified {
-		if toolName == name {
-			out[toolName] = tier
-			continue
-		}
-		if _, tool, ok := catalog.SplitQualified(toolName); ok && tool == name {
-			out[toolName] = tier
-		}
+	for _, toolName := range bareOverrideTargets(classified, name) {
+		out[toolName] = tier
 	}
 }
 
 func applyAlwaysExpose(out, classified map[string]filter.Tier, name string) {
-	if _, ok := classified[name]; ok {
-		out[name] = filter.TierA
-		return
+	for _, toolName := range bareOverrideTargets(classified, name) {
+		out[toolName] = filter.TierA
 	}
+}
+
+// bareOverrideTargets returns classified keys a bare override may affect.
+// When multiple backends share the same bare tool name, returns nil (ambiguous).
+func bareOverrideTargets(classified map[string]filter.Tier, name string) []string {
 	if strings.Contains(name, "/") {
-		return
+		if _, ok := classified[name]; ok {
+			return []string{name}
+		}
+		return nil
 	}
+	if _, ok := classified[name]; ok {
+		return []string{name}
+	}
+	var matches []string
 	for toolName := range classified {
 		if toolName == name {
-			out[toolName] = filter.TierA
+			matches = append(matches, toolName)
 			continue
 		}
 		if _, tool, ok := catalog.SplitQualified(toolName); ok && tool == name {
-			out[toolName] = filter.TierA
+			matches = append(matches, toolName)
 		}
 	}
+	if len(matches) != 1 {
+		return nil
+	}
+	return matches
 }
 
 // FileModTime returns the overrides file mtime, or zero if missing.
