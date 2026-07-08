@@ -81,7 +81,7 @@ const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const UI_DIR = join(ROOT, "dashboard-ui");
 const HOST = process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
 const PORT = Number(process.env.COSTGATE_DASHBOARD_PORT ?? "8787");
-const WRITE_TOKEN = process.env.COSTGATE_DASHBOARD_TOKEN ?? "";
+const WRITE_TOKEN = () => process.env.COSTGATE_DASHBOARD_TOKEN ?? "";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -135,9 +135,10 @@ function readBody(req) {
 }
 
 function authorizeWrite(req) {
-  if (WRITE_TOKEN) {
+  const writeToken = WRITE_TOKEN();
+  if (writeToken) {
     const header = req.headers["x-costgate-dashboard-token"];
-    if (header !== WRITE_TOKEN) {
+    if (header !== writeToken) {
       return false;
     }
   }
@@ -688,7 +689,7 @@ function createDashboardServer(options = {}) {
       if (method === "GET") {
         if (pathname === "/api/health") {
           json(res, 200, {
-            ...buildHealth({ writeTokenRequired: Boolean(WRITE_TOKEN) }),
+            ...buildHealth({ writeTokenRequired: Boolean(WRITE_TOKEN()) }),
             ui: buildUiSettingsApiPayload(),
           });
           return;
@@ -811,6 +812,10 @@ function createDashboardServer(options = {}) {
         }
 
         if (pathname === "/api/history/export") {
+          if (!authorizeWrite(req)) {
+            json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+            return;
+          }
           const paths = { ...defaultPaths(), ...dataOptions, ...controlPaths };
           const body = await readBody(req);
           const ids = body.generation_ids ?? body.ids ?? [];
@@ -825,6 +830,10 @@ function createDashboardServer(options = {}) {
         }
 
         if (pathname === "/api/admin/gate-eval") {
+          if (!authorizeWrite(req)) {
+            json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
+            return;
+          }
           const body = await readBody(req);
           try {
             if (!existsSync(gateBin())) {
@@ -1093,7 +1102,7 @@ async function main() {
   server.listen(PORT, HOST, () => {
     console.log(`CostGate Dashboard`);
     console.log(`  http://${HOST}:${PORT}`);
-    if (WRITE_TOKEN) {
+    if (WRITE_TOKEN()) {
       console.log(`  writes require COSTGATE_DASHBOARD_TOKEN`);
     } else {
       console.log(`  writes enabled on localhost (set COSTGATE_DASHBOARD_TOKEN to protect)`);
