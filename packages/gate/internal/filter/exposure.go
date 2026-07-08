@@ -17,6 +17,7 @@ const (
 	ExposureConservative ExposureMode = "conservative"
 	ExposureAggressive   ExposureMode = "aggressive"
 	ExposureBudget       ExposureMode = "budget"
+	ExposurePermissive   ExposureMode = "permissive"
 
 	defaultExposureMaxB        = 5
 	defaultExposureTokenBudget = 4000
@@ -36,8 +37,10 @@ func ResolveExposureMode() ExposureMode {
 		return ExposureAggressive
 	case "budget":
 		return ExposureBudget
-	default:
+	case "conservative":
 		return ExposureConservative
+	default:
+		return ExposurePermissive
 	}
 }
 
@@ -102,6 +105,24 @@ func estimateToolListTokens(tool *mcp.Tool) int {
 	}
 	n := len(b)
 	return (n + 3) / 4
+}
+
+func selectExposedPermissive(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*mcp.Tool {
+	var exposed []*mcp.Tool
+	for _, tool := range tools {
+		if tool == nil {
+			continue
+		}
+		switch tiers[tool.Name] {
+		case TierA, TierB:
+			exposed = append(exposed, tool)
+		case TierC:
+			if MatchIntent(intent, tool) {
+				exposed = append(exposed, tool)
+			}
+		}
+	}
+	return exposed
 }
 
 func selectExposedConservative(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*mcp.Tool {
@@ -215,8 +236,10 @@ func SelectExposed(tools []*mcp.Tool, tiers map[string]Tier, intent string) []*m
 		exposed = selectExposedAggressive(tools, tiers, intent, ExposureMaxTierB())
 	case ExposureBudget:
 		exposed = selectExposedBudget(tools, tiers, intent, ExposureTokenBudget())
-	default:
+	case ExposureConservative:
 		exposed = selectExposedConservative(tools, tiers, intent)
+	default:
+		exposed = selectExposedPermissive(tools, tiers, intent)
 	}
 	return slimExposedTools(exposed)
 }

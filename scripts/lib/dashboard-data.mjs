@@ -15,6 +15,7 @@ import {
   backendToolsCachePath,
 } from "./dashboard-backend-probe.mjs";
 import { readJson } from "./read-json.mjs";
+import { resolveToolOverride } from "./tool-override-names.mjs";
 import {
   parseProbeLogs,
   mcpMeasurableTokens,
@@ -411,7 +412,7 @@ function mergeToolStats(probeByTool, usage, catalogs, backends, defaultBackend, 
       const lTs = lastUsed ? Date.parse(lastUsed) : 0;
       if (!Number.isNaN(uTs) && uTs >= lTs) lastUsed = u.last_used;
     }
-    const override = overrides[name];
+    const override = resolveToolOverride(name, backend, overrides);
     const tier =
       override?.force_tier ??
       (override?.always_expose ? "A" : null) ??

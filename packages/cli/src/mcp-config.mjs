@@ -22,7 +22,7 @@ export function gateMcpServer(cliVersion = readCliPackageVersion()) {
       COSTGATE_DASHBOARD_AUTO: "1",
       COSTGATE_DASHBOARD_AUTO_OPEN: "once",
       COSTGATE_CLIENT: "cursor",
-      COSTGATE_GATE_MODE: "filter",
+      COSTGATE_GATE_MODE: "transparent",
       COSTGATE_COMPRESS: "1",
       COSTGATE_CODE_MODE: process.env.COSTGATE_CODE_MODE ?? "1",
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",

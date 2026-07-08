@@ -10,6 +10,20 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { qualifyOverrideToolName } from "./tool-override-names.mjs";
+
+function overrideKey(toolName, backend = null) {
+  return qualifyOverrideToolName(toolName, backend);
+}
+
+function normalizeBulkHideEntries(entries) {
+  const out = [];
+  for (const entry of entries ?? []) {
+    if (typeof entry === "string" && entry) out.push({ name: entry, backend: null });
+    else if (entry?.name) out.push({ name: entry.name, backend: entry.backend ?? null });
+  }
+  return out;
+}
 
 export function toolOverridesPath() {
   return (
@@ -50,36 +64,38 @@ export function saveToolOverrides(data, path = toolOverridesPath()) {
   return payload;
 }
 
-export function setToolForceTier(toolName, forceTier, path = toolOverridesPath()) {
+export function setToolForceTier(toolName, forceTier, path = toolOverridesPath(), backend = null) {
   const data = loadToolOverrides(path);
-  const cur = { ...(data.tools[toolName] ?? {}) };
+  const key = overrideKey(toolName, backend);
+  const cur = { ...(data.tools[key] ?? {}) };
   if (!forceTier || forceTier === "default") {
     delete cur.force_tier;
   } else {
     cur.force_tier = forceTier;
   }
   if (Object.keys(cur).length === 0) {
-    delete data.tools[toolName];
+    delete data.tools[key];
   } else {
-    data.tools[toolName] = cur;
+    data.tools[key] = cur;
   }
   saveToolOverrides(data, path);
   return data;
 }
 
 /** Prevent bulk-exclude recommendations from targeting this tool. */
-export function setToolExcludeLock(toolName, locked, path = toolOverridesPath()) {
+export function setToolExcludeLock(toolName, locked, path = toolOverridesPath(), backend = null) {
   const data = loadToolOverrides(path);
-  const cur = { ...(data.tools[toolName] ?? {}) };
+  const key = overrideKey(toolName, backend);
+  const cur = { ...(data.tools[key] ?? {}) };
   if (locked) {
     cur.exclude_lock = true;
-    data.tools[toolName] = cur;
+    data.tools[key] = cur;
   } else {
     delete cur.exclude_lock;
     if (Object.keys(cur).length === 0) {
-      delete data.tools[toolName];
+      delete data.tools[key];
     } else {
-      data.tools[toolName] = cur;
+      data.tools[key] = cur;
     }
   }
   saveToolOverrides(data, path);
@@ -87,18 +103,19 @@ export function setToolExcludeLock(toolName, locked, path = toolOverridesPath())
 }
 
 /** Pin tool to tools/list (Tier A) without changing other override fields. */
-export function setToolAlwaysExpose(toolName, pinned, path = toolOverridesPath()) {
+export function setToolAlwaysExpose(toolName, pinned, path = toolOverridesPath(), backend = null) {
   const data = loadToolOverrides(path);
-  const cur = { ...(data.tools[toolName] ?? {}) };
+  const key = overrideKey(toolName, backend);
+  const cur = { ...(data.tools[key] ?? {}) };
   if (pinned) {
     cur.always_expose = true;
-    data.tools[toolName] = cur;
+    data.tools[key] = cur;
   } else {
     delete cur.always_expose;
     if (Object.keys(cur).length === 0) {
-      delete data.tools[toolName];
+      delete data.tools[key];
     } else {
-      data.tools[toolName] = cur;
+      data.tools[key] = cur;
     }
   }
   saveToolOverrides(data, path);
@@ -107,6 +124,7 @@ export function setToolAlwaysExpose(toolName, pinned, path = toolOverridesPath()
 
 /** PATCH body may set force_tier and/or exclude_lock without clobbering other fields. */
 export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
+  const backend = body.backend ?? null;
   const hasForce =
     body.force_tier !== undefined ||
     body.enabled === true ||
@@ -121,31 +139,32 @@ export function patchToolOverride(toolName, body, path = toolOverridesPath()) {
     const forceTier =
       body.force_tier ??
       (body.enabled === false ? "hidden" : body.enabled === true ? "default" : null);
-    data = setToolForceTier(toolName, forceTier, path);
+    data = setToolForceTier(toolName, forceTier, path, backend);
   }
   if (hasLock) {
-    data = setToolExcludeLock(toolName, body.exclude_lock, path);
+    data = setToolExcludeLock(toolName, body.exclude_lock, path, backend);
   }
   if (hasPin) {
-    data = setToolAlwaysExpose(toolName, body.always_expose, path);
+    data = setToolAlwaysExpose(toolName, body.always_expose, path, backend);
   }
   return data;
 }
 
 /** Hide multiple tools from tools/list (force_tier: hidden). */
-export function bulkHideTools(toolNames, path = toolOverridesPath()) {
-  const names = [...new Set((toolNames ?? []).filter(Boolean))];
+export function bulkHideTools(entries, path = toolOverridesPath()) {
+  const normalized = normalizeBulkHideEntries(entries);
   const data = loadToolOverrides(path);
   const hidden = [];
   const skipped = [];
-  for (const name of names) {
-    const cur = data.tools[name] ?? {};
+  for (const { name, backend } of normalized) {
+    const key = overrideKey(name, backend);
+    const cur = data.tools[key] ?? data.tools[name] ?? {};
     if (cur.exclude_lock || cur.always_expose) {
-      skipped.push(name);
+      skipped.push(key);
       continue;
     }
-    data.tools[name] = { ...cur, force_tier: "hidden" };
-    hidden.push(name);
+    data.tools[key] = { ...cur, force_tier: "hidden" };
+    hidden.push(key);
   }
   saveToolOverrides(data, path);
   return { overrides: data, hidden, skipped, count: hidden.length };

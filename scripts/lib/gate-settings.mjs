@@ -10,9 +10,9 @@ import { readJson } from "./read-json.mjs";
 
 export const GATE_SETTINGS_VERSION = 1;
 
-/** Defaults match cursor-mcp production profile. */
+/** Defaults: transparent pass-through; filter + permissive when re-enabled. */
 export const DEFAULT_GATE_SETTINGS = {
-  gate_mode: "filter",
+  gate_mode: "transparent",
   compress: true,
   code_mode: true,
   intent_dynamic: true,
@@ -20,7 +20,7 @@ export const DEFAULT_GATE_SETTINGS = {
   intent_prompt: true,
   static_intent: "",
   compress_max_chars: 12000,
-  exposure_mode: "conservative",
+  exposure_mode: "permissive",
   exposure_max_b: 5,
   exposure_token_budget: 4000,
   slim_list: false,
@@ -34,7 +34,7 @@ export const GATE_SETTING_DEFS = [
     type: "enum",
     options: ["filter", "transparent"],
     label: "Gate mode",
-    hint: "filter = Tier A/B/C reduction; transparent = pass-through",
+    hint: "filter = Tier A/B/C reduction; transparent = pass-through (default)",
   },
   {
     key: "compress",
@@ -89,9 +89,9 @@ export const GATE_SETTING_DEFS = [
     key: "exposure_mode",
     env: "COSTGATE_EXPOSURE_MODE",
     type: "enum",
-    options: ["conservative", "aggressive", "budget"],
+    options: ["permissive", "conservative", "aggressive", "budget"],
     label: "Exposure mode",
-    hint: "conservative = all matched Tier B; aggressive = top-N Tier B; budget = token cap",
+    hint: "permissive = A+B always + intent-matched C; conservative = A + intent B; aggressive = top-N B; budget = token cap",
   },
   {
     key: "exposure_max_b",
@@ -143,7 +143,7 @@ export function normalizeSettings(raw = {}) {
   if (typeof raw.compress_max_chars === "number" && raw.compress_max_chars > 0) {
     out.compress_max_chars = Math.floor(raw.compress_max_chars);
   }
-  if (["conservative", "aggressive", "budget"].includes(raw.exposure_mode)) {
+  if (["permissive", "conservative", "aggressive", "budget"].includes(raw.exposure_mode)) {
     out.exposure_mode = raw.exposure_mode;
   }
   if (typeof raw.exposure_max_b === "number" && raw.exposure_max_b >= 0) {

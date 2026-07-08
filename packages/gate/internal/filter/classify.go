@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	defaultTierARatio = 0.20
-	defaultTierBRatio = 0.30
+	defaultTierARatio = 0.35
+	defaultTierBRatio = 0.35
 
 	scoreWeightCallCount = 0.5
 	scoreWeightRecent7d  = 0.3

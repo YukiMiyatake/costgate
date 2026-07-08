@@ -32,7 +32,10 @@ async function main() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        names: ["serena/find_symbol", "aieph/aieph_search"],
+        names: [
+          { name: "find_symbol", backend: "serena" },
+          { name: "aieph_search", backend: "aieph" },
+        ],
         tokens_saved: 1059,
       }),
     });
@@ -54,7 +57,11 @@ async function main() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        names: ["locked/tool", "pinned/tool", "github/fork_repository"],
+        names: [
+          { name: "fork_repository", backend: "github" },
+          "locked/tool",
+          "pinned/tool",
+        ],
       }),
     });
     assert(guarded.ok, `guarded status ${guarded.status}`);

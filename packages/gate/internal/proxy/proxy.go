@@ -33,7 +33,7 @@ func gateMode() string {
 	if m := os.Getenv("COSTGATE_GATE_MODE"); m != "" {
 		return m
 	}
-	return "filter"
+	return "transparent"
 }
 
 func intentKeywords() string {

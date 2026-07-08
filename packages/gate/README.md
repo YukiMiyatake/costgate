@@ -23,14 +23,19 @@ See [docs/RELEASE.md](../../docs/RELEASE.md).
 
 | `COSTGATE_GATE_MODE` | Behavior |
 |----------------------|----------|
-| `filter` (default) | Tier A/B/C + meta tools |
-| `transparent` | Pass-through (MVP / baseline comparison) |
+| `transparent` (default) | Pass-through — no Tier filtering |
+| `filter` | Tier A/B/C + meta tools |
 
 ## Filter mode (v0.4)
 
-- **Tier A** (~20%): always in `tools/list`
-- **Tier B** (~30%): in list when intent keywords match
-- **Tier C**: hidden — use `discover_tools` + `invoke_tool`
+- **Tier A** (~35%): always in `tools/list`
+- **Tier B** (~35%): exposure depends on `COSTGATE_EXPOSURE_MODE`
+- **Tier C** (~30%): hidden unless exposure mode + intent allow
+- **Exposure modes**:
+  - `permissive` (default): Tier A + B always; Tier C when intent matches
+  - `conservative`: Tier A always; Tier B when intent matches
+  - `aggressive`: Tier A + top-N intent-matched Tier B
+  - `budget`: token-capped list
 - **Meta tools** (always): `discover_tools`, `invoke_tool`
 - **Dynamic intent** (default ON): recent tool usage augments `COSTGATE_INTENT`; Tier B exposure refreshes after each call
 - **Probe intent** (default ON): fresh Probe JSONL `tool_call` names augment intent (`COSTGATE_INTENT_PROBE=1`)

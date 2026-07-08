@@ -6,6 +6,41 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+func TestSelectExposedPermissive(t *testing.T) {
+	t.Setenv("COSTGATE_EXPOSURE_MODE", "permissive")
+
+	tools := []*mcp.Tool{
+		{Name: "search_repositories"},
+		{Name: "list_pull_requests"},
+		{Name: "fork_repository"},
+	}
+	tiers := map[string]Tier{
+		"search_repositories": TierA,
+		"list_pull_requests":  TierB,
+		"fork_repository":     TierC,
+	}
+	exposed := SelectExposed(tools, tiers, "")
+	names := map[string]bool{}
+	for _, tool := range exposed {
+		names[tool.Name] = true
+	}
+	if !names["search_repositories"] || !names["list_pull_requests"] {
+		t.Fatalf("permissive should expose A+B without intent: %v", names)
+	}
+	if names["fork_repository"] {
+		t.Fatal("tier C should stay hidden without intent in permissive mode")
+	}
+
+	exposedWithIntent := SelectExposed(tools, tiers, "fork")
+	names = map[string]bool{}
+	for _, tool := range exposedWithIntent {
+		names[tool.Name] = true
+	}
+	if !names["fork_repository"] {
+		t.Fatal("tier C should expose when intent matches in permissive mode")
+	}
+}
+
 func TestSelectExposedAggressiveCapsTierB(t *testing.T) {
 	t.Setenv("COSTGATE_EXPOSURE_MODE", "aggressive")
 	t.Setenv("COSTGATE_EXPOSURE_MAX_B", "1")
