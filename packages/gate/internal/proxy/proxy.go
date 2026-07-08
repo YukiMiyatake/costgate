@@ -49,10 +49,9 @@ func runTransparent(ctx context.Context, registry *backend.Registry) error {
 	if err != nil {
 		return err
 	}
-	server := newServer()
+	server := newServer(registry.String())
 	registerBackendTools(server, cat.Tools, registry, fcs, nil)
 	log.Printf("[costgate-gate] transparent mode: %d tools from [%s]", len(cat.Tools), registry.String())
-	gatelog.LogToolsList(registry.String(), len(cat.Tools), gatelog.EstimateListTokens(cat.Tools))
 	return serve(ctx, server)
 }
 
@@ -103,17 +102,19 @@ func runFiltered(ctx context.Context, registry *backend.Registry) error {
 	if err != nil {
 		return fmt.Errorf("shield init: %w", err)
 	}
-	server := newServer()
+	server := newServer(registry.String())
 	rt := newFilterRuntime(server, cat, classifiedTiers, effectiveTiers, registry, store, intentKeywords(), fcs)
 	rt.logStartup()
 	return serve(ctx, server)
 }
 
-func newServer() *mcp.Server {
-	return mcp.NewServer(&mcp.Implementation{
+func newServer(backend string) *mcp.Server {
+	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "costgate-gate",
 		Version: version.Version,
 	}, nil)
+	gatelog.InstallToolsListLogging(server, backend)
+	return server
 }
 
 func registerBackendTools(server *mcp.Server, tools []*mcp.Tool, registry *backend.Registry, fcs map[string]*forwardContext, onCall func(string)) {
