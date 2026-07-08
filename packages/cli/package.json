@@ -1,6 +1,6 @@
 {
   "name": "@costgate/cli",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "CostGate CLI — Gate launcher, Dashboard, Cursor hooks (npm entry point)",
   "type": "module",
   "bin": {

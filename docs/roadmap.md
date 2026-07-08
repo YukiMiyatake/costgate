@@ -15,8 +15,9 @@ See [architecture.md](./architecture.md) for Cursor `mcp.json` layout.
 
 ## Git workflow
 
-Daily work: **feature branch → PR → `main`** via `npm run feat:ship`.  
-`develop` is not used.  
+Daily work: **feature branch → PR → `main`** via `npm run feat:ship` (opens PR only).  
+**CI, review comment, and auto-merge** run in GitHub Actions (`ci.yml`, `pr-automation.yml`).  
+Only `main` is used — no `develop` branch.  
 Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 ---

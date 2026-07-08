@@ -34,20 +34,29 @@ jobs:
             echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set package versions
+      - name: Verify package versions match tag
         run: |
+          VERSION="${{ steps.ver.outputs.version }}"
           node -e "
             const fs = require('fs');
-            const ver = '${{ steps.ver.outputs.version }}';
-            for (const pkg of ['packages/schema/package.json', 'packages/probe/package.json', 'packages/cli/package.json']) {
-              const j = JSON.parse(fs.readFileSync(pkg, 'utf8'));
-              j.version = ver;
-              fs.writeFileSync(pkg, JSON.stringify(j, null, 2) + '\n');
+            const want = process.env.VERSION;
+            const paths = ['packages/schema/package.json', 'packages/probe/package.json', 'packages/cli/package.json'];
+            for (const p of paths) {
+              const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+              if (j.version !== want) {
+                console.error(p + ' version ' + j.version + ' != tag ' + want);
+                process.exit(1);
+              }
             }
             const probe = JSON.parse(fs.readFileSync('packages/probe/package.json', 'utf8'));
-            probe.dependencies['@costgate/schema'] = ver;
-            fs.writeFileSync('packages/probe/package.json', JSON.stringify(probe, null, 2) + '\n');
+            if (probe.dependencies['@costgate/schema'] !== want) {
+              console.error('probe schema dep mismatch');
+              process.exit(1);
+            }
+            console.log('package versions ok @ ' + want);
           "
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
 
       - run: npm ci
 

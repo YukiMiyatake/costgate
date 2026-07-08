@@ -65,8 +65,8 @@ const groups = [
     cmds: [
       ["hooks:install", "pre-push フック（main 直 push 禁止）"],
       ["feat:start -- name", "feature ブランチ作成"],
-      ["feat:ship -- -m \"…\"", "commit → PR → auto-merge → main 同期"],
-      ["feat:sync", "main を pull のみ"],
+      ["feat:ship -- -m \"…\"", "commit → push → PR 作成（以降は GitHub Actions）"],
+      ["feat:sync", "マージ待ち + local main 同期"],
     ],
   },
   {
@@ -74,6 +74,7 @@ const groups = [
     cmds: [
       ["docker:setup", "コンテナ内 install + build"],
       ["docker:update", "コンテナ経由 cursor:update"],
+      ["release:version -- X.Y.Z", "package.json + CHANGELOG を bump"],
       ["release:check", "goreleaser check"],
       ["publish:check", "npm publish 前チェック"],
       ["cloud:upload", "costgate-cloud へ opt-in アップロード"],

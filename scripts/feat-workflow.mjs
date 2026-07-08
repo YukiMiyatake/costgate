@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
  * CostGate feat-branch workflow: start branch, commit, push, open PR to main.
+ * GitHub Actions handles CI, review comment, and auto-merge (see pr-automation.yml).
  *
  * Usage:
  *   npm run feat:start -- my-feature        # feat/my-feature
- *   npm run feat:ship -- --message "..."    # commit → PR → review → merge → local main
+ *   npm run feat:ship -- --message "..."    # commit → push → PR（ここまで）
  *   npm run feat:ship -- -m "..." --name fix/bug
  *   npm run feat:ship -- -m "..." --draft    # 手動レビュー用ドラフト PR
- *   npm run feat:ship -- -m "..." --no-auto   # auto-merge しない
- *   npm run feat:ship -- -m "..." --no-wait   # マージ待ち・main 同期をスキップ
+ *   npm run feat:ship -- -m "..." --wait     # マージ待ち + local main 同期（任意）
  *   npm run feat:sync                       # 開いている PR のマージ待ち + main 同期
  */
 import { execSync, spawnSync } from "node:child_process";
@@ -16,7 +16,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const PROTECTED = new Set(["main", "develop", "master"]);
+const PROTECTED = new Set(["main", "master"]);
 const DEFAULT_WAIT_TIMEOUT_MS = 20 * 60 * 1000;
 const DEFAULT_WAIT_INTERVAL_MS = 15 * 1000;
 
@@ -68,8 +68,7 @@ function parseArgs(argv) {
     body: "",
     skipPr: false,
     draft: false,
-    auto: true,
-    waitMerge: true,
+    waitMerge: false,
   };
   const rest = argv[0] === "start" || argv[0] === "sync" ? argv.slice(1) : argv.slice(1);
   if (out.cmd === "start") {
@@ -78,7 +77,7 @@ function parseArgs(argv) {
     return out;
   }
   if (out.cmd === "sync") {
-    if (rest.includes("--no-wait")) out.waitMerge = false;
+    out.waitMerge = !rest.includes("--no-wait");
     return out;
   }
   for (let i = 0; i < rest.length; i++) {
@@ -89,14 +88,8 @@ function parseArgs(argv) {
     else if (a === "--title") out.title = rest[++i] ?? "";
     else if (a === "--body") out.body = rest[++i] ?? "";
     else if (a === "--no-pr") out.skipPr = true;
-    else if (a === "--draft") {
-      out.draft = true;
-      out.auto = false;
-      out.waitMerge = false;
-    } else if (a === "--no-auto") {
-      out.auto = false;
-      out.waitMerge = false;
-    } else if (a === "--no-wait") out.waitMerge = false;
+    else if (a === "--draft") out.draft = true;
+    else if (a === "--wait") out.waitMerge = true;
   }
   return out;
 }
@@ -147,25 +140,18 @@ function prViewJson(prNum, query) {
   return tryGet(`gh pr view ${prNum} --json ${query}`);
 }
 
-function queueAutoMerge(prNum) {
-  if (!prNum) return;
-  run(`gh pr merge ${prNum} --auto --squash`, { allowFail: true });
-  console.error(`[feat] auto-merge queued: PR #${prNum}`);
-}
-
 function openPr(branch, opts) {
   const existingNum = prNumberForBranch(branch);
   if (existingNum) {
     const url = tryGet(`gh pr view ${existingNum} --json url -q .url`);
     console.error(`[feat] PR already open: ${url || existingNum}`);
-    if (opts.auto && !opts.draft) queueAutoMerge(existingNum);
     return existingNum;
   }
 
   const title = opts.title || opts.message.split("\n")[0] || branch;
   const body =
     opts.body ||
-    `## Summary\n\n${opts.message}\n\n## Test plan\n\n- [ ] 確認`;
+    `## Summary\n\n${opts.message}\n\n## Test plan\n\n- [ ] CI 通過を確認`;
   const dir = mkdtempSync(join(tmpdir(), "costgate-pr-"));
   const bodyFile = join(dir, "body.md");
   writeFileSync(bodyFile, body, "utf8");
@@ -181,9 +167,7 @@ function openPr(branch, opts) {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  const prNum = prNumberForBranch(branch);
-  if (opts.auto && !opts.draft) queueAutoMerge(prNum);
-  return prNum;
+  return prNumberForBranch(branch);
 }
 
 function ciFailed(prNum) {
@@ -199,7 +183,7 @@ function ciFailed(prNum) {
 
 function waitForPrMerge(prNum, { timeoutMs = DEFAULT_WAIT_TIMEOUT_MS } = {}) {
   const start = Date.now();
-  console.error(`[feat] waiting for PR #${prNum} to merge (CI + auto-merge)...`);
+  console.error(`[feat] waiting for PR #${prNum} to merge (GitHub Actions CI + auto-merge)...`);
 
   while (Date.now() - start < timeoutMs) {
     const state = tryGet(`gh pr view ${prNum} --json state -q .state`);
@@ -273,6 +257,12 @@ function cmdShip(opts) {
   let prNum = 0;
   if (!opts.skipPr) {
     prNum = openPr(branch, opts);
+    const url = prNum ? tryGet(`gh pr view ${prNum} --json url -q .url`) : "";
+    if (url) console.error(`[feat] PR opened: ${url}`);
+    if (!opts.draft) {
+      console.error("[feat] GitHub Actions が CI / レビューコメント / auto-merge を処理します。");
+      console.error("[feat] マージ後に main を同期する場合: npm run feat:sync");
+    }
   }
 
   finishPipeline(branch, opts, prNum);
