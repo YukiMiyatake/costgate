@@ -99,17 +99,21 @@ func RecentPromptIntentKeywords(dir string, within time.Duration) string {
 // LogCorrelationFields returns generation/conversation IDs for gate JSONL when fresh.
 func LogCorrelationFields(dir, projectRoot string) map[string]string {
 	rec, ok := RecentPromptIntentRecord(dir, 0)
-	if !ok || rec.GenerationID == "" {
-		return nil
-	}
-	if rec.WorkspaceRoot != "" && projectRoot != "" {
-		if filepath.Clean(rec.WorkspaceRoot) != filepath.Clean(projectRoot) {
-			return nil
+	if ok && rec.GenerationID != "" {
+		if rec.WorkspaceRoot == "" || projectRoot == "" || filepath.Clean(rec.WorkspaceRoot) == filepath.Clean(projectRoot) {
+			out := map[string]string{"generation_id": rec.GenerationID}
+			if rec.ConversationID != "" {
+				out["conversation_id"] = rec.ConversationID
+			}
+			return out
 		}
 	}
-	out := map[string]string{"generation_id": rec.GenerationID}
-	if rec.ConversationID != "" {
-		out["conversation_id"] = rec.ConversationID
+	if gen, conv, ok := GenerationActiveAt(time.Now().UTC(), projectRoot); ok {
+		out := map[string]string{"generation_id": gen}
+		if conv != "" {
+			out["conversation_id"] = conv
+		}
+		return out
 	}
-	return out
+	return nil
 }

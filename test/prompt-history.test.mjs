@@ -162,7 +162,11 @@ function testToolsListStaleGenerationId() {
   writeFileSync(gatePath, readFileSync(gatePath, "utf8") + `${JSON.stringify(extra)}\n`);
   const turn = getHistoryTurn("gen-fixture-2", opts);
   assert.ok(turn);
-  assert.equal(turn.tools_list.some((r) => r.tools_exposed === 40), true, "stale gen id uses time window");
+  assert.equal(
+    turn.tools_list.some((r) => r.tools_exposed === 40),
+    false,
+    "wrong generation_id must not bind to this turn"
+  );
   console.log("ok toolsListStaleGenerationId");
 }
 
