@@ -16,10 +16,31 @@ npx @costgate/cli@latest init
 
 **Prerequisite:** GitHub secret `NPM_TOKEN` (npm automation token)
 
-```bash
-npm ci && npm run build && npm run publish:check
-npm run release:check   # goreleaser
+Release frequency is flexible (early releases may be frequent). The process is always the same:
 
+### 1. Bump version in the repo
+
+```bash
+npm run release:version -- 0.6.0 --note "Dashboard history, generation_id binding"
+npm run publish:check
+npm run release:check   # goreleaser
+```
+
+This updates `packages/*/package.json`, probe’s `@costgate/schema` dependency, and `CHANGELOG.md`.
+
+### 2. Ship a release PR
+
+```bash
+git add packages CHANGELOG.md
+npm run feat:ship -- -m "chore: release v0.6.0"
+```
+
+GitHub Actions runs CI and auto-merges when green.
+
+### 3. Tag after merge
+
+```bash
+git checkout main && git pull origin main
 git tag v0.6.0
 git push origin v0.6.0
 ```
@@ -30,6 +51,8 @@ Tag `v*` triggers CI in parallel:
 |----------|--------|
 | `release.yml` | `costgate-gate` binaries (GitHub Releases) |
 | `npm-publish.yml` | `@costgate/schema`, `@costgate/probe`, `@costgate/cli` |
+
+`npm-publish.yml` verifies that package versions in the repo **match the tag** (no CI-side version rewrite).
 
 ## @costgate/cli — npm publish
 
@@ -69,7 +92,7 @@ npx @costgate/probe   # measurement only
 npm run publish:check
 ```
 
-`@costgate/schema`, `@costgate/probe`, and `@costgate/cli` versions must match.
+`@costgate/schema`, `@costgate/probe`, and `@costgate/cli` versions must match in the repo.
 
 ## Developer Cursor switch (clone)
 
@@ -83,4 +106,4 @@ npm run build:gate && npm run cursor:production
 
 1. Update [docs/benchmarks.md](./benchmarks.md) if numbers change
 2. `npm run eval -- --out test/eval/baseline.json` when adding tasks
-3. Release notes: Gate binary + npm package versions
+3. Confirm GitHub Release notes and npm versions

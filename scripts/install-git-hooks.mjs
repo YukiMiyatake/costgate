@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-/** Enable repo-local git hooks (.githooks/pre-push). */
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { execSync } from "node:child_process";
+/**
+ * Install .githooks/pre-push (blocks direct push to main/master).
+ */
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const HOOKS = join(ROOT, ".githooks");
+const PRE_PUSH = join(ROOT, ".githooks", "pre-push");
 
-mkdirSync(HOOKS, { recursive: true });
-
-const prePush = `#!/bin/sh
-# CostGate: block direct push to main/develop/master (tags and feature branches OK)
+const hookBody = `#!/bin/sh
+# CostGate: block direct push to main/master (tags and feature branches OK)
 blocked=0
 while read -r local_ref local_sha remote_ref remote_sha; do
   case "$remote_ref" in
-    refs/heads/main|refs/heads/develop|refs/heads/master)
+    refs/heads/main|refs/heads/master)
       blocked=1
       ;;
   esac
@@ -29,8 +29,14 @@ fi
 exit 0
 `;
 
-writeFileSync(join(HOOKS, "pre-push"), prePush, { mode: 0o755 });
-chmodSync(join(HOOKS, "pre-push"), 0o755);
+mkdirSync(join(ROOT, ".githooks"), { recursive: true });
+writeFileSync(PRE_PUSH, hookBody);
+chmodSync(PRE_PUSH, 0o755);
 
-execSync("git config core.hooksPath .githooks", { cwd: ROOT, stdio: "inherit" });
-console.log("[hooks] installed: .githooks/pre-push → blocks push to main/develop/master branches only");
+const r = spawnSync("git", ["config", "core.hooksPath", ".githooks"], {
+  cwd: ROOT,
+  stdio: "inherit",
+});
+if (r.status !== 0) process.exit(r.status ?? 1);
+
+console.log("[hooks] installed: .githooks/pre-push → blocks push to main/master only");

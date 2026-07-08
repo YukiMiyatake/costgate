@@ -65,6 +65,7 @@
     "docker:update": "node scripts/cursor-update.mjs --docker",
 
     "publish:check": "node scripts/publish-check.mjs",
+    "release:version": "node scripts/release-version.mjs",
     "release:check": "goreleaser check",
 
     "test": "npm run test:ci",

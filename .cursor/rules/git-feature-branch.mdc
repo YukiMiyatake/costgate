@@ -8,23 +8,23 @@ alwaysApply: true
 
 ## 必須（エージェント向け）
 
-**コミット・push・PR は `npm run feat:ship` を使う。** デフォルトで **PR → CI/自動レビュー → auto-merge → ローカル main 同期** まで実行。
+**コミット・push・PR は `npm run feat:ship` を使う。** Cursor / ローカルは **PR 作成まで**。CI・レビューコメント・auto-merge は **GitHub Actions**（`ci.yml` + `pr-automation.yml`）が担当。
 
 ```bash
 git add <files>
 npm run feat:ship -- --message "日本語のコミットメッセージ"
-# マージ待ちをスキップ
-npm run feat:ship -- -m "…" --no-wait
+# マージ待ち + local main 同期（任意）
+npm run feat:ship -- -m "…" --wait
 # 手動レビュー
 npm run feat:ship -- -m "…" --draft
-# マージ後に main 同期だけ
+# マージ後に main 同期
 npm run feat:sync
 ```
 
-- `main` / `develop` への直接 push 禁止（`.githooks/pre-push`）
+- `main` への直接 push 禁止（`.githooks/pre-push`）
 - コミットメッセージは日本語
 - 1 機能 = 1 ブランチ = 1 PR（`main` 向け）
-- PR 自動化: `.github/workflows/ci.yml` + `pr-automation.yml`
+- `develop` ブランチは使わない
 
 ## ブランチ開始のみ
 
@@ -36,4 +36,15 @@ npm run feat:start -- short-name
 
 ```bash
 npm run hooks:install
+```
+
+## リリース
+
+バージョンは repo にコミットしてから tag push。詳細: `docs/RELEASE.md`
+
+```bash
+npm run release:version -- 0.6.0 --note "変更概要"
+npm run feat:ship -- -m "chore: release v0.6.0"
+# マージ後
+git tag v0.6.0 && git push origin v0.6.0
 ```

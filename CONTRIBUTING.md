@@ -88,11 +88,19 @@ Legacy aliases: `registry:install-cursor-hook` → `cursor:registry`, `test:dash
 | `main` | Default stable branch; merge target for feature PRs |
 | `feat/*`, `fix/*`, `docs/*`, `chore/*` | Feature branches; one PR each to `main` |
 
-The `develop` branch is **not used**.
+Only `main` is used. There is no `develop` branch.
+
+### Responsibility split
+
+| Step | Where |
+|------|--------|
+| Commit, push, open PR | Local / Cursor (`npm run feat:ship`) |
+| CI, review comment, auto-merge | GitHub Actions (`ci.yml`, `pr-automation.yml`) |
+| Sync local `main` after merge | Optional (`npm run feat:sync`) |
 
 ### Daily workflow
 
-**One feature = one branch = one PR** to `main`. Use the automation scripts:
+**One feature = one branch = one PR** to `main`:
 
 ```bash
 # First time: enable hooks (blocks direct push to main)
@@ -101,14 +109,13 @@ npm run hooks:install
 # Create branch only
 npm run feat:start -- gate-filter-v2
 
-# Commit, push, PR, auto-merge, sync local main
+# Commit, push, open PR (GitHub Actions handles the rest)
 git add …
 npm run feat:ship -- --message "description of change"
 npm run feat:ship -- -m "…" --name fix/bug-name
-npm run feat:ship -- -m "…" --draft
-npm run feat:ship -- -m "…" --no-auto
-npm run feat:ship -- -m "…" --no-wait
-npm run feat:sync
+npm run feat:ship -- -m "…" --draft          # manual review
+npm run feat:ship -- -m "…" --wait           # optional: wait for merge + sync main
+npm run feat:sync                            # after merge: pull main + delete feature branch
 ```
 
 Manual workflow:
@@ -122,6 +129,19 @@ gh pr create --base main --head feat/short-description
 ```
 
 **Do not push directly to `main`** — use PRs.
+
+### Release workflow
+
+Versions are **committed to the repo** before tagging. See [RELEASE.md](./docs/RELEASE.md).
+
+```bash
+npm run release:version -- 0.6.0 --note "summary for CHANGELOG"
+git add packages CHANGELOG.md
+npm run feat:ship -- -m "chore: release v0.6.0"
+# after PR merges:
+git checkout main && git pull
+git tag v0.6.0 && git push origin v0.6.0
+```
 
 ### Branch naming
 
