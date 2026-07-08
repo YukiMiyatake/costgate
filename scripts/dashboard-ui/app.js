@@ -12,6 +12,14 @@ import {
   shieldSettingHint,
 } from "./i18n.mjs";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function showToast(message, { kind = "error" } = {}) {
   const root = document.getElementById("toast-root");
   if (!root || !message) return;
@@ -1514,6 +1522,129 @@ async function openAddMcpTab(templateId) {
 let historyTurns = [];
 const historySelected = new Set();
 let historySource = sessionStorage.getItem("costgate_history_source") ?? "turns";
+let historyActiveGenerationId = null;
+
+function historyUsedToolCount(turn) {
+  return (turn.tools_called ?? []).length;
+}
+
+function closeHistoryDetail() {
+  for (const panel of document.querySelectorAll(".history-detail-inline")) {
+    panel.remove();
+  }
+  for (const row of document.querySelectorAll(".history-row.active")) {
+    row.classList.remove("active");
+  }
+  historyActiveGenerationId = null;
+}
+
+function historyDetailMarkup(turn) {
+  const m = turn.metrics ?? {};
+  const usedTools = turn.tools_called ?? [];
+  const usedChips = usedTools.length
+    ? usedTools
+        .map((tool) => `<span class="history-chip">${escapeHtml(tool)}</span>`)
+        .join("")
+    : `<span class="note">${escapeHtml(t("history.usedToolsEmpty"))}</span>`;
+
+  const metricCards = [
+    [t("history.metricTotal"), `~${fmt(m.total_tokens_est ?? 0)}`],
+    [t("history.metricList"), `~${fmt(m.tools_list_tokens_est ?? 0)}`],
+    [t("history.metricCalls"), `~${fmt(m.tool_call_tokens_est ?? 0)}`],
+    [t("history.metricSaved"), `~${fmt(m.saved_tokens_est ?? 0)}`],
+    [t("history.metricUsedTools"), String(historyUsedToolCount(turn))],
+  ]
+    .map(
+      ([label, value]) =>
+        `<div class="card"><span class="card-label">${escapeHtml(label)}</span><span class="card-value">${escapeHtml(value)}</span></div>`
+    )
+    .join("");
+
+  const toolsListRows = (turn.tools_list ?? [])
+    .map(
+      (row) =>
+        `<tr><td>${escapeHtml(fmtDate(row.ts))}</td><td>${escapeHtml(row.backend ?? "—")}</td><td>${escapeHtml(fmt(row.tools_exposed ?? 0))}</td><td>~${escapeHtml(fmt(row.tokens_est ?? 0))}</td></tr>`
+    )
+    .join("");
+
+  const toolCallRows = (turn.tool_calls ?? [])
+    .map((row) => {
+      const saved = row.saved_bytes ? `~${fmt(Math.ceil(row.saved_bytes / 4))}` : "—";
+      const flag = row.compressed ? t("history.compressedYes") : t("history.compressedNo");
+      return `<tr><td>${escapeHtml(fmtDate(row.ts))}</td><td>${escapeHtml(row.tool ?? "—")}</td><td>${escapeHtml(fmt(row.response_bytes ?? 0))} B · ${escapeHtml(flag)}</td><td>${escapeHtml(saved)}</td></tr>`;
+    })
+    .join("");
+
+  return `
+    <header class="history-detail-header">
+      <h3 class="subsection-title">${escapeHtml(historyPreviewLabel(turn))}</h3>
+      <button type="button" class="btn-sm history-detail-close" data-i18n="history.closeDetail">${escapeHtml(t("history.closeDetail"))}</button>
+    </header>
+    <p class="note">${escapeHtml(
+      t("history.detailMeta", {
+        generation: turn.generation_id ?? "—",
+        conversation: turn.conversation_id || "—",
+        correlation: turn.correlation ?? "—",
+      })
+    )}</p>
+    <div class="cards history-detail-cards">${metricCards}</div>
+    <h4 class="subsection-title">${escapeHtml(t("history.usedToolsSection"))}</h4>
+    <div class="history-chips history-detail-used-tools">${usedChips}</div>
+    <h4 class="subsection-title">${escapeHtml(t("history.toolsListSection"))}</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>${escapeHtml(t("history.colTime"))}</th>
+            <th>${escapeHtml(t("history.colBackend"))}</th>
+            <th>${escapeHtml(t("history.colExposed"))}</th>
+            <th>${escapeHtml(t("history.colTokens"))}</th>
+          </tr>
+        </thead>
+        <tbody>${toolsListRows}</tbody>
+      </table>
+    </div>
+    <h4 class="subsection-title">${escapeHtml(t("history.toolCallsSection"))}</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>${escapeHtml(t("history.colTime"))}</th>
+            <th>${escapeHtml(t("history.colTool"))}</th>
+            <th>${escapeHtml(t("history.colResponse"))}</th>
+            <th>${escapeHtml(t("history.colSaved"))}</th>
+          </tr>
+        </thead>
+        <tbody>${toolCallRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderHistoryDetail(turn, rowEl) {
+  if (!turn || !rowEl) return;
+  const sameRow =
+    historyActiveGenerationId === turn.generation_id &&
+    rowEl.nextElementSibling?.classList.contains("history-detail-inline");
+  if (sameRow) {
+    closeHistoryDetail();
+    return;
+  }
+
+  closeHistoryDetail();
+  const panel = document.createElement("article");
+  panel.className = "history-detail history-detail-inline";
+  panel.setAttribute("aria-live", "polite");
+  panel.innerHTML = historyDetailMarkup(turn);
+  panel.querySelector(".history-detail-close")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeHistoryDetail();
+  });
+  rowEl.classList.add("active");
+  rowEl.after(panel);
+  historyActiveGenerationId = turn.generation_id ?? null;
+  panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
 
 function historyQuery() {
   return `${apiPath("history")}?limit=50&source=${encodeURIComponent(historySource)}`;
@@ -1562,58 +1693,6 @@ function historyPreviewLabel(turn) {
   return turn.generation_id ?? "—";
 }
 
-function renderHistoryDetail(turn) {
-  const panel = document.getElementById("history-detail");
-  const title = document.getElementById("history-detail-title");
-  const meta = document.getElementById("history-detail-meta");
-  const metricsEl = document.getElementById("history-detail-metrics");
-  const listBody = document.getElementById("history-tools-list-body");
-  const callsBody = document.getElementById("history-tool-calls-body");
-  if (!panel || !turn) return;
-
-  panel.classList.remove("hidden");
-  title.textContent = historyPreviewLabel(turn);
-  meta.textContent = t("history.detailMeta", {
-    generation: turn.generation_id ?? "—",
-    conversation: turn.conversation_id || "—",
-    correlation: turn.correlation ?? "—",
-  });
-
-  const m = turn.metrics ?? {};
-  metricsEl.innerHTML = "";
-  for (const [label, value] of [
-    [t("history.metricTotal"), `~${fmt(m.total_tokens_est ?? 0)}`],
-    [t("history.metricList"), `~${fmt(m.tools_list_tokens_est ?? 0)}`],
-    [t("history.metricCalls"), `~${fmt(m.tool_call_tokens_est ?? 0)}`],
-    [t("history.metricSaved"), `~${fmt(m.saved_tokens_est ?? 0)}`],
-  ]) {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `<span class="card-label">${label}</span><span class="card-value">${value}</span>`;
-    metricsEl.appendChild(card);
-  }
-
-  listBody.innerHTML = "";
-  for (const row of turn.tools_list ?? []) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.backend ?? "—"}</td><td>${fmt(row.tools_exposed ?? 0)}</td><td>~${fmt(row.tokens_est ?? 0)}</td>`;
-    listBody.appendChild(tr);
-  }
-
-  callsBody.innerHTML = "";
-  for (const row of turn.tool_calls ?? []) {
-    const saved = row.saved_bytes ? `~${fmt(Math.ceil(row.saved_bytes / 4))}` : "—";
-    const flag = row.compressed ? t("history.compressedYes") : t("history.compressedNo");
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.tool ?? "—"}</td><td>${fmt(row.response_bytes ?? 0)} B · ${flag}</td><td>${saved}</td>`;
-    callsBody.appendChild(tr);
-  }
-
-  for (const row of document.querySelectorAll(".history-row")) {
-    row.classList.toggle("active", row.dataset.generationId === turn.generation_id);
-  }
-}
-
 function renderHistory(data) {
   const list = document.getElementById("history-list");
   const empty = document.getElementById("history-empty");
@@ -1623,6 +1702,7 @@ function renderHistory(data) {
   historyTurns = data?.turns ?? [];
   historySelected.clear();
   updateHistoryExportButton();
+  closeHistoryDetail();
   list.innerHTML = "";
   if (count) {
     count.textContent = t("history.count", {
@@ -1633,7 +1713,6 @@ function renderHistory(data) {
 
   if (!historyTurns.length) {
     empty?.classList.remove("hidden");
-    document.getElementById("history-detail")?.classList.add("hidden");
     return;
   }
   empty?.classList.add("hidden");
@@ -1671,7 +1750,8 @@ function renderHistory(data) {
       total: fmt(metrics.total_tokens_est ?? 0),
       saved: fmt(metrics.saved_tokens_est ?? 0),
       list: fmt(metrics.tools_list_events ?? 0),
-      tools: fmt(metrics.tool_calls ?? 0),
+      used: fmt(historyUsedToolCount(turn)),
+      calls: fmt(metrics.tool_calls ?? 0),
     });
 
     body.appendChild(title);
@@ -1693,7 +1773,7 @@ function renderHistory(data) {
     }
     if (chips.childElementCount) body.appendChild(chips);
 
-    body.addEventListener("click", () => renderHistoryDetail(turn));
+    body.addEventListener("click", () => renderHistoryDetail(turn, row));
     row.appendChild(check);
     row.appendChild(body);
     list.appendChild(row);
@@ -1711,16 +1791,9 @@ async function loadHistory() {
 }
 
 function setupHistoryPanel() {
-  const close = document.getElementById("history-detail-close");
-  if (!close || close.dataset.wired) return;
-  close.dataset.wired = "1";
-  close.addEventListener("click", () => {
-    document.getElementById("history-detail")?.classList.add("hidden");
-    for (const row of document.querySelectorAll(".history-row")) row.classList.remove("active");
-  });
-
   const exportBtn = document.getElementById("history-export-btn");
-  if (exportBtn && !exportBtn.dataset.wired) {
+  if (exportBtn?.dataset.wired) return;
+  if (exportBtn) {
     exportBtn.dataset.wired = "1";
     exportBtn.addEventListener("click", () => void exportSelectedHistory());
   }
@@ -1748,7 +1821,7 @@ function setupHistoryPanel() {
     sourceSelect.addEventListener("change", async () => {
       historySource = sourceSelect.value === "probe" ? "probe" : "turns";
       sessionStorage.setItem("costgate_history_source", historySource);
-      document.getElementById("history-detail")?.classList.add("hidden");
+      closeHistoryDetail();
       try {
         await loadHistory();
       } catch (e) {

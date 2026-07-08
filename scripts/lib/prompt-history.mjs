@@ -71,6 +71,13 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
   if (event.generation_id && gen && event.generation_id === gen) {
     return true;
   }
+  if (
+    turn.conversation_id &&
+    event.conversation_id &&
+    turn.conversation_id !== event.conversation_id
+  ) {
+    return false;
+  }
   // tool_call rows must match generation_id when present.
   if (event.generation_id && event.event !== "tools_list") {
     return false;
@@ -96,8 +103,13 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
   if (turn.workspace_root && event.project_root) {
     return normalizeRoot(turn.workspace_root) === normalizeRoot(event.project_root);
   }
-  // Gate tools_list rows historically omitted project_root; allow time-window join.
-  if (turn.workspace_root && event.project_root == null && event.event !== "tools_list") {
+  // Gate tools_list / tool_call rows often omit project_root; allow time-window join.
+  if (
+    turn.workspace_root &&
+    event.project_root == null &&
+    event.event !== "tools_list" &&
+    event.event !== "tool_call"
+  ) {
     return false;
   }
   return true;
