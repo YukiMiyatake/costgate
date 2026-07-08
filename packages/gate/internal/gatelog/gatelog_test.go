@@ -68,6 +68,9 @@ func TestLoggerWritesGateEvents(t *testing.T) {
 	if list["backend"] != "github" || int(list["tools_exposed"].(float64)) != 8 {
 		t.Fatalf("unexpected tools_list fields: %#v", list)
 	}
+	if list["project_root"] != "/work/costgate" {
+		t.Fatalf("tools_list expected project_root, got %#v", list["project_root"])
+	}
 
 	call := lines[1]
 	if call["event"] != "tool_call" || call["tool"] != "search_issues" {

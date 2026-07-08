@@ -1670,6 +1670,7 @@ function renderHistory(data) {
     meta.textContent = t("history.rowSummary", {
       total: fmt(metrics.total_tokens_est ?? 0),
       saved: fmt(metrics.saved_tokens_est ?? 0),
+      list: fmt(metrics.tools_list_events ?? 0),
       tools: fmt(metrics.tool_calls ?? 0),
     });
 
@@ -1722,6 +1723,22 @@ function setupHistoryPanel() {
   if (exportBtn && !exportBtn.dataset.wired) {
     exportBtn.dataset.wired = "1";
     exportBtn.addEventListener("click", () => void exportSelectedHistory());
+  }
+
+  const reloadBtn = document.getElementById("history-reload-btn");
+  if (reloadBtn && !reloadBtn.dataset.wired) {
+    reloadBtn.dataset.wired = "1";
+    reloadBtn.addEventListener("click", async () => {
+      reloadBtn.disabled = true;
+      try {
+        await loadHistory();
+        showToast(t("history.reloadOk"), { kind: "success" });
+      } catch (e) {
+        showToast(t("history.loadFail") + (e.message ? `: ${e.message}` : ""));
+      } finally {
+        reloadBtn.disabled = false;
+      }
+    });
   }
 
   const sourceSelect = document.getElementById("history-source");
