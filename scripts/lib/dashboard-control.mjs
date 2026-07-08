@@ -12,6 +12,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { qualifyOverrideToolName } from "./tool-override-names.mjs";
+import { readJson } from "./read-json.mjs";
 
 function overrideKey(toolName, backend = null) {
   return qualifyOverrideToolName(toolName, backend);
@@ -75,7 +76,10 @@ export function loadToolOverrides(path = toolOverridesPath()) {
   if (!existsSync(path)) {
     return { version: 1, tools: {} };
   }
-  const raw = JSON.parse(readFileSync(path, "utf8"));
+  const raw = readJson(path);
+  if (!raw) {
+    return { version: 1, tools: {}, corrupt: true };
+  }
   return {
     version: raw.version ?? 1,
     tools: raw.tools ?? {},
