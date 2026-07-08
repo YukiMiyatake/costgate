@@ -6,9 +6,11 @@ import { join, resolve } from "node:path";
 import { readTurns, historyLimit } from "./history-store.mjs";
 import { bytesToTokens } from "./parse-probe-logs.mjs";
 
-const JOIN_WINDOW_MS = 5 * 60 * 1000;
+
 /** tools/list may arrive before the prompt turn (Gate startup / Cursor cache refresh). */
 const TOOLS_LIST_LOOKBACK_MS = 30 * 60 * 1000;
+/** Open-ended last turn window when no following prompt exists yet. */
+const OPEN_TURN_MS = 30 * 60 * 1000;
 
 function parseJsonlLines(text) {
   const rows = [];
@@ -66,10 +68,75 @@ function normalizeRoot(path) {
   }
 }
 
-function eventMatchesTurn(event, turn, nextTurnTs) {
+function buildTurnTimeline(turns) {
+  const sorted = [...turns].sort(
+    (a, b) => Date.parse(a.ts ?? "") - Date.parse(b.ts ?? "")
+  );
+  return sorted.map((turn, index) => ({
+    ...turn,
+    nextTs: sorted[index + 1]?.ts ?? null,
+  }));
+}
+
+/**
+ * Infer which prompt generation owns a Gate event using turn boundaries
+ * (generation_id from Cursor hook), not a blind time window.
+ */
+export function inferGenerationForEvent(event, timeline) {
+  if (event?.generation_id) {
+    return { generation_id: event.generation_id, inferred: false };
+  }
+  const eventTs = Date.parse(event?.ts ?? "");
+  if (Number.isNaN(eventTs)) return null;
+
+  for (let i = timeline.length - 1; i >= 0; i--) {
+    const turn = timeline[i];
+    const turnTs = Date.parse(turn.ts ?? "");
+    if (Number.isNaN(turnTs) || !turn.generation_id) continue;
+
+    const lookback = event.event === "tools_list" ? TOOLS_LIST_LOOKBACK_MS : 0;
+    if (eventTs < turnTs - lookback) continue;
+
+    const nextTs = turn.nextTs ? Date.parse(turn.nextTs) : NaN;
+    const windowEnd = Number.isNaN(nextTs) ? turnTs + OPEN_TURN_MS : nextTs;
+    if (eventTs >= windowEnd) continue;
+
+    if (
+      turn.conversation_id &&
+      event.conversation_id &&
+      turn.conversation_id !== event.conversation_id
+    ) {
+      continue;
+    }
+    if (turn.workspace_root && event.project_root) {
+      if (normalizeRoot(turn.workspace_root) !== normalizeRoot(event.project_root)) {
+        continue;
+      }
+    }
+    return { generation_id: turn.generation_id, inferred: true };
+  }
+  return null;
+}
+
+export function enrichGateEvents(events, timeline) {
+  return events.map((event) => {
+    if (event?.generation_id) {
+      return { ...event, _generation_inferred: false };
+    }
+    const resolved = inferGenerationForEvent(event, timeline);
+    if (!resolved) return event;
+    return {
+      ...event,
+      generation_id: resolved.generation_id,
+      _generation_inferred: resolved.inferred,
+    };
+  });
+}
+
+function eventMatchesTurn(event, turn) {
   const gen = turn.generation_id;
-  if (event.generation_id && gen && event.generation_id === gen) {
-    return true;
+  if (!gen || !event.generation_id || event.generation_id !== gen) {
+    return false;
   }
   if (
     turn.conversation_id &&
@@ -78,39 +145,8 @@ function eventMatchesTurn(event, turn, nextTurnTs) {
   ) {
     return false;
   }
-  // tool_call rows must match generation_id when present.
-  if (event.generation_id && event.event !== "tools_list") {
-    return false;
-  }
-
-  const eventTs = Date.parse(event.ts ?? "");
-  const turnTs = Date.parse(turn.ts ?? "");
-  if (Number.isNaN(eventTs) || Number.isNaN(turnTs)) return false;
-
-  const windowEnd = nextTurnTs
-    ? Date.parse(nextTurnTs)
-    : turnTs + JOIN_WINDOW_MS;
-  if (Number.isNaN(windowEnd)) return false;
-
-  const lookback =
-    event.event === "tools_list" &&
-    (!event.generation_id || (gen && event.generation_id !== gen))
-      ? TOOLS_LIST_LOOKBACK_MS
-      : 0;
-  const windowStart = turnTs - lookback;
-  if (eventTs < windowStart || eventTs >= windowEnd) return false;
-
   if (turn.workspace_root && event.project_root) {
     return normalizeRoot(turn.workspace_root) === normalizeRoot(event.project_root);
-  }
-  // Gate tools_list / tool_call rows often omit project_root; allow time-window join.
-  if (
-    turn.workspace_root &&
-    event.project_root == null &&
-    event.event !== "tools_list" &&
-    event.event !== "tool_call"
-  ) {
-    return false;
   }
   return true;
 }
@@ -168,11 +204,16 @@ function aggregateGateEvents(events) {
   };
 }
 
+function resolveCorrelation(events, turn) {
+  const gen = turn.generation_id;
+  const matched = events.filter((e) => e.generation_id === gen);
+  if (!matched.length) return "none";
+  if (matched.some((e) => !e._generation_inferred)) return "generation_id";
+  return "generation_inferred";
+}
+
 function buildTurnSummary(turn, events) {
   const agg = aggregateGateEvents(events);
-  const correlatedById = events.some(
-    (e) => e.generation_id && e.generation_id === turn.generation_id
-  );
 
   return {
     generation_id: turn.generation_id,
@@ -185,7 +226,7 @@ function buildTurnSummary(turn, events) {
     keywords: turn.keywords ?? "",
     templates: turn.templates ?? [],
     intent_scores: turn.intent_scores ?? {},
-    correlation: correlatedById ? "generation_id" : events.length ? "time_window" : "none",
+    correlation: resolveCorrelation(events, turn),
     metrics: agg.metrics,
     tools_list: agg.toolsList,
     tool_calls: agg.toolCalls,
@@ -308,12 +349,15 @@ export function listHistoryTurns(options = {}) {
   }
 
   const selected = turns.slice(-limit);
-  const gateEvents = readGateEvents(options.gateLogDir, {
-    projectRoot: options.workspaceRoot ?? options.projectRoot,
-  });
-  const summaries = selected.map((turn, index) => {
-    const nextTurnTs = selected[index + 1]?.ts;
-    const matched = gateEvents.filter((e) => eventMatchesTurn(e, turn, nextTurnTs));
+  const timeline = buildTurnTimeline(turns);
+  const gateEvents = enrichGateEvents(
+    readGateEvents(options.gateLogDir, {
+      projectRoot: options.workspaceRoot ?? options.projectRoot,
+    }),
+    timeline
+  );
+  const summaries = selected.map((turn) => {
+    const matched = gateEvents.filter((e) => eventMatchesTurn(e, turn));
     return buildTurnSummary(turn, matched);
   });
 
