@@ -26,6 +26,16 @@ function tempDir() {
   return dir;
 }
 
+function testCorruptOverrides() {
+  const dir = tempDir();
+  const path = join(dir, "tool-overrides.json");
+  writeFileSync(path, "{not json\n");
+  const data = loadToolOverrides(path);
+  assert(data.tools && Object.keys(data.tools).length === 0, "empty tools on corrupt");
+  assert(data.corrupt === true, "corrupt flag");
+  console.error("[dashboard-control] corrupt overrides ok");
+}
+
 function testToolOverrides() {
   const dir = tempDir();
   const path = join(dir, "tool-overrides.json");
@@ -223,6 +233,7 @@ async function testHttpPatch() {
 }
 
 async function main() {
+  testCorruptOverrides();
   testToolOverrides();
   testBulkHideSkipsLock();
   testBulkHideSkipsPinned();
