@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
 import { qualifyOverrideToolName } from "./tool-override-names.mjs";
 
 function overrideKey(toolName, backend = null) {
@@ -41,6 +42,33 @@ export function mcpDisabledStorePath() {
 
 export function cursorMcpPath() {
   return process.env.CURSOR_MCP_PATH ?? join(homedir(), ".cursor", "mcp.json");
+}
+
+export function toolOverridesGeneration(data) {
+  const tools = data?.tools ?? {};
+  const keys = Object.keys(tools).sort();
+  if (keys.length === 0) {
+    return createHash("sha256").update("empty").digest("hex").slice(0, 16);
+  }
+  const payload = keys
+    .map((key) => {
+      const ov = tools[key] ?? {};
+      return `${key}|${ov.force_tier ?? ""}|${!!ov.always_expose}|${!!ov.exclude_lock}`;
+    })
+    .join("");
+  return createHash("sha256").update(payload).digest("hex").slice(0, 16);
+}
+
+/** Resolve override fields for API responses after a qualified write. */
+export function toolOverrideResponseFields(toolName, backend, data) {
+  const key = overrideKey(toolName, backend);
+  const ov = data.tools[key] ?? data.tools[toolName] ?? {};
+  return {
+    storage_key: key,
+    force_tier: ov.force_tier ?? null,
+    exclude_lock: Boolean(ov.exclude_lock),
+    always_expose: Boolean(ov.always_expose),
+  };
 }
 
 export function loadToolOverrides(path = toolOverridesPath()) {

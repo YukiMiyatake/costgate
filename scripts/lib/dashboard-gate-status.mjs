@@ -1,21 +1,11 @@
 /**
  * Gate runtime status for Dashboard (P4).
  */
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildGateLogFreshness } from "./dashboard-data.mjs";
-import { loadGateSettings } from "./gate-settings.mjs";
-import { toolOverridesPath } from "./dashboard-control.mjs";
-
-function fileGeneration(path) {
-  if (!path || !existsSync(path)) return null;
-  const st = statSync(path);
-  return createHash("sha256")
-    .update(`${st.mtimeMs}:${st.size}:${path}`)
-    .digest("hex")
-    .slice(0, 16);
-}
+import { gateSettingsGeneration, loadGateSettings } from "./gate-settings.mjs";
+import { loadToolOverrides, toolOverridesGeneration, toolOverridesPath } from "./dashboard-control.mjs";
 
 function gateLogRowMatchesProject(row, options = {}) {
   const projectRootFilter = options.projectRoot ? resolve(options.projectRoot) : null;
@@ -53,6 +43,10 @@ function latestGateEvent(gateLogDir, event, options = {}) {
   return latest;
 }
 
+function pickLatestReload(...events) {
+  return events.filter(Boolean).sort((a, b) => b.ts - a.ts)[0] ?? null;
+}
+
 export function buildGateStatusPayload(options = {}) {
   const now = options.now ?? Date.now();
   const projectRoot = options.projectRoot ?? null;
@@ -65,12 +59,8 @@ export function buildGateStatusPayload(options = {}) {
   const gateLogDir = options.gateLogDir ?? null;
   const globalGateLogDir = options.globalGateLogDir ?? null;
 
-  const settingsGen = fileGeneration(gateSettings.paths.effective ?? gateSettings.paths.global);
-  const overridesGen = fileGeneration(overridesPath);
-  const combinedGen = createHash("sha256")
-    .update(`${settingsGen ?? ""}:${overridesGen ?? ""}`)
-    .digest("hex")
-    .slice(0, 16);
+  const settingsGen = gateSettingsGeneration(gateSettings.settings);
+  const overridesGen = toolOverridesGeneration(loadToolOverrides(overridesPath));
 
   const freshness = buildGateLogFreshness({
     gateLogDir,
@@ -83,25 +73,27 @@ export function buildGateStatusPayload(options = {}) {
     projectRoot,
     strictProjectRoot: false,
   };
-  const settingsReload = latestGateEvent(gateLogDir, "settings_reload", logOpts);
-  const globalSettingsReload =
+  const settingsReload = pickLatestReload(
+    latestGateEvent(gateLogDir, "settings_reload", logOpts),
     projectRoot && globalGateLogDir && globalGateLogDir !== gateLogDir
       ? latestGateEvent(globalGateLogDir, "settings_reload", {
           ...logOpts,
           strictProjectRoot: true,
         })
-      : null;
+      : null
+  );
+  const overridesReload = latestGateEvent(gateLogDir, "overrides_reload", logOpts);
 
-  let lastReload = settingsReload;
-  if (
-    globalSettingsReload &&
-    (!lastReload || globalSettingsReload.ts > lastReload.ts)
-  ) {
-    lastReload = globalSettingsReload;
-  }
+  const appliedSettingsGen = settingsReload?.row?.config_generation ?? null;
+  const appliedOverridesGen = overridesReload?.row?.overrides_generation ?? null;
+  const settingsPending = Boolean(
+    settingsGen && appliedSettingsGen && settingsGen !== appliedSettingsGen
+  );
+  const overridesPending = Boolean(
+    overridesGen && appliedOverridesGen && overridesGen !== appliedOverridesGen
+  );
 
-  const appliedGen = lastReload?.row?.config_generation ?? null;
-  const pendingChanges = Boolean(combinedGen && appliedGen && combinedGen !== appliedGen);
+  const lastReload = pickLatestReload(settingsReload, overridesReload);
 
   return {
     ok: true,
@@ -118,10 +110,14 @@ export function buildGateStatusPayload(options = {}) {
     config_generation: {
       gate_settings: settingsGen,
       tool_overrides: overridesGen,
-      combined: combinedGen,
-      last_applied: appliedGen,
+      last_applied_settings: appliedSettingsGen,
+      last_applied_overrides: appliedOverridesGen,
     },
-    pending_changes: pendingChanges,
+    pending_changes: settingsPending || overridesPending,
+    pending: {
+      gate_settings: settingsPending,
+      tool_overrides: overridesPending,
+    },
     last_reload_at: lastReload ? new Date(lastReload.ts).toISOString() : null,
     last_reload_event: lastReload?.row?.event ?? null,
   };

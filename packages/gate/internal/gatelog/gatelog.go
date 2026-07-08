@@ -72,6 +72,14 @@ func LogSettingsReload(configGeneration string) {
 	})
 }
 
+// LogOverridesReload records a tool-overrides hot-reload.
+func LogOverridesReload(overridesGeneration string) {
+	defaultLogger.append(map[string]any{
+		"event":                "overrides_reload",
+		"overrides_generation": overridesGeneration,
+	})
+}
+
 // LogToolCallError records a failed backend tool invocation.
 func LogToolCallError(tool string, err error) {
 	defaultLogger.logToolCallError(tool, err)

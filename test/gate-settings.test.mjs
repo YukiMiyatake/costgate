@@ -11,6 +11,7 @@ import {
   patchGateSettings,
   gateSettingsToEnv,
   applyGateSettingsToEnv,
+  gateSettingsGeneration,
 } from "../scripts/lib/gate-settings.mjs";
 
 function assert(cond, msg) {
@@ -21,6 +22,13 @@ function tempRoot() {
   const base = join(tmpdir(), `costgate-gate-settings-${process.pid}-${Date.now()}`);
   mkdirSync(base, { recursive: true });
   return base;
+}
+
+function testSettingsGeneration() {
+  const gen = gateSettingsGeneration(DEFAULT_GATE_SETTINGS);
+  assert(typeof gen === "string" && gen.length === 16, "generation hash");
+  assert(gateSettingsGeneration(DEFAULT_GATE_SETTINGS) === gen, "stable hash");
+  console.error("[gate-settings] generation ok");
 }
 
 function testDefaults() {
@@ -148,6 +156,7 @@ async function testHttpApi() {
 }
 
 async function main() {
+  testSettingsGeneration();
   testDefaults();
   testProjectOverride();
   testEnvMapping();
