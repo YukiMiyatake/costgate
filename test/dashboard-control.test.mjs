@@ -204,6 +204,16 @@ async function testHttpPatch() {
     assert(lockBody.requires_gate_restart === false, "lock no restart");
     assert(lockBody.gate_reload === undefined, "lock no gate_reload");
 
+    const qualified = await fetch(`${base}/api/tools/search_code`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force_tier: "hidden", backend: "github" }),
+    });
+    assert(qualified.ok, `qualified patch ${qualified.status}`);
+    const qBody = await qualified.json();
+    assert(qBody.storage_key === "github/search_code", "qualified storage key");
+    assert(qBody.force_tier === "hidden", "qualified force_tier in response");
+
     const ov = readFileSync(overridesPath, "utf8");
     assert(ov.includes("create_issue"), "override written");
     console.error("[dashboard-control] HTTP PATCH ok");
