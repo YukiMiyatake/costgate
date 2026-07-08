@@ -193,10 +193,16 @@ export function loadGateSettings(paths = {}) {
   const projectPath = paths.projectPath ?? (paths.projectRoot ? projectGateSettingsPath(paths.projectRoot) : null);
   const global = loadGateSettingsFile(globalPath) ?? normalizeSettings();
   if (!projectPath || !existsSync(projectPath)) {
+    const hasGlobalFile = existsSync(globalPath);
+    const origins = {};
+    for (const key of Object.keys(global)) {
+      if (key === "version") continue;
+      origins[key] = hasGlobalFile ? "global" : "default";
+    }
     return {
       settings: global,
       paths: { global: globalPath, project: projectPath, effective: globalPath },
-      origins: Object.fromEntries(Object.keys(global).map((k) => [k, "default"])),
+      origins,
       config_merge: false,
     };
   }
