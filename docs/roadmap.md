@@ -613,6 +613,21 @@ MCP 経由機密漏洩防止 + MCP ごと信頼度。詳細: [docs/dev/shield-tr
 
 ---
 
+## Issue-driven AI（計画）
+
+メンテナのみが起動する Issue → AI → PR。詳細: [docs/dev/ai-issues.md](./dev/ai-issues.md)
+
+| Phase | 内容 | 状態 |
+|-------|------|------|
+| **A** | 設計（ラベル・認可・`costgate-ai:v1`） | ✅ Doc |
+| **B** | `ai-run.yml` 即時 dispatch | 未着手 |
+| **C** | `ai-batch.yml` — 6h cron、最大 3 Issue | 未着手 |
+| **D** | Cursor Cloud executor | 未着手 |
+| **E** | Claude / Batch API executor | 未着手 |
+| **F** | Triage agent（costgate-cloud） | 未着手 |
+
+---
+
 ## Out of scope
 
 | Item | Notes |
