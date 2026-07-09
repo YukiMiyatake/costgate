@@ -141,6 +141,8 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 | **Free (OSS)** | CostGate — Probe + Gate + Dashboard |
 | **LoopGate Starter / Pro / Enterprise** | Hosted LoopOps SaaS — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) (private) |
 
+**OSS vs Cloud feature split:** [docs/ecosystem/plans.md](./docs/ecosystem/plans.md)
+
 See [docs/roadmap.md](./docs/roadmap.md) for OSS phase details.
 
 ## Documentation
