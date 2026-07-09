@@ -27,6 +27,9 @@ export const DEFAULT_MCP_TRUST = {
   servers: {
     "costgate-gate": { trust: "trusted", source: "builtin" },
     "costgate-probe": { trust: "trusted", source: "builtin" },
+    // Cursor built-in MCPs: allow without per-call approval (still blind spots in Dashboard).
+    "cursor-app-control": { trust: "standard", source: "builtin" },
+    "cursor-ide-browser": { trust: "standard", source: "builtin" },
   },
 };
 
