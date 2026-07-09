@@ -92,8 +92,31 @@ function testAskRestrictedDirect() {
   const result = handleCursorShieldMcpHook(
     {
       hook_event_name: "beforeMCPExecution",
+      command: "community-mcp",
+      tool_name: "run",
+      workspace_roots: [base],
+    },
+    {
+      ...ctx,
+      mcpConfig: { mcpServers: { "community-mcp": { command: "node evil.mjs" } } },
+      disabledStore: {},
+      marketplaceCatalog: [],
+    }
+  );
+  assert(result.permission === "ask", "direct restricted ask");
+  assert(result.trust === "restricted", "direct trust");
+  assert(result.user_message?.includes("restricted"), "restricted user message");
+  console.error("[shield-mcp-hook] ask restricted ok");
+}
+
+function testAllowCursorBuiltin() {
+  const base = tempRoot();
+  const ctx = trustContext(base);
+  const result = handleCursorShieldMcpHook(
+    {
+      hook_event_name: "beforeMCPExecution",
       command: "cursor-app-control",
-      tool_name: "open_resource",
+      tool_name: "move_agent_to_root",
       workspace_roots: [base],
     },
     {
@@ -103,10 +126,9 @@ function testAskRestrictedDirect() {
       marketplaceCatalog: [],
     }
   );
-  assert(result.permission === "ask", "direct restricted ask");
-  assert(result.trust === "restricted", "direct trust");
-  assert(result.user_message?.includes("restricted"), "restricted user message");
-  console.error("[shield-mcp-hook] ask restricted ok");
+  assert(result.permission === "allow", "cursor builtin allow");
+  assert(result.trust === "standard", "cursor builtin standard");
+  console.error("[shield-mcp-hook] allow cursor builtin ok");
 }
 
 function testDenyUntrusted() {
@@ -253,6 +275,7 @@ async function main() {
   testTrustMatrix();
   testAllowTrustedGate();
   testAskRestrictedDirect();
+  testAllowCursorBuiltin();
   testDenyUntrusted();
   testDenyDisabled();
   testProjectTrustOverride();

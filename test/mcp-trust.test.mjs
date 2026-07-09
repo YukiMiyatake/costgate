@@ -85,7 +85,14 @@ function testResolveOrder() {
   });
   assert(gate.trust === "trusted" && gate.resolved_from === "servers", "builtin gate");
 
-  const direct = resolveServerTrust("cursor-app-control", {
+  const builtin = resolveServerTrust("cursor-app-control", {
+    trust,
+    meta: { role: "direct", source: "mcp.json", enabled: true },
+    marketplaceCatalog: [],
+  });
+  assert(builtin.trust === "standard" && builtin.resolved_from === "servers", "cursor builtin standard");
+
+  const direct = resolveServerTrust("community-mcp", {
     trust,
     meta: { role: "direct", source: "mcp.json", enabled: true },
     marketplaceCatalog: [],
@@ -117,9 +124,9 @@ function testEnrichMcps() {
     marketplaceDir: MARKETPLACE,
   });
   assert(enriched.find((s) => s.name === "costgate-gate")?.trust === "trusted", "gate enriched");
-  assert(enriched.find((s) => s.name === "cursor-app-control")?.trust === "restricted", "direct enriched");
+  assert(enriched.find((s) => s.name === "cursor-app-control")?.trust === "standard", "cursor builtin enriched");
   assert(enriched.find((s) => s.name === "github")?.trust === "standard", "github official");
-  assert(trust_summary.restricted_or_below >= 1, "restricted count");
+  assert(trust_summary.restricted_or_below === 0, "restricted count");
   console.error("[mcp-trust] enrich ok");
 }
 
@@ -145,9 +152,9 @@ function testBuildDashboardDataTrust() {
   const gate = data.mcps.servers.find((s) => s.name === "costgate-gate");
   const blind = data.mcps.servers.find((s) => s.name === "cursor-app-control");
   assert(gate?.trust === "trusted", "dashboard gate trust");
-  assert(blind?.trust === "restricted", "dashboard blind trust");
-  assert(data.overview.trust_restricted_count >= 1, "overview trust count");
-  assert(data.mcps.trust_summary?.restricted_or_below >= 1, "mcps trust summary");
+  assert(blind?.trust === "standard", "dashboard cursor builtin trust");
+  assert(data.overview.trust_restricted_count === 0, "overview trust count");
+  assert(data.mcps.trust_summary?.restricted_or_below === 0, "mcps trust summary");
   console.error("[mcp-trust] buildDashboardData ok");
 }
 

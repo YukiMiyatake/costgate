@@ -111,6 +111,8 @@ flowchart TB
   },
   "servers": {
     "costgate-gate": { "trust": "trusted", "source": "builtin" },
+    "cursor-app-control": { "trust": "standard", "source": "builtin" },
+    "cursor-ide-browser": { "trust": "standard", "source": "builtin" },
     "github": { "trust": "standard", "backend_key": "github" },
     "some-community-mcp": { "trust": "restricted" }
   }
