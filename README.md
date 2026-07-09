@@ -138,11 +138,10 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 
 | Plan | Scope |
 |------|-------|
-| **Free (OSS)** | Probe + Gate + Dashboard — Phases 16–33 ✅ |
-| **Pro** | Hosted Dashboard — Phase 30+ (OSS Dashboard extension) |
-| **Team** | Billing / policies — deferred |
+| **Free (OSS)** | CostGate — Probe + Gate + Dashboard |
+| **LoopGate Starter / Pro / Enterprise** | Hosted LoopOps SaaS — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) (private) |
 
-See [docs/roadmap.md](./docs/roadmap.md) for phase details.
+See [docs/roadmap.md](./docs/roadmap.md) for OSS phase details.
 
 ## Documentation
 
