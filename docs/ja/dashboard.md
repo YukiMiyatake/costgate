@@ -119,7 +119,7 @@ Filesystem MCP が **読み書きしてよいディレクトリ**（絶対パス
 
 Gate 経由の MCP（GitHub, Filesystem）は `backends.json` に追加します。Cursor 組み込みの Browser MCP は設定画面での有効化を案内します（ファイル書き込みなし）。
 
-書き込み API は localhost のみ（任意で `COSTGATE_DASHBOARD_TOKEN`）。
+書き込み API は `X-Costgate-Dashboard-Token` 必須（`COSTGATE_DASHBOARD_TOKEN` で設定。未設定時は起動時に自動生成されコンソールに表示）。
 
 ---
 

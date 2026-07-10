@@ -5,6 +5,9 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureTestDashboardToken } from "./lib/dashboard-auth.mjs";
+
+ensureTestDashboardToken();
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -19,6 +22,7 @@ const TESTS = [
   "dashboard-marketplace.test.mjs",
   "dashboard-project-recommend.test.mjs",
   "dashboard-routes.test.mjs",
+  "dashboard-write-auth.test.mjs",
   "dashboard-ui-settings.test.mjs",
   "dashboard-workspaces.test.mjs",
   "dashboard-gate-log-workspace.test.mjs",

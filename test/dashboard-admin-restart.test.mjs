@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 import { scheduleDashboardRestart } from "../scripts/lib/dashboard-restart.mjs";
 
 function assert(cond, msg) {
@@ -38,7 +39,7 @@ async function testHttpEndpoint() {
 
     const restart = await fetch(`${base}/api/admin/restart`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({ delay_ms: 5000 }),
     });
     assert(restart.ok, `POST /api/admin/restart status ${restart.status}`);

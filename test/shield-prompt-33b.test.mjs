@@ -17,6 +17,7 @@ import {
 import { Mode, promptInferMode, shieldPromptAggressive } from "../scripts/lib/shield-redact.mjs";
 import { handleCursorShieldPromptHook } from "../scripts/cursor-shield-prompt-hook.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
 import { cmdSanitizePrompt } from "../scripts/costgate-shield.mjs";
 
@@ -152,7 +153,7 @@ async function testDashboardApi() {
     const sanitized = await (
       await fetch(`${base}/api/shield-prompt/sanitize`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: writeAuthHeaders("POST"),
         body: JSON.stringify({ text: `tok ${GITHUB_TOKEN}` }),
       })
     ).json();

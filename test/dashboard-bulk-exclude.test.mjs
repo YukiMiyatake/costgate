@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 import {
   setToolExcludeLock,
   setToolAlwaysExpose,
@@ -30,7 +31,7 @@ async function main() {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/api/tools/bulk-exclude`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         names: [
           { name: "find_symbol", backend: "serena" },
@@ -55,7 +56,7 @@ async function main() {
 
     const guarded = await fetch(`http://127.0.0.1:${port}/api/tools/bulk-exclude`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         names: [
           { name: "fork_repository", backend: "github" },

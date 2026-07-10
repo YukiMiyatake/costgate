@@ -2,7 +2,7 @@
 /**
  * Phase 27: project-based MCP recommendation tests.
  */
-import { mkdirSync, copyFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -132,22 +132,24 @@ function testConsolidateSearch() {
 
 function testDashboardMerge() {
   const now = Date.parse("2026-07-05T12:00:00.000Z");
-  const logDir = join(ROOT, "test/fixtures/dashboard/.generated-logs");
+  const dashFix = join(ROOT, "test/fixtures/dashboard");
+  const logDir = join(dashFix, ".generated-logs");
+  const mockRoot = join(dashFix, "mock-workspace");
   mkdirSync(logDir, { recursive: true });
-  copyFileSync(
-    join(ROOT, "test/fixtures/dashboard/probe-sample.jsonl"),
-    join(logDir, "probe-fixture.jsonl")
+  mkdirSync(mockRoot, { recursive: true });
+  copyFileSync(join(dashFix, "probe-sample.jsonl"), join(logDir, "probe-fixture.jsonl"));
+  const gateContent = readFileSync(join(dashFix, "gate-sample.jsonl"), "utf8").replaceAll(
+    "/work/costgate",
+    mockRoot
   );
-  copyFileSync(
-    join(ROOT, "test/fixtures/dashboard/gate-sample.jsonl"),
-    join(logDir, "gate-fixture.jsonl")
-  );
+  writeFileSync(join(logDir, "gate-fixture.jsonl"), gateContent);
   const data = buildDashboardData({
     logDir,
     gateLogDir: logDir,
-    usagePath: join(ROOT, "test/fixtures/dashboard/usage.json"),
-    configPath: join(ROOT, "test/fixtures/dashboard/backends.json"),
-    mcpPath: join(ROOT, "test/fixtures/dashboard/mcp.json"),
+    usagePath: join(dashFix, "usage.json"),
+    configPath: join(dashFix, "backends.json"),
+    overridesPath: join(dashFix, "tool-overrides.json"),
+    mcpPath: join(dashFix, "mcp.json"),
     projectRoot: join(FIX, "playwright"),
     marketplaceDir: MARKETPLACE,
     windowDays: 30,

@@ -13,6 +13,7 @@ import {
   applyGateSettingsToEnv,
   gateSettingsGeneration,
 } from "../scripts/lib/gate-settings.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -129,7 +130,7 @@ async function testHttpApi() {
 
     const patch = await fetch(`${base}/api/gate-settings`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ settings: { intent_probe: false } }),
     });
     assert(patch.ok, `PATCH ${patch.status}`);
@@ -140,7 +141,7 @@ async function testHttpApi() {
 
     const modePatch = await fetch(`${base}/api/gate-settings`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ settings: { gate_mode: "filter" } }),
     });
     assert(modePatch.ok, `filter PATCH ${modePatch.status}`);
@@ -149,7 +150,7 @@ async function testHttpApi() {
 
     const transparentPatch = await fetch(`${base}/api/gate-settings`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ settings: { gate_mode: "transparent" } }),
     });
     assert(transparentPatch.ok, `mode PATCH ${transparentPatch.status}`);
