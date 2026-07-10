@@ -24,9 +24,10 @@ Everything below stays in the public [costgate](https://github.com/YukiMiyatake/
 | **Local dashboard** | Usage, savings, MCP enable/disable, marketplace, per-project config | ✅ |
 | **Quality** | eval suite, benchmark CI, multi-MCP catalog | ✅ |
 | **Security (planned)** | Shield redact, MCP trust, prompt secret block | 🔜 Phase 31+ |
-| **Issue-driven AI (OSS)** | Label contract (`ai:run`, `ai:batch`), maintainer-only arming | ✅ doc · 🔜 workflows |
 
 **Not included in OSS:** hosted Issue→PR loops, hosted Claude API without your keys, team billing, cloud audit UI.
+
+> **Note:** [ai-issues.md](../dev/ai-issues.md) is **maintainer-only automation for developing the costgate repo** — not an OSS product feature.
 
 ---
 
@@ -77,8 +78,8 @@ Commercial platform in private **costgate-cloud** repo. **Powered by CostGate.**
 ## Related
 
 - [Repository structure — Ecosystem](../structure.md#ecosystem-loopgate)
-- [Issue-driven AI design](../dev/ai-issues.md)
 - [MCP Dashboard (users)](../dashboard.md)
+- Maintainer dev only (not product): [ai-issues.md](../dev/ai-issues.md)
 - LoopGate product (private): costgate-cloud `docs/product/loopgate.md`
 
 ---

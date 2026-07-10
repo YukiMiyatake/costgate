@@ -613,9 +613,10 @@ MCP 経由機密漏洩防止 + MCP ごと信頼度。詳細: [docs/dev/shield-tr
 
 ---
 
-## Issue-driven AI（計画）
+## Maintainer dev automation（この repo 専用 · 製品外）
 
-メンテナのみが起動する Issue → AI → PR。詳細: [docs/dev/ai-issues.md](./dev/ai-issues.md)
+**costgate リポジトリ自身**を開発するための、メンテナ専用 Issue → AI → PR 自動化。  
+CostGate OSS / LoopGate の **製品機能ではない**。詳細: [docs/dev/ai-issues.md](./dev/ai-issues.md)
 
 | Phase | 内容 | 状態 |
 |-------|------|------|
@@ -624,7 +625,8 @@ MCP 経由機密漏洩防止 + MCP ごと信頼度。詳細: [docs/dev/shield-tr
 | **C** | `ai-batch.yml` — 6h cron、最大 3 Issue | 未着手 |
 | **D** | Cursor Cloud executor | 未着手 |
 | **E** | Claude / Batch API executor | 未着手 |
-| **F** | Triage agent（costgate-cloud） | 未着手 |
+
+> Phase F（Triage agent）は LoopGate 商品側（costgate-cloud LG-4）。ai-issues とは別。
 
 ---
 

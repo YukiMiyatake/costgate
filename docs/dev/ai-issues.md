@@ -2,7 +2,12 @@
 
 > **Languages:** English (this file) · [日本語](../ja/dev/ai-issues.md)
 
-Design for **maintainer-only**, label-gated AI coding from GitHub Issues on the **public** CostGate repository.  
+> **Scope — not a product feature**  
+> This document applies **only to developing the CostGate repository itself** (`YukiMiyatake/costgate`).  
+> It is **maintainer-only** automation (Issue → AI → PR for this repo).  
+> It is **not** part of the CostGate OSS product, **not** part of LoopGate Cloud, and **not** a template for customer repos.
+
+Design for **maintainer-only**, label-gated AI coding from GitHub Issues on **this repository**.  
 Implementation (workflows, executors) is phased; this document is the contract.
 
 | Item | Decision |

@@ -11,7 +11,7 @@ Implementation, design, and internal specs for CostGate. User-facing guides live
 | [shield-trust.md](./shield-trust.md) | Phase 31+ — Shield (redact), MCP Trust, task list |
 | [optimize-sweep.md](./optimize-sweep.md) | P6 — Batch sweep, replay fixtures, LLM-judge plan (P7+) |
 | [prompt-history.md](./prompt-history.md) | P9 — Dashboard prompt / MCP turn history, export |
-| [ai-issues.md](./ai-issues.md) | Issue-driven AI execution — labels, auth, batch (6h / 3) |
+| [ai-issues.md](./ai-issues.md) | **This repo only** — maintainer Issue→AI→PR automation (not product) |
 | [../structure.md](../structure.md) | Repository layout |
 | [../log-schema.md](../log-schema.md) | JSONL event schema |
 | [../architecture.md](../architecture.md) | Probe / Gate / Cursor placement |
