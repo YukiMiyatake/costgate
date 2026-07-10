@@ -23,7 +23,7 @@
 
     "check:syntax": "node scripts/check-syntax.mjs",
     "compare": "node scripts/compare-report.mjs",
-    "test:cli": "node test/cli-package.test.mjs && node test/install-gate-checksum.test.mjs && node test/copy-runtime.test.mjs",
+    "test:cli": "node test/cli-package.test.mjs && node test/install-gate-checksum.test.mjs && node test/copy-runtime.test.mjs && node test/probe-version.test.mjs",
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
 

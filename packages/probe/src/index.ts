@@ -5,6 +5,7 @@ import { connectBackend } from "./backend.js";
 import { getPrimaryBackend, loadConfig, resolveConfigPath } from "./config.js";
 import { createLogger } from "./logger.js";
 import { startProxy } from "./proxy.js";
+import { probeVersion } from "./version.js";
 
 async function main(): Promise<void> {
   const logDir =
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   const logger = createLogger({ logDir, client: clientName });
 
   console.error(
-    `[costgate-probe] v0.1.0 backend=${backendName} logDir=${logDir} config=${resolveConfigPath()}`
+    `[costgate-probe] v${probeVersion()} backend=${backendName} logDir=${logDir} config=${resolveConfigPath()}`
   );
 
   logger.sessionStart();
