@@ -1,6 +1,6 @@
 # Prompt History — Dashboard 履歴タブ企画
 
-> **Languages:** English index · [日本語](../ja/dev/prompt-history.md)（本文は日本語）
+> **言語:** [English](../dev/prompt-history.md) · 日本語（このファイル）
 
 ユーザーが AI に送ったプロンプト周辺の MCP 活動（tools/list・tool_call・トークン・削減量）を Dashboard で一覧し、気になった行を Export する機能の実装検討とフェーズ計画。
 

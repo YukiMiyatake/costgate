@@ -1,8 +1,8 @@
 # MCP Dashboard — 開発者向け仕様
 
-> **Languages:** English index · [日本語](../ja/dev/dashboard.md)（本文は日本語）
+> **言語:** [English](../dev/dashboard.md) · 日本語（このファイル）
 
-利用者向け概要: [docs/dashboard.md](../dashboard.md)
+利用者向け概要: [dashboard.md](../dashboard.md)
 
 ---
 

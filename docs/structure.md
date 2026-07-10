@@ -1,5 +1,7 @@
 # Repository structure
 
+> **Languages:** English (this file) · [日本語](./ja/structure.md)
+
 CostGate OSS is a **monorepo**. Gate (Go binary) and the npm entry layer (`@costgate/cli`) live in one repository.
 
 ```

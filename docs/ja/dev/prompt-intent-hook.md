@@ -1,6 +1,6 @@
 # Phase 28 — Prompt Intent Hook（設計）
 
-> **Languages:** English index · [日本語](../ja/dev/prompt-intent-hook.md)（本文は日本語）
+> **言語:** [English](../dev/prompt-intent-hook.md) · 日本語（このファイル）
 
 会話内容から Gate の **Tier B 露出 intent** を事前推定する Cursor Hook 連携の設計書。
 

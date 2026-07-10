@@ -1,6 +1,6 @@
 # MCP トークン削減調査 — よく使われる MCP と効果見込み
 
-> **Languages:** English index · [日本語](./ja/mcp-reduction-survey.md)（本文は日本語）
+> **言語:** [English](../mcp-reduction-survey.md) · 日本語（このファイル）
 
 CostGate の製品方針（**MCP レイヤのトークン削減**）に向けた調査メモ。  
 最終更新: **2026-07-05**

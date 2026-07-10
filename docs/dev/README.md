@@ -16,6 +16,7 @@ Implementation, design, and internal specs for CostGate. User-facing guides live
 | [../log-schema.md](../log-schema.md) | JSONL event schema |
 | [../architecture.md](../architecture.md) | Probe / Gate / Cursor placement |
 | [../roadmap.md](../roadmap.md) | Implementation phases |
+| [../ecosystem/plans.md](../ecosystem/plans.md) | OSS vs LoopGate Cloud feature split |
 
 ## Separation policy
 
