@@ -1,6 +1,6 @@
 # 最適設定探索 — バッチ比較・LLM-as-judge 企画
 
-> **Languages:** English index · [日本語](../ja/dev/optimize-sweep.md)（本文は日本語）
+> **言語:** [English](../dev/optimize-sweep.md) · 日本語（このファイル）
 
 Tool 自動選択、スコアリング、Shield 設定などの **最適パラメータ探索** を、バッチ比較と LLM-as-judge で行うための企画整理。
 

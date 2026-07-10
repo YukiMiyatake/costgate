@@ -141,24 +141,25 @@ Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://
 | **Free (OSS)** | CostGate — Probe + Gate + Dashboard |
 | **LoopGate Starter / Pro / Enterprise** | Hosted LoopOps SaaS — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud) (private) |
 
-**OSS vs Cloud feature split:** [docs/ecosystem/plans.md](./docs/ecosystem/plans.md)
+**OSS vs Cloud feature split:** [docs/ecosystem/plans.md](./docs/ecosystem/plans.md) · [日本語](./docs/ja/ecosystem/plans.md)
 
 See [docs/roadmap.md](./docs/roadmap.md) for OSS phase details.
 
 ## Documentation
 
 - [Documentation languages](./docs/i18n.md)
-- [Development roadmap](./docs/roadmap.md)
+- [Development roadmap](./docs/roadmap.md) · [日本語](./docs/ja/roadmap.md)
 - [MCP Dashboard (users)](./docs/dashboard.md) · [日本語](./docs/ja/dashboard.md)
-- [MCP token reduction survey](./docs/mcp-reduction-survey.md)
-- [MCP Dashboard (developers)](./docs/dev/dashboard.md)
-- [Benchmarks & verification](./docs/benchmarks.md)
-- [Repository structure](./docs/structure.md)
-- [Docker / Dev Container](./docs/docker.md)
-- [Gate releases](./docs/releases.md)
-- [Architecture](./docs/architecture.md)
-- [Log schema](./docs/log-schema.md)
-- [Contributing](./CONTRIBUTING.md)
+- [MCP token reduction survey](./docs/mcp-reduction-survey.md) · [日本語](./docs/ja/mcp-reduction-survey.md)
+- [MCP Dashboard (developers)](./docs/dev/dashboard.md) · [日本語](./docs/ja/dev/dashboard.md)
+- [Benchmarks & verification](./docs/benchmarks.md) · [日本語](./docs/ja/benchmarks.md)
+- [Repository structure](./docs/structure.md) · [日本語](./docs/ja/structure.md)
+- [OSS vs Cloud plans](./docs/ecosystem/plans.md) · [日本語](./docs/ja/ecosystem/plans.md)
+- [Docker / Dev Container](./docs/docker.md) · [日本語](./docs/ja/docker.md)
+- [Gate releases](./docs/releases.md) · [日本語](./docs/ja/releases.md)
+- [Architecture](./docs/architecture.md) · [日本語](./docs/ja/architecture.md)
+- [Log schema](./docs/log-schema.md) · [日本語](./docs/ja/log-schema.md)
+- [Contributing](./CONTRIBUTING.md) · [日本語](./docs/ja/CONTRIBUTING.md)
 
 ## License
 

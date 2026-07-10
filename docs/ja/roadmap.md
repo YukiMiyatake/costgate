@@ -1,8 +1,8 @@
-# Development roadmap
+# 開発ロードマップ
 
-> **Languages:** English (this file) · [日本語](./ja/roadmap.md)
+> **言語:** [English](../roadmap.md) · 日本語（このファイル）
 
-Implementation phases for CostGate OSS. Business plans (Free / Pro / Team) are in [README](../README.md#plans-roadmap).
+CostGate OSS の実装フェーズ一覧。ビジネスプラン（Free / Pro / Team）は [README.ja.md](../../README.ja.md) を参照。
 
 ## Architecture roles
 

@@ -1,6 +1,6 @@
-# Benchmarks & verification data
+# ベンチマークと検証データ
 
-> **Languages:** English index · [日本語](./ja/benchmarks.md)（本文は日本語）
+> **言語:** [English](../benchmarks.md) · 日本語（このファイル）
 
 フェーズごとの **トークン削減率** と **性能・検証** の記録。再現手順付き。
 

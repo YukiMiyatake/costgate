@@ -1,5 +1,7 @@
 # Architecture
 
+> **Languages:** English (this file) · [日本語](./ja/architecture.md)
+
 ## Target layout (Cursor)
 
 ```

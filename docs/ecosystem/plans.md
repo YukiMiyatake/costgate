@@ -1,6 +1,7 @@
 # CostGate & LoopGate — Plans (feature split)
 
-> **Languages:** English · 詳細版（private）: costgate-cloud `docs/product/feature-matrix.md`  
+> **Languages:** English (this file) · [日本語](./ja/ecosystem/plans.md)  
+> **詳細版（private）:** costgate-cloud `docs/product/feature-matrix.md`  
 > **OSS roadmap:** [roadmap.md](../roadmap.md) · **Ecosystem:** [structure.md](../structure.md#ecosystem-loopgate)
 
 Two products, one engine:
