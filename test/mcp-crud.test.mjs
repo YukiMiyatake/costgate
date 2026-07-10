@@ -6,10 +6,13 @@ import {
   addMcpServerRaw,
   deleteMcpServer,
   getMcpServerDetail,
+  maskMcpConfigForApi,
+  maskSecretEnvValue,
   updateMcpServerConfig,
 } from "../scripts/lib/mcp-crud.mjs";
 import { loadMcpJson } from "../scripts/lib/dashboard-control.mjs";
 import { loadBackendsJson } from "../scripts/lib/dashboard-marketplace.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -88,6 +91,51 @@ function testDirectCrud() {
   console.error("[mcp-crud] direct crud ok");
 }
 
+function testEnvMasking() {
+  const token = "ghp_1234567890abcdefghij";
+  const masked = maskSecretEnvValue(token);
+  assert(masked !== token, "maskSecretEnvValue hides full token");
+  assert(masked.includes("…"), "maskSecretEnvValue ellipsis");
+
+  const cfg = maskMcpConfigForApi({
+    command: "npx",
+    env: {
+      GITHUB_PERSONAL_ACCESS_TOKEN: token,
+      ALLOWED_PATH: "/tmp/project",
+    },
+  });
+  assert(cfg.env.GITHUB_PERSONAL_ACCESS_TOKEN !== token, "api config masks token");
+  assert(cfg.env.ALLOWED_PATH === "/tmp/project", "non-secret env preserved");
+  assert(cfg.env_values_masked === true, "env_values_masked flag");
+
+  const dir = tempDir();
+  const mcpPath = join(dir, "mcp.json");
+  const configPath = join(dir, "backends.json");
+  const disabledPath = join(dir, "mcp-disabled.json");
+  writeFileSync(
+    mcpPath,
+    JSON.stringify({ mcpServers: { "costgate-gate": { command: "/bin/gate" } } }, null, 2)
+  );
+  writeFileSync(configPath, JSON.stringify({ backends: {} }, null, 2));
+  const paths = { mcpPath, configPath, disabledPath, globalConfigPath: configPath };
+  addMcpServerRaw(
+    {
+      name: "github",
+      target: "backend",
+      config: {
+        command: "npx",
+        env: { GITHUB_PERSONAL_ACCESS_TOKEN: token },
+      },
+    },
+    paths
+  );
+  const detail = getMcpServerDetail("github", paths);
+  assert(detail.config.env.GITHUB_PERSONAL_ACCESS_TOKEN !== token, "detail masks token");
+  const stored = loadBackendsJson(configPath).backends.github.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+  assert(stored === token, "stored config keeps raw token");
+  console.error("[mcp-crud] env masking ok");
+}
+
 async function testHttpCrud() {
   const dir = tempDir();
   const mcpPath = join(dir, "mcp.json");
@@ -122,11 +170,15 @@ async function testHttpCrud() {
   try {
     const post = await fetch(`${base}/api/mcps`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         name: "http-backend",
         target: "backend",
-        config: { command: "echo", args: ["x"] },
+        config: {
+          command: "echo",
+          args: ["x"],
+          env: { API_TOKEN: "secret-token-value" },
+        },
       }),
     });
     assert(post.ok, `post ${post.status}`);
@@ -134,15 +186,20 @@ async function testHttpCrud() {
     assert(get.ok, `get ${get.status}`);
     const body = await get.json();
     assert(body.storage === "backend", "http get storage");
+    assert(body.config.env.API_TOKEN !== "secret-token-value", "http get masks env");
+    assert(body.config.env_values_masked === true, "http get masked flag");
 
     const put = await fetch(`${base}/api/mcps/http-backend`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PUT"),
       body: JSON.stringify({ config: { command: "echo", args: ["y"] } }),
     });
     assert(put.ok, `put ${put.status}`);
 
-    const del = await fetch(`${base}/api/mcps/http-backend`, { method: "DELETE" });
+    const del = await fetch(`${base}/api/mcps/http-backend`, {
+      method: "DELETE",
+      headers: writeAuthHeaders("DELETE"),
+    });
     assert(del.ok, `delete ${del.status}`);
     console.error("[mcp-crud] HTTP crud ok");
   } finally {
@@ -153,6 +210,7 @@ async function testHttpCrud() {
 async function main() {
   testBackendCrud();
   testDirectCrud();
+  testEnvMasking();
   await testHttpCrud();
   console.error("[mcp-crud] all passed");
 }
