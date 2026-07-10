@@ -15,6 +15,7 @@ import { homedir, platform, arch as nodeArch } from "node:os";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cliPackageRoot, readCliPackageVersion } from "./cli-runtime.mjs";
 
 export const REPO = "YukiMiyatake/costgate";
@@ -111,6 +112,45 @@ export async function downloadToFile(url, dest) {
   await pipeline(res.body, createWriteStream(dest));
 }
 
+/** Parse goreleaser checksums.txt (`<sha256>  <filename>` per line). */
+export function parseChecksumsFile(text) {
+  const map = new Map();
+  for (const line of String(text ?? "").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const match = trimmed.match(/^([a-fA-F0-9]{64})\s+(.+)$/);
+    if (!match) continue;
+    map.set(match[2].trim(), match[1].toLowerCase());
+  }
+  return map;
+}
+
+export async function fetchReleaseChecksums(tag) {
+  const normalizedTag = String(tag ?? "").startsWith("v") ? tag : `v${normalizeVersion(tag)}`;
+  const url = `https://github.com/${REPO}/releases/download/${normalizedTag}/checksums.txt`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`checksum download failed ${res.status}: ${url}`);
+  }
+  return parseChecksumsFile(await res.text());
+}
+
+export function sha256File(path) {
+  const data = readFileSync(path);
+  return createHash("sha256").update(data).digest("hex");
+}
+
+export function verifyArchiveChecksum(archivePath, assetName, checksums) {
+  const expected = checksums.get(assetName);
+  if (!expected) {
+    throw new Error(`checksum missing for ${assetName}`);
+  }
+  const actual = sha256File(archivePath);
+  if (actual !== expected) {
+    throw new Error(`checksum mismatch for ${assetName}`);
+  }
+}
+
 function extractTarGz(archive, destDir) {
   mkdirSync(destDir, { recursive: true });
   const tar = execFileSync("tar", ["-xzf", archive, "-C", destDir], { stdio: ["ignore", "pipe", "pipe"] });
@@ -150,6 +190,11 @@ export async function installGateBinary(opts = {}) {
 
   const archivePath = join(tmp, `archive.${archiveExt}`);
   await downloadToFile(url, archivePath);
+
+  if (!opts.skipChecksum) {
+    const checksums = await fetchReleaseChecksums(tag);
+    verifyArchiveChecksum(archivePath, asset, checksums);
+  }
 
   const extractDir = join(tmp, "extract");
   if (archiveExt === "zip") {
