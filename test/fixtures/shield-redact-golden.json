@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "id": "github_pat",
+      "input": "Authorization: ghp_1234567890abcdefghijklmnopqrst",
+      "mode": "secrets",
+      "must_not_contain": ["ghp_1234567890abcdefghijklmnopqrst"],
+      "must_contain": ["[[CG:GITHUB_PAT:"]
+    },
+    {
+      "id": "json_api_key",
+      "input": "{\"api_key\":\"sk-secret-value-12345\",\"name\":\"public\"}",
+      "mode": "secrets",
+      "must_not_contain": ["sk-secret-value-12345"],
+      "must_contain": ["[[CG:"],
+      "must_preserve": ["public"]
+    },
+    {
+      "id": "full_mode",
+      "input": "hello world secret data",
+      "mode": "full",
+      "must_not_contain": ["secret data"],
+      "must_contain": ["[[CG:REDACTED:"]
+    }
+  ]
+}

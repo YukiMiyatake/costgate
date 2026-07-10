@@ -47,6 +47,7 @@ const TESTS = [
   "mcp-trust.test.mjs",
   "mcp-crud.test.mjs",
   "shield-prompt-33b.test.mjs",
+  "shield-redact-golden.test.mjs",
   "costgate-gate-launch.test.mjs",
 ];
 
