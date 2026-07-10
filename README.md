@@ -132,7 +132,7 @@ Measured benchmarks: [docs/benchmarks.md](./docs/benchmarks.md)
 
 Production Cursor setup (clone): `npm run cursor:production` — see [examples/cursor/README.md](./examples/cursor/README.md).
 
-Cloud metrics (opt-in): `npm run cloud:upload` — see [costgate-cloud](https://github.com/YukiMiyatake/costgate-cloud).
+**OSS is 100% local** — no cloud services, no org policies. Hosted LoopGate: [docs/ecosystem/plans.md](./docs/ecosystem/plans.md).
 
 ## Plans (roadmap)
 

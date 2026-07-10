@@ -77,7 +77,6 @@ const groups = [
       ["release:version -- X.Y.Z", "package.json + CHANGELOG を bump"],
       ["release:check", "goreleaser check"],
       ["publish:check", "npm publish 前チェック"],
-      ["cloud:upload", "costgate-cloud へ opt-in アップロード"],
     ],
   },
 ];

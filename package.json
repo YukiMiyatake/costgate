@@ -26,7 +26,6 @@
     "compress-report": "node scripts/compress-report.mjs",
     "session-report": "node scripts/session-report.mjs",
 
-    "cloud:upload": "node scripts/cloud-upload.mjs",
 
     "cursor:mcp": "node scripts/cursor-mcp.mjs",
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",

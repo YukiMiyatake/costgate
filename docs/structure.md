@@ -46,10 +46,10 @@ Gate releases via GitHub Releases (goreleaser). npm packages publish on the same
 
 | Product | Repo | Public |
 |---------|------|--------|
-| **CostGate** | `costgate` (this repo) | Yes — MCP gateway, Shield, local Dashboard |
+| **CostGate** | `costgate` (this repo) | Yes — MCP gateway, Shield, local Dashboard (**local only**) |
 | **LoopGate** | `costgate-cloud` | No — Hosted LoopOps, LLM proxy, org policies |
 
-- OSS stays the **engine** (`costgate init`, Gate MCP, hooks).
+- OSS stays the **engine** (`costgate init`, Gate MCP, hooks). **Fully local — no cloud APIs.**
 - SaaS runs **Issue → PR loops** with hosted Claude API (see costgate-cloud `docs/product/loopgate.md`).
 - **Feature split (OSS free vs Cloud paid):** [docs/ecosystem/plans.md](./ecosystem/plans.md)
 - Do **not** merge OSS + cloud into one repo (license, release cadence, visibility differ).

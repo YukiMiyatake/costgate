@@ -202,7 +202,7 @@ Out-of-scope items show an **“outside measurement”** badge in the UI.
 
 - Dashboard binds to **localhost by default**
 - Reads local files under `~/.costgate/`
-- Cloud upload is **opt-in** only (`npm run cloud:upload`); no automatic upload from the dashboard
+- **No cloud upload** from OSS — all data stays on your machine
 
 ---
 
@@ -211,10 +211,9 @@ Out-of-scope items show an **“outside measurement”** badge in the UI.
 | Plan | Dashboard |
 |------|-----------|
 | **Free (OSS)** | Local dashboard (Phases 23–29 complete) |
-| **Pro** | Cloud history / sharing (Phase 30+, costgate-cloud) |
-| **Team** | Team policies / allowed MCP lists (future) |
+| **Pro** | Cloud history / sharing (LoopGate Console — costgate-cloud) |
 
-Individual users get most visibility and optimization from the OSS local dashboard.
+Individual users get full visibility from the **local OSS dashboard**. Team policies and cloud history are **LoopGate (paid)** only — see [ecosystem/plans.md](./ecosystem/plans.md).
 
 ---
 
