@@ -118,7 +118,7 @@ The wizard suggests `COSTGATE_PROJECT_ROOT` or Git root. For multiple workspaces
 
 Gate-backed MCPs (GitHub, Filesystem) go in `backends.json`. Built-in Cursor Browser MCP is documented in the UI only (no file write).
 
-Write APIs are localhost-only (optional `COSTGATE_DASHBOARD_TOKEN`).
+Write APIs require `X-Costgate-Dashboard-Token` (set via `COSTGATE_DASHBOARD_TOKEN`, or auto-generated at startup and printed to the console).
 
 ---
 

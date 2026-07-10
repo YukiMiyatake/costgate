@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const FIX = join(ROOT, "test/fixtures/dashboard");
@@ -154,7 +155,7 @@ async function testHttpApi() {
 
     const exported = await fetch(`http://127.0.0.1:${port}/api/history/export`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({ generation_ids: ["gen-fixture-2"] }),
     });
     assert(exported.ok, "history export status");

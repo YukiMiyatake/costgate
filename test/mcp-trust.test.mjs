@@ -20,6 +20,7 @@ import {
 } from "../scripts/lib/mcp-trust.mjs";
 import { buildDashboardData } from "../scripts/lib/dashboard-data.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MARKETPLACE = join(ROOT, "catalog/marketplace");
@@ -251,7 +252,7 @@ async function testHttpApi() {
 
     const patch = await fetch(`${baseUrl}/api/mcp-trust`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ server: "costgate-gate", trust: "standard" }),
     });
     assert(patch.ok, `PATCH ${patch.status}`);
@@ -263,7 +264,7 @@ async function testHttpApi() {
 
     const bad = await fetch(`${baseUrl}/api/mcp-trust`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ server: "x", trust: "invalid" }),
     });
     assert(bad.status === 400, "invalid trust 400");

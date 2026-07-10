@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 import { evaluateGateSettings } from "../scripts/lib/dashboard-gate-eval.mjs";
 import { gateBin } from "../scripts/lib/paths.mjs";
 
@@ -39,7 +40,7 @@ async function testHttpEndpoint() {
 
     const res = await fetch(`${base}/api/admin/gate-eval`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         settings: { exposure_mode: "conservative", static_intent: "pull request", intent_dynamic: false },
       }),

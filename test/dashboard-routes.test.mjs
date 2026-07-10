@@ -10,6 +10,9 @@ import {
   createDashboardServer,
   normalizePathname,
 } from "../scripts/dashboard-server.mjs";
+import { dashboardWriteHeaders, ensureTestDashboardToken } from "./lib/dashboard-auth.mjs";
+
+ensureTestDashboardToken();
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MARKETPLACE = join(ROOT, "catalog/marketplace");
@@ -66,9 +69,14 @@ async function startServer(extra = {}) {
 }
 
 async function expectJson(base, path, { status = 200, method = "GET", body, headers } = {}) {
+  const isWrite = method !== "GET" && method !== "HEAD";
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(isWrite ? dashboardWriteHeaders() : {}),
+      ...headers,
+    },
     body: body != null ? JSON.stringify(body) : undefined,
   });
   assert(res.status === status, `${method} ${path} expected ${status}, got ${res.status}`);
@@ -148,7 +156,10 @@ async function testPostAndPatch() {
 
     const dup = await fetch(`${base}/api/mcps`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...dashboardWriteHeaders(),
+      },
       body: JSON.stringify({ template: "github", env: { GITHUB_TOKEN: "x" } }),
     });
     assert(dup.status === 500, "duplicate backend should error");
@@ -166,7 +177,13 @@ async function testPostAndPatch() {
     assert(sanitize.ok === true, "POST sanitize");
     assert(sanitize.sanitized.includes("[[CG:"), "sanitized placeholder");
 
-    const badMethod = await fetch(`${base}/api/marketplace`, { method: "PUT" });
+    const badMethod = await fetch(`${base}/api/marketplace`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...dashboardWriteHeaders(),
+      },
+    });
     assert(badMethod.status === 405, "PUT marketplace 405");
 
     console.error("[routes] POST/PATCH ok");
@@ -215,7 +232,10 @@ async function testUiSettingsRoutes() {
 
     const badLocale = await fetch(`${base}/api/ui-settings`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...dashboardWriteHeaders(),
+      },
       body: JSON.stringify({ locale: "fr" }),
     });
     assert(badLocale.status === 400, "unsupported locale 400");
@@ -312,6 +332,10 @@ async function testWriteTokenProtectedRoutes() {
       body: JSON.stringify({ settings: { exposure_mode: "conservative" } }),
     });
     assert(evalRes.status === 200 || evalRes.status === 503, "gate-eval with token");
+
+    const health = await fetch(`${base}/api/health`);
+    const healthJson = await health.json();
+    assert(healthJson.writes?.token_required === true, "health token_required");
 
     console.error("[routes] write token protection ok");
   } finally {

@@ -16,6 +16,7 @@ import {
   touchRegistryPath,
 } from "../scripts/lib/dashboard-workspaces.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -156,7 +157,7 @@ async function testHttpScopedApi() {
 
     const post = await fetch(`${origin}/api/workspaces/${wsId}/mcps`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         template: "filesystem",
         env: { ALLOWED_PATH: ws },
@@ -169,7 +170,7 @@ async function testHttpScopedApi() {
 
     const disable = await fetch(`${origin}/api/workspaces/${wsId}/mcps/filesystem`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ enabled: false }),
     });
     assert(disable.ok, `scoped PATCH disable mcp ${disable.status}`);
@@ -180,7 +181,7 @@ async function testHttpScopedApi() {
 
     const enable = await fetch(`${origin}/api/workspaces/${wsId}/mcps/filesystem`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ enabled: true }),
     });
     assert(enable.ok, `scoped PATCH enable mcp ${enable.status}`);
@@ -189,7 +190,7 @@ async function testHttpScopedApi() {
 
     const toolPatch = await fetch(`${origin}/api/workspaces/${wsId}/tools/fork_repository`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ force_tier: "hidden" }),
     });
     assert(toolPatch.ok, `scoped PATCH tool ${toolPatch.status}`);

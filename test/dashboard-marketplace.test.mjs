@@ -16,6 +16,7 @@ import {
 } from "../scripts/lib/dashboard-marketplace.mjs";
 import { loadMcpTrust } from "../scripts/lib/mcp-trust.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MARKETPLACE = join(ROOT, "catalog/marketplace");
@@ -245,7 +246,7 @@ async function testHttpMarketplaceAndPost() {
 
     const post = await fetch(`${base}/api/mcps`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("POST"),
       body: JSON.stringify({
         template: "github",
         env: { GITHUB_TOKEN: "ghp_http_test" },

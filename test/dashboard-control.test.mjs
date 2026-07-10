@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 import {
   setToolForceTier,
   setToolExcludeLock,
@@ -185,7 +186,7 @@ async function testHttpPatch() {
 
     const patch = await fetch(`${base}/api/tools/create_issue`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ force_tier: "hidden" }),
     });
     assert(patch.ok, `patch status ${patch.status}`);
@@ -196,7 +197,7 @@ async function testHttpPatch() {
 
     const pin = await fetch(`${base}/api/tools/search_code`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ always_expose: true }),
     });
     assert(pin.ok, `pin status ${pin.status}`);
@@ -206,7 +207,7 @@ async function testHttpPatch() {
 
     const lock = await fetch(`${base}/api/tools/search_code`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ exclude_lock: true }),
     });
     assert(lock.ok, `lock status ${lock.status}`);
@@ -216,7 +217,7 @@ async function testHttpPatch() {
 
     const qualified = await fetch(`${base}/api/tools/search_code`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: writeAuthHeaders("PATCH"),
       body: JSON.stringify({ force_tier: "hidden", backend: "github" }),
     });
     assert(qualified.ok, `qualified patch ${qualified.status}`);
