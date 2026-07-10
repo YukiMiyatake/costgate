@@ -45,6 +45,7 @@ const TESTS = [
   "gate-settings.test.mjs",
   "shield-settings.test.mjs",
   "mcp-trust.test.mjs",
+  "mcp-crud.test.mjs",
   "shield-prompt-33b.test.mjs",
   "costgate-gate-launch.test.mjs",
 ];

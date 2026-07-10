@@ -58,6 +58,35 @@ function sanitizeStoredConfig(cfg) {
   return out;
 }
 
+const SECRET_ENV_KEY =
+  /(?:token|secret|password|api[_-]?key|auth|credential|private|access[_-]?key)/i;
+
+/** Mask env values for Dashboard GET responses (never expose secrets to the browser). */
+export function maskSecretEnvValue(value) {
+  if (value == null || value === "") return value;
+  const s = String(value);
+  if (s.length <= 4) return "••••";
+  return `${s.slice(0, 2)}…${s.slice(-2)}`;
+}
+
+export function shouldMaskEnvKey(key) {
+  return SECRET_ENV_KEY.test(String(key ?? ""));
+}
+
+export function maskMcpConfigForApi(config) {
+  if (!config || typeof config !== "object") return config;
+  const out = { ...config };
+  if (out.env && typeof out.env === "object" && !Array.isArray(out.env)) {
+    const masked = {};
+    for (const [key, value] of Object.entries(out.env)) {
+      masked[key] = shouldMaskEnvKey(key) ? maskSecretEnvValue(value) : value;
+    }
+    out.env = masked;
+    out.env_values_masked = true;
+  }
+  return out;
+}
+
 function backupFile(path) {
   if (!existsSync(path)) return null;
   const backup = `${path}.bak`;
@@ -135,6 +164,7 @@ export function getMcpServerDetail(name, paths = {}) {
   return {
     name: trimmed,
     ...detail,
+    config: maskMcpConfigForApi(detail.config),
     editable: !protectedMcp && detail.editable,
     deletable: !protectedMcp && detail.deletable,
   };
