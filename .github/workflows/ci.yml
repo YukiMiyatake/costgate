@@ -24,6 +24,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Script syntax check
+        run: npm run check:syntax
+
+      - name: Package script guards
+        run: npm run test:package-scripts
+
       - name: Build TypeScript packages
         run: npm run build
 
@@ -66,6 +72,3 @@ jobs:
 
       - name: Dashboard tests
         run: npm run dashboard:test
-
-      - name: Script syntax check
-        run: npm run check:syntax
