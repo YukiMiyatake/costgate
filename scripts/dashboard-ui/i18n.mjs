@@ -126,8 +126,13 @@ export function applyStaticI18n(root = document) {
 export async function loadUiSettingsFromApi(fetchJson) {
   try {
     const data = await fetchJson("/api/ui-settings");
-    const { locale: loc, timezone: tz } = data.settings ?? {};
-    setLocaleAndTimezone(loc ?? locale, tz ?? timezone);
+    // Only override browser/localStorage when a saved file exists on the server.
+    if (data.exists) {
+      const { locale: loc, timezone: tz } = data.settings ?? {};
+      setLocaleAndTimezone(loc ?? locale, tz ?? timezone);
+    } else {
+      setLocaleAndTimezone(locale, timezone);
+    }
     return data;
   } catch {
     setLocaleAndTimezone(locale, timezone);
@@ -136,6 +141,8 @@ export async function loadUiSettingsFromApi(fetchJson) {
 }
 
 export async function saveUiSettingsToApi(fetchJson, patch) {
+  // Apply immediately so the UI updates even if persistence is delayed.
+  setLocaleAndTimezone(patch.locale ?? locale, patch.timezone ?? timezone);
   const data = await fetchJson("/api/ui-settings", {
     method: "PATCH",
     body: JSON.stringify(patch),
