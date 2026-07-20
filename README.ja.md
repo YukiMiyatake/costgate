@@ -1,11 +1,22 @@
 # CostGate
 
-**Gate your MCP. Cut your bill.**
+**Gate, secure, and optimize your MCP.**
 
-CostGate は MCP ツール定義とレスポンスを最適化し、AI のトークン消費を削減します。  
-Cursor 向けに設計され、Claude Desktop など他の MCP クライアントとも互換です。
+CostGate は **Cursor 向け MCP コントロールプレーン** です。バックエンド MCP の前段プロキシ、トークン削減、**Shield** による機密ブロック、**ローカル Dashboard** 管理を提供します。  
+Claude Desktop 等の stdio MCP クライアントとも Gate 機能は利用可能（hooks は Cursor 専用）。
 
-> **言語:** [English](README.md) · 日本語（このファイル）
+> **言語:** [English](README.md) · 日本語（このファイル）  
+> **インストール:** [docs/ja/installation.md](docs/ja/installation.md) · **Gate モード:** [docs/ja/gate-mode.md](docs/ja/gate-mode.md) · **Shield:** [docs/ja/shield.md](docs/ja/shield.md)
+
+## CostGate でできること
+
+| 機能 | 概要 |
+|------|------|
+| **MCP Gateway** | GitHub 等の前段に `costgate-gate` を置く |
+| **トークン削減** | **filter**（Tier A/B/C）、**圧縮**、**code-mode** |
+| **Shield** | プロンプト secret ブロック、MCP redact、Trust ポリシー |
+| **Dashboard** | 使用量、MCP 管理、マーケットプレイス、プロジェクト設定 |
+| **Probe** | 計測専用 MCP（`@costgate/probe`、JSONL ログ） |
 
 ## リポジトリ構成（monorepo）
 
