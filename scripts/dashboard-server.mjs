@@ -955,11 +955,7 @@ function createDashboardServer(options = {}) {
       }
 
       if (method === "PATCH") {
-        if (!authorizeWrite(req)) {
-          json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
-          return;
-        }
-
+        // Locale/timezone are UI prefs — allow without write token.
         if (pathname === "/api/ui-settings") {
           const body = await readBody(req);
           try {
@@ -968,6 +964,11 @@ function createDashboardServer(options = {}) {
           } catch (e) {
             json(res, 400, { error: e.message ?? String(e) });
           }
+          return;
+        }
+
+        if (!authorizeWrite(req)) {
+          json(res, 401, { error: "unauthorized", hint: "Set X-Costgate-Dashboard-Token" });
           return;
         }
 

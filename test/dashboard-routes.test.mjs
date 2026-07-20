@@ -222,20 +222,21 @@ async function testUiSettingsRoutes() {
     const health = await expectJson(base, "/api/health");
     assert(health.ui?.settings?.locale === "en", "health includes ui payload");
 
-    const patched = await expectJson(base, "/api/ui-settings", {
+    const patchedNoToken = await fetch(`${base}/api/ui-settings`, {
       method: "PATCH",
-      body: { locale: "ja", timezone: "Asia/Tokyo" },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: "ja", timezone: "Asia/Tokyo" }),
     });
+    assert(patchedNoToken.ok, `PATCH ui-settings without token ${patchedNoToken.status}`);
+    const patched = await patchedNoToken.json();
     assert(patched.ok === true, "PATCH ok");
     assert(patched.settings.locale === "ja", "PATCH locale applied");
     assert(patched.settings.timezone === "Asia/Tokyo", "PATCH timezone applied");
+    assert(patched.exists === true, "settings file created");
 
     const badLocale = await fetch(`${base}/api/ui-settings`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...dashboardWriteHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale: "fr" }),
     });
     assert(badLocale.status === 400, "unsupported locale 400");

@@ -6,6 +6,9 @@ import {
   applyStaticI18n,
   loadUiSettingsFromApi,
   saveUiSettingsToApi,
+  setLocaleAndTimezone,
+  getLocale,
+  getTimezone,
   gateSettingLabel,
   gateSettingHint,
   shieldSettingLabel,
@@ -2233,11 +2236,12 @@ function setupPreferences(uiData) {
   const tzSelect = document.getElementById("timezone-select");
   if (!localeSelect || !tzSelect) return;
 
-  const settings = uiData?.settings ?? {};
-  localeSelect.value = settings.locale ?? "en";
+  // Prefer active client prefs (localStorage / browser) when server file is absent.
+  const settings = uiData?.exists ? (uiData.settings ?? {}) : {};
+  localeSelect.value = settings.locale ?? getLocale() ?? "en";
 
   const timezones = [...(uiData?.common_timezones ?? [])];
-  const currentTz = settings.timezone ?? "UTC";
+  const currentTz = settings.timezone ?? getTimezone() ?? "UTC";
   if (currentTz && !timezones.includes(currentTz)) {
     timezones.unshift(currentTz);
   }
@@ -2254,16 +2258,25 @@ function setupPreferences(uiData) {
   prefsWired = true;
 
   const onChange = async () => {
+    const next = {
+      locale: localeSelect.value,
+      timezone: tzSelect.value,
+    };
     try {
-      await saveUiSettingsToApi(fetchJson, {
-        locale: localeSelect.value,
-        timezone: tzSelect.value,
-      });
+      await saveUiSettingsToApi(fetchJson, next);
       applyStaticI18n();
       await reload();
       await loadGateSettings();
       await loadMarketplace();
     } catch (e) {
+      // Keep client prefs even if server save fails (e.g. old server still requiring token).
+      setLocaleAndTimezone(next.locale, next.timezone);
+      applyStaticI18n();
+      try {
+        await reload();
+      } catch {
+        /* ignore */
+      }
       showToast(e.message);
     }
   };
