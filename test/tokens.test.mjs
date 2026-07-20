@@ -13,8 +13,6 @@ assert(countTokens(json) > 0, "json tokens");
 assert(bytesToTokens(0) === 0, "zero bytes");
 assert(bytesToTokens(100) === 25, "bytes fallback");
 
-assert(TOKEN_ENCODING === "estimate", "encoding");
-assert(countTokens("abcd") === 1, "estimate length/4");
-assert(countTokens("abcdefgh") === 2, "estimate length/4 round-up");
+assert(TOKEN_ENCODING === "cl100k_base", "encoding");
 
 console.log("[tokens-test] ok");

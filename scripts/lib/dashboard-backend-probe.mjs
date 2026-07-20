@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { summarizeTools } from "./tokens.mjs";
+import { summarizeTools } from "./tokens-estimate.mjs";
 import {
   loadMcpSdkClient,
   loadMcpSdkStdioTransport,
