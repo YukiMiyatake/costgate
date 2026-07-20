@@ -3,7 +3,8 @@
  */
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { countTokens, bytesToTokens, summarizeTools as localSummarizeTools } from "./tokens.mjs";
+import { countTokens, bytesToTokens } from "./tokens.mjs";
+import { summarizeTools as probeSummarizeTools } from "@costgate/probe/metrics";
 
 export function createMcpClient(proc, { timeoutMs = 120000 } = {}) {
   let id = 0;
@@ -76,9 +77,9 @@ export async function withMcpProcess(command, args, env, fn, options = {}) {
   }
 }
 
-/** Token estimate (local fallback; see tokens.mjs). */
+/** Token estimate via tiktoken cl100k_base (from @costgate/probe). */
 export function summarizeTools(tools) {
-  return localSummarizeTools(tools);
+  return probeSummarizeTools(tools);
 }
 
 export function pctReduction(before, after) {

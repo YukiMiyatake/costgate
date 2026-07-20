@@ -72,7 +72,6 @@ import {
 } from "./lib/dashboard-probe.mjs";
 import { clearDashboardBrowserOpenedFlag } from "./lib/dashboard-browser-flag.mjs";
 import { scheduleDashboardRestart } from "./lib/dashboard-restart.mjs";
-import { evaluateGateSettings } from "./lib/dashboard-gate-eval.mjs";
 import { gateBin } from "./lib/paths.mjs";
 import {
   exportHistoryTurns,
@@ -855,6 +854,7 @@ function createDashboardServer(options = {}) {
               json(res, 503, { error: "gate_binary_missing", hint: "npm run build:gate" });
               return;
             }
+            const { evaluateGateSettings } = await import("./lib/dashboard-gate-eval.mjs");
             const result = await evaluateGateSettings(body.settings ?? body ?? {});
             json(res, 200, { ok: true, ...result });
           } catch (e) {
