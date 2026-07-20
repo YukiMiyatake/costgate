@@ -6,7 +6,7 @@
  */
 import { existsSync } from "node:fs";
 import { withMcpProcess, summarizeTools, pctReduction } from "../scripts/lib/mcp-client.mjs";
-import { gateBin, mockGateEnv } from "../scripts/lib/paths.mjs";
+import { gateBin, mockGateEnv, syncGateSettingsFile } from "../scripts/lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 
@@ -18,10 +18,16 @@ async function main() {
 
   const baseEnv = mockGateEnv("fs-smoke", {}, "filesystem");
 
+  function gateEnv(extra = {}) {
+    const env = { ...baseEnv, ...extra };
+    syncGateSettingsFile(env.COSTGATE_GATE_SETTINGS_PATH, env);
+    return env;
+  }
+
   const before = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    gateEnv({ COSTGATE_GATE_MODE: "transparent" }),
     async (client) => {
       await client.initialize("fs-before");
       return summarizeTools(await client.listTools());
@@ -32,12 +38,11 @@ async function main() {
   const after = await withMcpProcess(
     GATE_BIN,
     [],
-    {
-      ...baseEnv,
+    gateEnv({
       COSTGATE_GATE_MODE: "filter",
       COSTGATE_INTENT: "read file",
       COSTGATE_INTENT_DYNAMIC: "0",
-    },
+    }),
     async (client) => {
       await client.initialize("fs-after");
       return summarizeTools(await client.listTools());

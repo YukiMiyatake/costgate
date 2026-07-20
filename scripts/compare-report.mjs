@@ -15,7 +15,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { withMcpProcess, summarizeTools, pctReduction } from "./lib/mcp-client.mjs";
-import { baseGateEnv, gateBin, probeJs, mockGateEnv } from "./lib/paths.mjs";
+import { baseGateEnv, gateBin, probeJs, mockGateEnv, syncGateSettingsFile } from "./lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 const PROBE_JS = probeJs();
@@ -45,11 +45,19 @@ const baseEnv = useMock
   ? mockGateEnv("compare-report", {}, mockBackend)
   : baseGateEnv("compare-report");
 
+function gateEnv(extra = {}) {
+  const env = { ...baseEnv, ...extra };
+  if (env.COSTGATE_GATE_SETTINGS_PATH) {
+    syncGateSettingsFile(env.COSTGATE_GATE_SETTINGS_PATH, env);
+  }
+  return env;
+}
+
 async function measureGateTransparent() {
   return withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    gateEnv({ COSTGATE_GATE_MODE: "transparent" }),
     async (client) => {
       await client.initialize("compare-before");
       const tools = await client.listTools();
@@ -79,15 +87,17 @@ async function measureProbe() {
 }
 
 async function measureGateFilter() {
-  const filterEnv = {
-    ...baseEnv,
+  const filterEnv = gateEnv({
     COSTGATE_GATE_MODE: "filter",
     COSTGATE_INTENT: intent,
     COSTGATE_INTENT_DYNAMIC: args.includes("--dynamic") ? "1" : "0",
-  };
+  });
   if (exposureMode) filterEnv.COSTGATE_EXPOSURE_MODE = exposureMode;
   if (exposureMaxB) filterEnv.COSTGATE_EXPOSURE_MAX_B = exposureMaxB;
   if (exposureTokenBudget) filterEnv.COSTGATE_EXPOSURE_TOKEN_BUDGET = exposureTokenBudget;
+  if (filterEnv.COSTGATE_GATE_SETTINGS_PATH) {
+    syncGateSettingsFile(filterEnv.COSTGATE_GATE_SETTINGS_PATH, filterEnv);
+  }
 
   return withMcpProcess(
     GATE_BIN,

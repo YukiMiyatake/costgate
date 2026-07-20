@@ -127,7 +127,7 @@ export function mockMultiGateEnv(clientName, extra = {}) {
     COSTGATE_GATE_SETTINGS_PATH: paths.gateSettings,
     ...extra,
   });
-  syncMockGateSettingsFile(paths.gateSettings, env);
+  syncGateSettingsFile(paths.gateSettings, env);
   return env;
 }
 
@@ -165,7 +165,7 @@ export function mockTestPaths(prefix = "integration") {
 }
 
 /** Keep gate-settings.json aligned with COSTGATE_* env for mock Gate tests. */
-function syncMockGateSettingsFile(path, env = {}) {
+export function syncGateSettingsFile(path, env = {}) {
   const settings = {
     version: 1,
     gate_mode: env.COSTGATE_GATE_MODE === "transparent" ? "transparent" : "filter",
@@ -215,7 +215,7 @@ export function mockGateEnv(clientName, extra = {}, backend = "mock") {
     COSTGATE_GATE_SETTINGS_PATH: paths.gateSettings,
     ...extra,
   });
-  syncMockGateSettingsFile(paths.gateSettings, env);
+  syncGateSettingsFile(paths.gateSettings, env);
   return env;
 }
 
