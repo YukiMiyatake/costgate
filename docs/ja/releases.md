@@ -32,7 +32,7 @@ npx @costgate/cli@latest init
 
 ```bash
 ./scripts/install-gate.sh              # 最新 → ~/.local/bin
-./scripts/install-gate.sh v0.6.0       # 特定 tag
+./scripts/install-gate.sh v1.0.0       # 特定 tag
 ```
 
 確認: `costgate-gate --version`
@@ -47,7 +47,7 @@ linux / darwin / windows × amd64 / arm64
 ## メンテナ: リリース
 
 ```bash
-git tag v0.6.0 && git push origin v0.6.0
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
 | Workflow | 成果物 |

@@ -21,7 +21,7 @@ Release frequency is flexible (early releases may be frequent). The process is a
 ### 1. Bump version in the repo
 
 ```bash
-npm run release:version -- 0.6.0 --note "Dashboard history, generation_id binding"
+npm run release:version -- 1.0.0 --note "First public OSS release"
 npm run publish:check
 npm run release:check   # goreleaser
 ```
@@ -32,7 +32,7 @@ This updates `packages/*/package.json`, probe’s `@costgate/schema` dependency,
 
 ```bash
 git add packages CHANGELOG.md
-npm run feat:ship -- -m "chore: release v0.6.0"
+npm run feat:ship -- -m "chore: release v1.0.0"
 ```
 
 GitHub Actions runs CI and auto-merges when green.
@@ -41,8 +41,8 @@ GitHub Actions runs CI and auto-merges when green.
 
 ```bash
 git checkout main && git pull origin main
-git tag v0.6.0
-git push origin v0.6.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 Tag `v*` triggers CI in parallel:

@@ -21,7 +21,7 @@ npx @costgate/cli@latest init
 ### 1. リポジトリ内のバージョンを上げる
 
 ```bash
-npm run release:version -- 0.6.0 --note "変更概要（CHANGELOG 用）"
+npm run release:version -- 1.0.0 --note "初回 OSS リリース"
 npm run publish:check
 npm run release:check   # goreleaser
 ```
@@ -32,7 +32,7 @@ npm run release:check   # goreleaser
 
 ```bash
 git add packages CHANGELOG.md
-npm run feat:ship -- -m "chore: release v0.6.0"
+npm run feat:ship -- -m "chore: release v1.0.0"
 ```
 
 CI と auto-merge は GitHub Actions が担当します。
@@ -41,8 +41,8 @@ CI と auto-merge は GitHub Actions が担当します。
 
 ```bash
 git checkout main && git pull origin main
-git tag v0.6.0
-git push origin v0.6.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 tag `v*` push で CI が並行実行:
