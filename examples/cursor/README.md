@@ -17,6 +17,16 @@ Update: `npx @costgate/cli update`
 
 **[mcp-production.json](./mcp-production.json)** — local paths via `npm run cursor:production`.
 
+```bash
+npm install
+npm run build:gate
+mkdir -p ~/.costgate && cp examples/backends.github.json ~/.costgate/backends.json
+npm run cursor:deps         # required on WSL/DrvFs (SDK → ~/.costgate)
+npm run cursor:production   # also seeds workspace .costgate/backends.json
+npm run cursor:registry
+# Restart Cursor MCP
+```
+
 Docker only (no host Node/Go):
 
 ```bash

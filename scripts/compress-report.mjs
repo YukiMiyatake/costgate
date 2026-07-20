@@ -15,7 +15,7 @@ import {
   pctReduction,
 } from "./lib/mcp-client.mjs";
 import { parseProbeLogs, bytesToTokens } from "./lib/parse-probe-logs.mjs";
-import { baseGateEnv, gateBin, mockGateEnv } from "./lib/paths.mjs";
+import { baseGateEnv, gateBin, mockGateEnv, syncGateSettingsFile } from "./lib/paths.mjs";
 
 const GATE_BIN = gateBin();
 
@@ -58,11 +58,19 @@ const baseEnv = useMock
       COSTGATE_INTENT_DYNAMIC: "0",
     });
 
+function gateEnv(extra = {}) {
+  const env = { ...baseEnv, ...extra };
+  if (env.COSTGATE_GATE_SETTINGS_PATH) {
+    syncGateSettingsFile(env.COSTGATE_GATE_SETTINGS_PATH, env);
+  }
+  return env;
+}
+
 async function measureDefinitions() {
   const before = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    gateEnv({ COSTGATE_GATE_MODE: "transparent" }),
     async (client) => {
       await client.initialize("compress-def-before");
       return summarizeTools(await client.listTools());
@@ -73,7 +81,7 @@ async function measureDefinitions() {
   const after = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "filter", COSTGATE_COMPRESS: "0" },
+    gateEnv({ COSTGATE_GATE_MODE: "filter", COSTGATE_COMPRESS: "0" }),
     async (client) => {
       await client.initialize("compress-def-after");
       return summarizeTools(await client.listTools());

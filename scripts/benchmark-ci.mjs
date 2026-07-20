@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { TOKEN_ENCODING } from "./lib/tokens.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const GATE_BIN = process.env.COSTGATE_GATE_BIN ?? join(ROOT, "packages/gate/bin/costgate-gate");
@@ -18,9 +19,11 @@ const jsonOut = args.includes("--json");
 
 const LIMITS = {
   mock: {
-    min_reduction_pct: 40,
+    // cl100k_base on mock (16→~9 tools, no intent): ~36% observed in CI
+    min_reduction_pct: 35,
     max_filter_tokens: 500,
     max_filter_tools: 12,
+    min_before_tools: 16,
   },
 };
 
@@ -39,9 +42,20 @@ function runCompareMock() {
 function assertBenchmark(report) {
   const limits = LIMITS.mock;
   const errors = [];
+  const before = report.before;
   const after = report.after;
   const reduction = report.reduction;
 
+  if (before.tool_count < limits.min_before_tools) {
+    errors.push(
+      `before tools ${before.tool_count} < min ${limits.min_before_tools} (transparent baseline missing?)`
+    );
+  }
+  if (after.tool_count >= before.tool_count) {
+    errors.push(
+      `filter tools ${after.tool_count} >= before ${before.tool_count} (filter not applied?)`
+    );
+  }
   if (after.estimated_tokens > limits.max_filter_tokens) {
     errors.push(
       `filter tokens ${after.estimated_tokens} > max ${limits.max_filter_tokens}`
@@ -59,6 +73,14 @@ function assertBenchmark(report) {
 }
 
 async function main() {
+  if (TOKEN_ENCODING !== "cl100k_base") {
+    console.error(
+      `[benchmark:ci] requires cl100k_base token counter (got ${TOKEN_ENCODING}). ` +
+        "Compare/benchmark must not use Dashboard length/4 estimate."
+    );
+    process.exit(1);
+  }
+
   if (!existsSync(GATE_BIN)) {
     console.error("[benchmark:ci] gate binary missing. Run: npm run build:gate");
     process.exit(1);

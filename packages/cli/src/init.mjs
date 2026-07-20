@@ -25,8 +25,8 @@ export async function runInit(opts = {}) {
   });
   steps.push(
     gate.skipped
-      ? `Gate binary: ${gate.path} (already installed)`
-      : `Gate binary: ${gate.path} (${gate.tag ?? version})`
+      ? `Gate binary: ${gate.path} (already installed${gate.source ? `, ${gate.source}` : ""})`
+      : `Gate binary: ${gate.path} (${gate.tag ?? version}${gate.source ? `, ${gate.source}` : ""})`
   );
 
   const backends = ensureBackendsTemplate(runtimeRoot, opts.backendsPath ?? DEFAULT_BACKENDS_PATH);
@@ -42,8 +42,11 @@ export async function runInit(opts = {}) {
   steps.push(`mcp.json: production mode → ${mcpPath}`);
 
   if (opts.hooks !== false) {
-    const hooks = installRegistryHooks(opts.hooksPath);
-    steps.push(`hooks.json: ${hooks.hooksPath} (+${hooks.installed.length || "already present"})`);
+    const hooks = await installRegistryHooks(opts.hooksPath);
+    const added = Array.isArray(hooks.installed) ? hooks.installed.length : 0;
+    steps.push(
+      `hooks.json: ${hooks.hooksPath} (+${added || "already present"})`
+    );
   }
 
   return {

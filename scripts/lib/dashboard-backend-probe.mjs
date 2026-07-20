@@ -5,10 +5,12 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { summarizeTools } from "@costgate/probe/metrics";
+import { summarizeTools } from "./tokens-estimate.mjs";
+import {
+  loadMcpSdkClient,
+  loadMcpSdkStdioTransport,
+  loadMcpSdkStreamableHttpTransport,
+} from "./mcp-sdk-resolve.mjs";
 import { readJson } from "./read-json.mjs";
 import { isMultiBackend, toolRowKey } from "./tool-override-names.mjs";
 
@@ -171,6 +173,11 @@ async function withTimeout(promise, timeoutMs, label) {
 export async function probeOneBackend(name, config, options = {}) {
   const timeoutMs = options.timeoutMs ?? probeTimeoutMs();
   const probeConfig = resolveProbeConfig(name, config);
+  const [Client, StdioClientTransport, StreamableHTTPClientTransport] = await Promise.all([
+    loadMcpSdkClient(),
+    loadMcpSdkStdioTransport(),
+    loadMcpSdkStreamableHttpTransport(),
+  ]);
   const client = new Client(
     { name: "costgate-dashboard", version: "0.1.0" },
     { capabilities: {} }

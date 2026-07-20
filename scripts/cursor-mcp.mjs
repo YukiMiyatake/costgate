@@ -7,9 +7,9 @@
  *   npm run cursor:measurement  # costgate-probe
  *   npm run cursor:mcp -- status
  */
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -45,6 +45,8 @@ function saveMcp(config) {
 }
 
 function gateServer() {
+  const costgateNm = join(homedir(), ".costgate", "node_modules");
+  const nodePathParts = [costgateNm, process.env.NODE_PATH].filter(Boolean);
   return {
     command: "node",
     args: [join(HOST_ROOT, "scripts/costgate-gate-launch.mjs")],
@@ -66,6 +68,7 @@ function gateServer() {
       COSTGATE_COMPRESS_MAX_CHARS: process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
       COSTGATE_CODE_MODE_MIN_CHARS: process.env.COSTGATE_CODE_MODE_MIN_CHARS ?? "2000",
       COSTGATE_INTENT_DYNAMIC: "1",
+      NODE_PATH: nodePathParts.join(delimiter),
     },
   };
 }
@@ -82,12 +85,33 @@ function probeServer() {
   };
 }
 
+function ensureWorkspaceBackends() {
+  const wsDir = join(HOST_ROOT, ".costgate");
+  const wsBackends = join(wsDir, "backends.json");
+  if (existsSync(wsBackends)) return { path: wsBackends, created: false };
+  const template = existsSync(BACKENDS_LOCAL)
+    ? BACKENDS_LOCAL
+    : join(ROOT, "examples", "backends.github.json");
+  if (!existsSync(template)) {
+    throw new Error(
+      `backends template missing: ${template}\nCopy examples/backends.github.json to ~/.costgate/backends.json`
+    );
+  }
+  mkdirSync(wsDir, { recursive: true });
+  copyFileSync(template, wsBackends);
+  return { path: wsBackends, created: true };
+}
+
 function applyProduction(config) {
   if (!existsSync(GATE_BIN_LOCAL)) {
     throw new Error(`gate binary missing: ${GATE_BIN_LOCAL}\nRun: npm run build:gate`);
   }
   if (!existsSync(BACKENDS_LOCAL)) {
     throw new Error(`backends config missing: ${BACKENDS_LOCAL}\nCopy examples/backends.github.json`);
+  }
+  const seeded = ensureWorkspaceBackends();
+  if (seeded.created) {
+    console.error(`[cursor-mcp] seeded workspace backends: ${seeded.path}`);
   }
   config.mcpServers ??= {};
   delete config.mcpServers["costgate-probe"];

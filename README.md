@@ -66,10 +66,15 @@ git clone https://github.com/YukiMiyatake/costgate.git
 cd costgate
 npm install
 npm run build:gate          # or ./scripts/install-gate.sh
-cp examples/backends.github.json ~/.costgate/backends.json
-npm run cursor:production   # update mcp.json with local paths
+mkdir -p ~/.costgate && cp examples/backends.github.json ~/.costgate/backends.json
+npm run cursor:deps         # Dashboard SDK → ~/.costgate/node_modules (WSL/DrvFs-safe)
+npm run cursor:production   # update mcp.json + seed .costgate/backends.json
 npm run cursor:registry     # install hooks
+# Restart Cursor MCP
 ```
+
+`cursor:production` points Gate at `${workspaceFolder}/.costgate/backends.json` and seeds it from examples when missing.  
+On WSL, repos under `/mnt/c` or `/e` can corrupt `node_modules`; use `npm run cursor:deps` so Dashboard loads SDK from Linux-native `~/.costgate`.
 
 Docker only: [docs/docker.md](./docs/docker.md)
 
