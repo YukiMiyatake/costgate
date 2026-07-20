@@ -66,10 +66,15 @@ git clone https://github.com/YukiMiyatake/costgate.git
 cd costgate
 npm install
 npm run build:gate          # または ./scripts/install-gate.sh
-cp examples/backends.github.json ~/.costgate/backends.json
-npm run cursor:production   # ローカルパスで mcp.json 更新
+mkdir -p ~/.costgate && cp examples/backends.github.json ~/.costgate/backends.json
+npm run cursor:deps         # Dashboard 用 SDK を ~/.costgate/node_modules へ（WSL/DrvFs 対策）
+npm run cursor:production   # ローカルパスで mcp.json 更新 + .costgate/backends.json をシード
 npm run cursor:registry     # hooks 登録
+# Cursor MCP を再起動
 ```
+
+`cursor:production` は `${workspaceFolder}/.costgate/backends.json` を参照するため、未作成なら examples からシードします。  
+WSL でリポジトリが `/mnt/c` や `/e` 上にあると `node_modules` が壊れることがあるため、Dashboard 依存は `npm run cursor:deps` で Linux 側 (`~/.costgate`) に入れます。
 
 Docker のみ: [docs/ja/docker.md](./docs/ja/docker.md)
 

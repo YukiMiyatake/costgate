@@ -17,6 +17,16 @@ npx @costgate/cli@latest init
 
 **[mcp-production.json](./mcp-production.json)** — `npm run cursor:production` でローカルパスを書き込み。
 
+```bash
+npm install
+npm run build:gate
+mkdir -p ~/.costgate && cp examples/backends.github.json ~/.costgate/backends.json
+npm run cursor:deps         # WSL/DrvFs では必須（SDK を ~/.costgate へ）
+npm run cursor:production   # ワークスペース .costgate/backends.json もシード
+npm run cursor:registry
+# Cursor MCP を再起動
+```
+
 Docker のみ:
 
 ```bash
