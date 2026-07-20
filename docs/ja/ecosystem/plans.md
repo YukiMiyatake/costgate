@@ -24,7 +24,7 @@
 | **CLI・インストール** | `npx @costgate/cli init`、Gate バイナリ（GitHub Releases）、Cursor hooks | ✅ |
 | **ローカル Dashboard** | 使用量・削減見積もり、MCP ON/OFF、マーケットプレイス、プロジェクト別設定 | ✅ |
 | **品質** | eval スイート、benchmark CI、マルチ MCP カタログ | ✅ |
-| **セキュリティ（予定）** | Shield 隠匿、MCP trust、プロンプト秘密ブロック | 🔜 Phase 31+ |
+| **セキュリティ** | Shield 隠匿、MCP trust、プロンプト秘密ブロック | ✅ Phase 31–33 完了 |
 | **Issue 駆動 AI（OSS）** | ラベル契約（`ai:run`、`ai:batch`）、メンテナのみ武装 | ✅ ドキュメント · 🔜 workflows |
 
 **OSS に含まれないもの:** ホスト型 Issue→PR ループ、自前キーなしのホスト Claude API、チーム課金、クラウド監査 UI。
