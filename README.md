@@ -1,11 +1,22 @@
 # CostGate
 
-**Gate your MCP. Cut your bill.**
+**Gate, secure, and optimize your MCP.**
 
-CostGate reduces AI token consumption by optimizing MCP tool definitions and responses.  
-Cursor-first, compatible with Claude Desktop and other MCP clients.
+CostGate is a **Cursor-first MCP control plane**: proxy your backend MCPs, cut token usage, block secrets with **Shield**, and manage everything from a **local Dashboard**.  
+Also compatible with Claude Desktop and other stdio MCP clients (Gate features only; hooks are Cursor-specific).
 
-> **Languages:** English (this file) · [日本語](README.ja.md)
+> **Languages:** English (this file) · [日本語](README.ja.md)  
+> **Install:** [docs/installation.md](docs/installation.md) · **Gate mode:** [docs/gate-mode.md](docs/gate-mode.md) · **Shield:** [docs/shield.md](docs/shield.md)
+
+## What CostGate does
+
+| Capability | Summary |
+|------------|---------|
+| **MCP Gateway** | Single `costgate-gate` entry in front of GitHub and other MCPs |
+| **Token reduction** | Optional **filter** mode (Tier A/B/C), **compression**, **code-mode** |
+| **Shield** | Block secrets in prompts; redact MCP traffic; MCP trust policy |
+| **Dashboard** | Usage, savings, MCP on/off, marketplace, per-project config |
+| **Probe** | Separate measurement MCP for baseline JSONL logs (`@costgate/probe`) |
 
 ## Repository layout (monorepo)
 
