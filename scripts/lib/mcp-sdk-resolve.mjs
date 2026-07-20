@@ -5,10 +5,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { createRequire } from "node:module";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SDK_PKG = "@modelcontextprotocol/sdk";
+const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 export function costgateNodeModulesDir() {
   return join(homedir(), ".costgate", "node_modules");
@@ -23,51 +23,64 @@ export function isSdkEntryValid(entryPath) {
   if (!existsSync(entryPath)) return false;
   try {
     const head = readFileSync(entryPath, "utf8").slice(0, 40);
-    return head.includes("import ");
+    return head.includes("import ") || head.startsWith("export ");
   } catch {
     return false;
   }
 }
 
-function workspaceSdkRoot() {
-  try {
-    const require = createRequire(import.meta.url);
-    const pkgJson = require.resolve(`${SDK_PKG}/package.json`);
-    return dirname(pkgJson);
-  } catch {
-    return null;
+function sdkRootIfValid(nodeModulesDir) {
+  const entry = sdkClientEntryPath(nodeModulesDir);
+  if (!isSdkEntryValid(entry)) return null;
+  return join(nodeModulesDir, SDK_PKG);
+}
+
+/** Walk parents of startDir for node_modules/@modelcontextprotocol/sdk. */
+function findWorkspaceSdkRoot(startDir = REPO_ROOT) {
+  let dir = startDir;
+  for (let i = 0; i < 8; i++) {
+    const root = sdkRootIfValid(join(dir, "node_modules"));
+    if (root) return root;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+  return null;
 }
 
 /** @returns {string | null} absolute path to @modelcontextprotocol/sdk package root */
 export function resolveSdkRoot() {
-  const homeNm = costgateNodeModulesDir();
-  const homeEntry = sdkClientEntryPath(homeNm);
-  if (isSdkEntryValid(homeEntry)) {
-    return join(homeNm, SDK_PKG);
-  }
-
-  const wsRoot = workspaceSdkRoot();
-  if (wsRoot) {
-    const entry = join(wsRoot, "dist", "esm", "client", "index.js");
-    if (isSdkEntryValid(entry)) return wsRoot;
-  }
-
-  return null;
+  const homeRoot = sdkRootIfValid(costgateNodeModulesDir());
+  if (homeRoot) return homeRoot;
+  return findWorkspaceSdkRoot();
 }
 
 export function sdkLoads() {
   return resolveSdkRoot() != null;
 }
 
+const SUBPATH_TO_PACKAGE = {
+  "client/index.js": "@modelcontextprotocol/sdk/client",
+  "client/stdio.js": "@modelcontextprotocol/sdk/client/stdio",
+  "client/streamableHttp.js": "@modelcontextprotocol/sdk/client/streamableHttp",
+};
+
 async function importSdkSubpath(subpath) {
   const root = resolveSdkRoot();
-  if (!root) {
-    throw new Error(
-      "Cannot load @modelcontextprotocol/sdk. Run: npm run cursor:deps (or npm install in the repo on a Linux-native path)"
-    );
+  if (root) {
+    return import(pathToFileURL(join(root, "dist", "esm", subpath)).href);
   }
-  return import(pathToFileURL(join(root, "dist", "esm", subpath)).href);
+  const pkg = SUBPATH_TO_PACKAGE[subpath];
+  if (pkg) {
+    try {
+      return await import(pkg);
+    } catch {
+      // fall through
+    }
+  }
+  throw new Error(
+    "Cannot load @modelcontextprotocol/sdk. Run: npm run cursor:deps (or npm install in the repo on a Linux-native path)"
+  );
 }
 
 let clientMod;
