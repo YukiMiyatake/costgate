@@ -83,7 +83,11 @@
 
     "test:integration": "node test/run.mjs",
     "test:schema": "node test/schema.test.mjs",
-    "test:tokens": "node test/tokens.test.mjs",
+    "test:tokens": "node test/tokens-import-boundaries.test.mjs && node test/tokens-estimate.test.mjs && node test/tokens.test.mjs && node test/tokens-parity.test.mjs",
+    "test:tokens:estimate": "node test/tokens-estimate.test.mjs",
+    "test:tokens:probe": "node test/tokens.test.mjs",
+    "test:tokens:parity": "node test/tokens-parity.test.mjs",
+    "test:tokens:boundaries": "node test/tokens-import-boundaries.test.mjs",
     "test:filesystem": "node test/filesystem-mcp-smoke.mjs",
 
     "test:cursor:gate": "node test/cursor-gate-session.mjs",

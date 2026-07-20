@@ -49,8 +49,17 @@ jobs:
           version: "~> v2"
           args: check
 
-      - name: Token counter tests
-        run: npm run test:tokens
+      - name: Token import boundaries
+        run: npm run test:tokens:boundaries
+
+      - name: Token estimate tests
+        run: npm run test:tokens:estimate
+
+      - name: Token counter tests (tiktoken)
+        run: npm run test:tokens:probe
+
+      - name: Token estimate vs tiktoken parity
+        run: npm run test:tokens:parity
 
       - name: CLI package tests
         run: npm run test:cli
