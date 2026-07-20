@@ -119,7 +119,8 @@ export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logD
   const byBackend = new Map();
   let cutoff = null;
   if (windowDays != null && windowDays > 0) {
-    cutoff = Date.now() - windowDays * MS_PER_DAY;
+    const now = options.now ?? Date.now();
+    cutoff = now - windowDays * MS_PER_DAY;
   }
 
   const listTokenSamples = [];
@@ -620,6 +621,7 @@ export function buildDashboardData(options = {}) {
       globalGateLogDir: paths.scoped
         ? (options.globalPaths?.gateLogDir ?? globalPaths.gateLogDir)
         : null,
+      now,
     }
   );
   if (options.backendToolsCache) {
