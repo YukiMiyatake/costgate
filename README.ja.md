@@ -5,7 +5,8 @@
 CostGate は MCP ツール定義とレスポンスを最適化し、AI のトークン消費を削減します。  
 Cursor 向けに設計され、Claude Desktop など他の MCP クライアントとも互換です。
 
-> **言語:** [English](README.md) · 日本語（このファイル）
+> **言語:** [English](README.md) · 日本語（このファイル）  
+> **インストール:** [docs/ja/installation.md](docs/ja/installation.md) · **Gate モード:** [docs/ja/gate-mode.md](docs/ja/gate-mode.md)
 
 ## リポジトリ構成（monorepo）
 
