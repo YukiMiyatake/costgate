@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GATE_BIN = join(ROOT, "packages/gate/bin/costgate-gate");
 const MOCK_TOOLS = 16;
-const MIN_REDUCTION_PCT = 30;
+const MIN_REDUCTION_PCT = 35;
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
