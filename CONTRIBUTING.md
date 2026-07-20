@@ -135,12 +135,12 @@ gh pr create --base main --head feat/short-description
 Versions are **committed to the repo** before tagging. See [RELEASE.md](./docs/RELEASE.md).
 
 ```bash
-npm run release:version -- 0.6.0 --note "summary for CHANGELOG"
+npm run release:version -- 1.0.0 --note "summary for CHANGELOG"
 git add packages CHANGELOG.md
-npm run feat:ship -- -m "chore: release v0.6.0"
+npm run feat:ship -- -m "chore: release v1.0.0"
 # after PR merges:
 git checkout main && git pull
-git tag v0.6.0 && git push origin v0.6.0
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
 ### Branch naming
