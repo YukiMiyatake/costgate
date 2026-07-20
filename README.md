@@ -5,7 +5,8 @@
 CostGate reduces AI token consumption by optimizing MCP tool definitions and responses.  
 Cursor-first, compatible with Claude Desktop and other MCP clients.
 
-> **Languages:** English (this file) · [日本語](README.ja.md)
+> **Languages:** English (this file) · [日本語](README.ja.md)  
+> **Install:** [docs/installation.md](docs/installation.md) · **Gate mode:** [docs/gate-mode.md](docs/gate-mode.md)
 
 ## Repository layout (monorepo)
 
