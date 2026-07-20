@@ -43,18 +43,11 @@ export async function runInit(opts = {}) {
 
   if (opts.hooks !== false) {
     const hooks = await installRegistryHooks(opts.hooksPath);
-<<<<<<< HEAD
     const results = Array.isArray(hooks.targets) ? hooks.targets : [hooks];
     for (const r of results) {
       const added = Array.isArray(r.installed) ? r.installed.length : 0;
       steps.push(`hooks.json: ${r.hooksPath} (+${added || "already present"})`);
     }
-=======
-    const added = Array.isArray(hooks.installed) ? hooks.installed.length : 0;
-    steps.push(
-      `hooks.json: ${hooks.hooksPath} (+${added || "already present"})`
-    );
->>>>>>> 98502bb (fix: ローカル Cursor 導入と Dashboard 起動を WSL/DrvFs 向けに修正)
   }
 
   return {

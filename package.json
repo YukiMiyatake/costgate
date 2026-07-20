@@ -33,11 +33,8 @@
     "cursor:measurement": "node scripts/cursor-mcp.mjs measurement",
     "cursor:production": "node scripts/cursor-mcp.mjs production",
     "cursor:registry": "node packages/cli/bin/costgate.mjs registry",
-<<<<<<< HEAD
     "cursor:hooks:repair": "node scripts/repair-cursor-hooks.mjs",
-=======
     "cursor:deps": "node scripts/ensure-cursor-deps.mjs",
->>>>>>> 98502bb (fix: ローカル Cursor 導入と Dashboard 起動を WSL/DrvFs 向けに修正)
     "cursor:update": "node scripts/cursor-update.mjs",
 
     "dashboard": "node packages/cli/bin/costgate.mjs dashboard",
