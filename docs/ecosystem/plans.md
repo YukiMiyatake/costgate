@@ -24,7 +24,7 @@ Everything below stays in the public [costgate](https://github.com/YukiMiyatake/
 | **CLI & install** | `npx @costgate/cli init`, Gate binary (GitHub Releases), Cursor hooks | ✅ |
 | **Local dashboard** | Usage, savings, MCP enable/disable, marketplace, per-project config | ✅ |
 | **Quality** | eval suite, benchmark CI, multi-MCP catalog | ✅ |
-| **Security (planned)** | Shield redact, MCP trust, prompt secret block | 🔜 Phase 31+ |
+| **Security** | Shield redact, MCP trust, prompt secret block | ✅ Phase 31–33 complete |
 | **Issue-driven AI (OSS)** | Label contract (`ai:run`, `ai:batch`), maintainer-only arming | ✅ doc · 🔜 workflows |
 
 **Not included in OSS:** hosted Issue→PR loops, hosted Claude API without your keys, team billing, cloud audit UI.
