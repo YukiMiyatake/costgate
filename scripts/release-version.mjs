@@ -2,8 +2,8 @@
 /**
  * Bump npm package versions in the repo (committed before tag push).
  *
- *   npm run release:version -- 0.6.0
- *   npm run release:version -- 0.6.0 --note "Dashboard history improvements"
+ *   npm run release:version -- 1.0.0
+ *   npm run release:version -- 1.0.0 --note "First public OSS release"
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

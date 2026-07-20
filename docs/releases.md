@@ -33,7 +33,7 @@ Manual install:
 ```bash
 chmod +x scripts/install-gate.sh
 ./scripts/install-gate.sh              # latest → ~/.local/bin
-./scripts/install-gate.sh v0.6.0       # specific tag
+./scripts/install-gate.sh v1.0.0       # specific tag
 INSTALL_DIR=/usr/local/bin ./scripts/install-gate.sh
 ```
 
@@ -41,7 +41,7 @@ Verify:
 
 ```bash
 costgate-gate --version
-# costgate-gate 0.6.0 (abc1234)
+# costgate-gate 1.0.0 (abc1234)
 ```
 
 ### Platforms
@@ -59,8 +59,8 @@ Asset: `costgate-gate_{version}_{os}_{arch}.{tar.gz|zip}`
 ## Maintainer: cut a release
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 GitHub Actions:
@@ -99,7 +99,7 @@ npm run release:check
   "mcpServers": {
     "costgate-gate": {
       "command": "npx",
-      "args": ["-y", "@costgate/cli@0.6.0", "gate"],
+      "args": ["-y", "@costgate/cli@1.0.0", "gate"],
       "env": { "COSTGATE_CONFIG": "${workspaceFolder}/.costgate/backends.json", ... }
     }
   }
