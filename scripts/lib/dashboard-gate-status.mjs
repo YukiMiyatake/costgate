@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildGateLogFreshness } from "./dashboard-data.mjs";
+import { collectGateLogDirs, existingGateLogDirs } from "./dashboard-gate-log-dirs.mjs";
 import { gateSettingsGeneration, loadGateSettings } from "./gate-settings.mjs";
 import { loadToolOverrides, toolOverridesGeneration, toolOverridesPath } from "./dashboard-control.mjs";
 
@@ -62,27 +63,43 @@ export function buildGateStatusPayload(options = {}) {
   const settingsGen = gateSettingsGeneration(gateSettings.settings);
   const overridesGen = toolOverridesGeneration(loadToolOverrides(overridesPath));
 
+  const logDirs = collectGateLogDirs({
+    gateLogDir,
+    globalGateLogDir,
+    projectRoot,
+    registryPath: options.registryPath,
+    env: options.env,
+    includeRegistry: options.includeRegistry,
+  });
+
   const freshness = buildGateLogFreshness({
     gateLogDir,
     globalGateLogDir,
     projectRoot,
     now,
+    registryPath: options.registryPath,
+    env: options.env,
+    includeRegistry: options.includeRegistry,
   });
 
   const logOpts = {
     projectRoot,
     strictProjectRoot: false,
   };
-  const settingsReload = pickLatestReload(
-    latestGateEvent(gateLogDir, "settings_reload", logOpts),
-    projectRoot && globalGateLogDir && globalGateLogDir !== gateLogDir
-      ? latestGateEvent(globalGateLogDir, "settings_reload", {
-          ...logOpts,
-          strictProjectRoot: true,
-        })
-      : null
+  const settingsCandidates = logDirs.map((dir) =>
+    latestGateEvent(dir, "settings_reload", {
+      ...logOpts,
+      strictProjectRoot: Boolean(projectRoot) && gateLogDir && resolve(dir) !== resolve(gateLogDir),
+    })
   );
-  const overridesReload = latestGateEvent(gateLogDir, "overrides_reload", logOpts);
+  const overridesCandidates = logDirs.map((dir) =>
+    latestGateEvent(dir, "overrides_reload", {
+      ...logOpts,
+      strictProjectRoot: Boolean(projectRoot) && gateLogDir && resolve(dir) !== resolve(gateLogDir),
+    })
+  );
+  const settingsReload = pickLatestReload(...settingsCandidates);
+  const overridesReload = pickLatestReload(...overridesCandidates);
 
   const appliedSettingsGen = settingsReload?.row?.config_generation ?? null;
   const appliedOverridesGen = overridesReload?.row?.overrides_generation ?? null;
@@ -95,9 +112,16 @@ export function buildGateStatusPayload(options = {}) {
 
   const lastReload = pickLatestReload(settingsReload, overridesReload);
 
+  const reason = !freshness.has_events
+    ? "no_gate_events"
+    : freshness.stale
+      ? "stale"
+      : "ok";
+
   return {
     ok: true,
     connected: freshness.has_events && !freshness.stale,
+    reason,
     gate_log: freshness,
     hot_reload: {
       gate_settings: true,
@@ -106,6 +130,16 @@ export function buildGateStatusPayload(options = {}) {
     paths: {
       gate_settings: gateSettings.paths.effective,
       tool_overrides: overridesPath,
+      gate_log_dirs: logDirs,
+      gate_log_dirs_existing: existingGateLogDirs({
+        gateLogDir,
+        globalGateLogDir,
+        projectRoot,
+        registryPath: options.registryPath,
+        env: options.env,
+        includeRegistry: options.includeRegistry,
+      }),
+      gate_log_source: freshness.source_dir ?? null,
     },
     config_generation: {
       gate_settings: settingsGen,

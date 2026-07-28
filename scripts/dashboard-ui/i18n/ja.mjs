@@ -29,6 +29,7 @@ export default {
     detail: "Gate 最終アクティビティ: {age}{pending}",
     pendingHint: " · 設定が未反映",
     noActivity: "最近のログなし",
+    noLogs: "ログディレクトリにイベントなし（ワークスペースを確認）",
     restart: "Dashboard を再起動",
     restartConfirm: "Dashboard サーバーを再起動しますか？ 一時的に切断される場合があります。",
     restartStarted: "Dashboard を再起動しています… 復帰しない場合はページを再読み込みしてください。",

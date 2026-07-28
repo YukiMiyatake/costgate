@@ -29,6 +29,7 @@ export default {
     detail: "Last Gate activity: {age}{pending}",
     pendingHint: " · settings not yet applied",
     noActivity: "no recent activity",
+    noLogs: "no events in log dirs (check workspace)",
     restart: "Restart Dashboard",
     restartConfirm: "Restart the Dashboard server? The page may disconnect briefly.",
     restartStarted: "Dashboard is restarting… reload the page if it does not recover.",

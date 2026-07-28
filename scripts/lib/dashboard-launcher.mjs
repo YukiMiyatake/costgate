@@ -103,11 +103,8 @@ export async function probeDashboardHealth(options = {}) {
   return detail.ok;
 }
 
-export function spawnDashboardProcess(options = {}) {
-  const script = options.script ?? dashboardServerScript();
-  if (!existsSync(script)) {
-    throw new Error(`dashboard script not found: ${script}`);
-  }
+/** Env for Dashboard child — aligns log dirs with Gate workspace layout. */
+export function resolveDashboardSpawnEnv(options = {}) {
   const host = options.host ?? process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
   const port = String(options.port ?? process.env.COSTGATE_DASHBOARD_PORT ?? 8787);
   const env = withCostgateNodePath({
@@ -119,6 +116,24 @@ export function spawnDashboardProcess(options = {}) {
   if (options.projectRoot) {
     env.COSTGATE_PROJECT_ROOT = options.projectRoot;
   }
+  // Cursor Gate writes to <workspace>/.costgate/logs; bare dashboard often
+  // only looked at ~/.costgate/logs → false "Gate offline".
+  const projectRoot = env.COSTGATE_PROJECT_ROOT || options.projectRoot;
+  if (projectRoot && !env.COSTGATE_GATE_LOG_DIR) {
+    env.COSTGATE_GATE_LOG_DIR = join(projectRoot, ".costgate", "logs");
+  }
+  if (projectRoot && !env.COSTGATE_PROBE_LOG_DIR) {
+    env.COSTGATE_PROBE_LOG_DIR = join(projectRoot, ".costgate", "logs");
+  }
+  return env;
+}
+
+export function spawnDashboardProcess(options = {}) {
+  const script = options.script ?? dashboardServerScript();
+  if (!existsSync(script)) {
+    throw new Error(`dashboard script not found: ${script}`);
+  }
+  const env = resolveDashboardSpawnEnv(options);
 
   const child = spawn(process.execPath, [script], {
     detached: true,
