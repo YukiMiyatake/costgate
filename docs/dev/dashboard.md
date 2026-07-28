@@ -333,7 +333,8 @@ Registry エントリ例:
   "COSTGATE_PROJECT_ROOT": "${workspaceFolder}",
   "COSTGATE_CONFIG": "${workspaceFolder}/.costgate/backends.json",
   "COSTGATE_TOOL_OVERRIDES": "${workspaceFolder}/.costgate/tool-overrides.json",
-  "COSTGATE_USAGE_PATH": "${workspaceFolder}/.costgate/usage.json"
+  "COSTGATE_USAGE_PATH": "${workspaceFolder}/.costgate/usage.json",
+  "COSTGATE_GATE_LOG_DIR": "${workspaceFolder}/.costgate/logs"
 }
 ```
 
@@ -364,6 +365,19 @@ Registry エントリ例:
 ### マルチルート workspace
 
 costgate + costgate-cloud のように Cursor マルチルートを開いた場合、**フォルダごとに** `${workspaceFolder}` と `.costgate/` が分かれる。registry 上も別エントリ。
+
+### Windows Cursor と WSL Cursor
+
+Cursor ホストは Windows / WSL で別（`mcp.json`・Gate プロセス・`~/.costgate` も別）。CostGate は次の方針:
+
+| 層 | 扱い |
+|----|------|
+| ランタイム（mcp.json / Gate / Dashboard プロセス） | **ホストごと**（統合しない） |
+| プロジェクトデータ（`<workspace>/.costgate/`） | **共有**（同じフォルダを開けば Win/WSL で共通） |
+| Gate 接続判定のログ | ワークスペース選択時は **`<project>/.costgate/logs` のみ** |
+| Global ビュー | そのホストの `~/.costgate/logs` のみ（Win home ↔ WSL home は混ぜない） |
+
+普段使う Cursor を片方に寄せ、もう一方は補助にするのが安全。両方で常時 Gate を動かす必要はない。
 
 ### テスト
 

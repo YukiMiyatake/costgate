@@ -116,8 +116,8 @@ export function resolveDashboardSpawnEnv(options = {}) {
   if (options.projectRoot) {
     env.COSTGATE_PROJECT_ROOT = options.projectRoot;
   }
-  // Cursor Gate writes to <workspace>/.costgate/logs; bare dashboard often
-  // only looked at ~/.costgate/logs → false "Gate offline".
+  // Align with Gate: workspace view uses <project>/.costgate/logs (shared
+  // across Win/WSL Cursor hosts). Host ~/.costgate is Global-only.
   const projectRoot = env.COSTGATE_PROJECT_ROOT || options.projectRoot;
   if (projectRoot && !env.COSTGATE_GATE_LOG_DIR) {
     env.COSTGATE_GATE_LOG_DIR = join(projectRoot, ".costgate", "logs");

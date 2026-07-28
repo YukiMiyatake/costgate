@@ -1,14 +1,16 @@
 /**
- * Discover Gate JSONL log directories.
+ * Gate log path policy for Dashboard status / freshness.
  *
- * Cursor production Gate writes to `<workspace>/.costgate/logs`, while a
- * manually started Dashboard defaults to `~/.costgate/logs`. Without multi-dir
- * discovery the UI shows "Gate 未接続" even when Gate is healthy.
+ * - Workspace view: ONLY `<project>/.costgate/logs` (shared across Win/WSL Cursor
+ *   when both open the same folder).
+ * - Global view: ONLY this host's `~/.costgate/logs` (or COSTGATE_*_LOG_DIR).
+ * - Do not merge Windows home ↔ WSL home, or scan other registry projects.
+ *
+ * Runtime (mcp.json, Gate process) stays per Cursor host; project data is shared.
  */
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { loadRegistry, registryPath } from "./dashboard-workspaces.mjs";
 
 export function workspaceGateLogDir(projectRoot) {
   if (!projectRoot) return null;
@@ -24,46 +26,33 @@ export function homeGateLogDir(env = process.env) {
 }
 
 /**
- * Unique absolute log directories to scan for gate_event rows.
+ * Canonical Gate log dir for the current Dashboard scope.
+ * @returns {string|null}
+ */
+export function resolveCanonicalGateLogDir(options = {}) {
+  const env = options.env ?? process.env;
+  const projectRoot = options.projectRoot || env.COSTGATE_PROJECT_ROOT || null;
+  if (projectRoot) return workspaceGateLogDir(projectRoot);
+  if (options.gateLogDir) return resolve(options.gateLogDir);
+  if (options.globalGateLogDir) return resolve(options.globalGateLogDir);
+  return homeGateLogDir(env);
+}
+
+/**
+ * Log dirs to scan for gate_event rows (status / freshness).
+ * Prefer a single canonical dir; returns a 0–1 length list for callers that loop.
+ *
  * @param {object} [options]
- * @param {string|null} [options.gateLogDir] primary / scoped dir
- * @param {string|null} [options.globalGateLogDir]
+ * @param {string|null} [options.gateLogDir] used only in Global view
+ * @param {string|null} [options.globalGateLogDir] used only in Global view
  * @param {string|null} [options.projectRoot]
- * @param {boolean} [options.includeRegistry=true] scan Activity Registry workspaces
- * @param {string} [options.registryPath]
  * @param {NodeJS.ProcessEnv} [options.env]
+ * @param {boolean} [options.includeRegistry] ignored (kept for call-site compat)
+ * @param {string} [options.registryPath] ignored
  */
 export function collectGateLogDirs(options = {}) {
-  const env = options.env ?? process.env;
-  const seen = new Set();
-  const dirs = [];
-
-  const add = (dir) => {
-    if (!dir) return;
-    const abs = resolve(dir);
-    if (seen.has(abs)) return;
-    seen.add(abs);
-    dirs.push(abs);
-  };
-
-  add(options.gateLogDir);
-  add(options.globalGateLogDir);
-  add(homeGateLogDir(env));
-  add(workspaceGateLogDir(options.projectRoot));
-  add(workspaceGateLogDir(env.COSTGATE_PROJECT_ROOT));
-
-  if (options.includeRegistry !== false) {
-    try {
-      const reg = loadRegistry(options.registryPath ?? registryPath());
-      for (const w of reg.workspaces ?? []) {
-        if (w?.path) add(workspaceGateLogDir(w.path));
-      }
-    } catch {
-      // registry optional
-    }
-  }
-
-  return dirs;
+  const canonical = resolveCanonicalGateLogDir(options);
+  return canonical ? [canonical] : [];
 }
 
 /** Dirs that currently exist on disk (for diagnostics). */

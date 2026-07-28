@@ -36,7 +36,7 @@ const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
 /** Gate considered "connected" if any gate_event is newer than this. */
 export const GATE_LOG_FRESH_MS = 60 * 60 * 1000;
-export const DASHBOARD_VERSION = "31b";
+export const DASHBOARD_VERSION = "31c";
 
 export function defaultPaths() {
   const home = homedir();
@@ -277,21 +277,15 @@ export function buildGateLogFreshness(options = {}) {
     gateLogDir: options.gateLogDir,
     globalGateLogDir: options.globalGateLogDir,
     projectRoot,
-    includeRegistry: options.includeRegistry,
-    registryPath: options.registryPath,
     env: options.env,
   });
 
-  const sources = dirs.map((dir) => {
-    const isPrimary =
-      options.gateLogDir && resolve(dir) === resolve(options.gateLogDir);
-    // Global (unscoped) view: accept all events. Scoped: soft-filter by project_root.
-    return {
-      dir,
-      projectRootFilter: projectRoot,
-      strictProjectRoot: Boolean(projectRoot) && !isPrimary,
-    };
-  });
+  // Single canonical dir: soft-filter by project_root when scoped.
+  const sources = dirs.map((dir) => ({
+    dir,
+    projectRootFilter: projectRoot,
+    strictProjectRoot: false,
+  }));
 
   let latestTs = null;
   let sourceDir = null;

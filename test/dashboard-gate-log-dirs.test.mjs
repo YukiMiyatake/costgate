@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import {
   collectGateLogDirs,
   existingGateLogDirs,
+  resolveCanonicalGateLogDir,
   workspaceGateLogDir,
 } from "../scripts/lib/dashboard-gate-log-dirs.mjs";
 import { buildGateLogFreshness } from "../scripts/lib/dashboard-data.mjs";
@@ -21,37 +22,48 @@ function isolatedEnv(home) {
   };
 }
 
-function testCollectIncludesWorkspaceAndHome() {
+function testCanonicalWorkspaceIgnoresHome() {
   const base = join(tmpdir(), `costgate-log-dirs-${process.pid}-${Date.now()}`);
   const home = join(base, "home");
   const project = join(base, "proj");
   mkdirSync(join(home, ".costgate", "logs"), { recursive: true });
   mkdirSync(join(project, ".costgate", "logs"), { recursive: true });
 
-  const dirs = collectGateLogDirs({
+  const canonical = resolveCanonicalGateLogDir({
     projectRoot: project,
-    includeRegistry: false,
+    gateLogDir: join(home, ".costgate", "logs"),
     env: isolatedEnv(home),
   });
+  assert(resolve(canonical) === resolve(workspaceGateLogDir(project)), "canonical is workspace");
+
+  const dirs = collectGateLogDirs({
+    projectRoot: project,
+    gateLogDir: join(home, ".costgate", "logs"),
+    env: isolatedEnv(home),
+  });
+  assert(dirs.length === 1, "workspace view: single dir");
+  assert(resolve(dirs[0]) === resolve(workspaceGateLogDir(project)), "only workspace");
   assert(
-    dirs.some((d) => resolve(d) === resolve(workspaceGateLogDir(project))),
-    "workspace log dir included"
-  );
-  assert(
-    dirs.some((d) => resolve(d) === resolve(join(home, ".costgate", "logs"))),
-    "home log dir included"
-  );
-  assert(
-    existingGateLogDirs({
-      projectRoot: project,
-      includeRegistry: false,
-      env: isolatedEnv(home),
-    }).length >= 2,
-    "both dirs exist"
+    !dirs.some((d) => resolve(d) === resolve(join(home, ".costgate", "logs"))),
+    "home not mixed into workspace view"
   );
 
   rmSync(base, { recursive: true, force: true });
-  console.error("[gate-log-dirs] collect ok");
+  console.error("[gate-log-dirs] workspace canonical ok");
+}
+
+function testGlobalUsesHomeOnly() {
+  const base = join(tmpdir(), `costgate-log-global-${process.pid}-${Date.now()}`);
+  const home = join(base, "home");
+  mkdirSync(join(home, ".costgate", "logs"), { recursive: true });
+  const dirs = collectGateLogDirs({
+    includeRegistry: false,
+    env: isolatedEnv(home),
+  });
+  assert(dirs.length === 1, "global: single dir");
+  assert(resolve(dirs[0]) === resolve(join(home, ".costgate", "logs")), "global is home");
+  rmSync(base, { recursive: true, force: true });
+  console.error("[gate-log-dirs] global home ok");
 }
 
 function testFreshnessFindsWorkspaceWhenHomeEmpty() {
@@ -81,7 +93,6 @@ function testFreshnessFindsWorkspaceWhenHomeEmpty() {
   const fresh = buildGateLogFreshness({
     gateLogDir: homeLogs,
     projectRoot: project,
-    includeRegistry: false,
     env,
     now: Date.now(),
   });
@@ -92,7 +103,6 @@ function testFreshnessFindsWorkspaceWhenHomeEmpty() {
   const status = buildGateStatusPayload({
     gateLogDir: homeLogs,
     projectRoot: project,
-    includeRegistry: false,
     env,
     now: Date.now(),
     gateSettingsPath: join(base, "gate-settings.json"),
@@ -104,6 +114,7 @@ function testFreshnessFindsWorkspaceWhenHomeEmpty() {
     status.paths.gate_log_dirs_existing.map((d) => resolve(d)).includes(resolve(wsLogs)),
     "existing lists ws"
   );
+  assert(existingGateLogDirs({ projectRoot: project, env }).length === 1, "one existing");
 
   rmSync(base, { recursive: true, force: true });
   console.error("[gate-log-dirs] workspace freshness ok");
@@ -121,7 +132,6 @@ function testOfflineWhenNoLogsAnywhere() {
   const status = buildGateStatusPayload({
     gateLogDir: join(home, ".costgate", "logs"),
     projectRoot: project,
-    includeRegistry: false,
     env: isolatedEnv(home),
     now: Date.now(),
     gateSettingsPath: join(base, "gate-settings.json"),
@@ -158,7 +168,6 @@ function testStaleWhenOnlyOldEvents() {
   const status = buildGateStatusPayload({
     gateLogDir: join(home, ".costgate", "logs"),
     projectRoot: project,
-    includeRegistry: false,
     env: isolatedEnv(home),
     now: Date.now(),
     gateSettingsPath: join(base, "gate-settings.json"),
@@ -172,8 +181,45 @@ function testStaleWhenOnlyOldEvents() {
   console.error("[gate-log-dirs] stale ok");
 }
 
-testCollectIncludesWorkspaceAndHome();
+function testHomeEventsIgnoredInWorkspaceView() {
+  const base = join(tmpdir(), `costgate-log-ignore-home-${process.pid}-${Date.now()}`);
+  const home = join(base, "home");
+  const project = join(base, "proj");
+  const homeLogs = join(home, ".costgate", "logs");
+  mkdirSync(homeLogs, { recursive: true });
+  mkdirSync(join(project, ".costgate", "logs"), { recursive: true });
+  writeFileSync(join(base, "gate-settings.json"), '{"version":1,"gate_mode":"filter"}\n');
+  writeFileSync(join(base, "tool-overrides.json"), '{"version":1,"tools":{}}\n');
+  const recent = new Date(Date.now() - 30_000).toISOString();
+  writeFileSync(
+    join(homeLogs, "gate-home.jsonl"),
+    JSON.stringify({
+      type: "gate_event",
+      event: "tools_list",
+      ts: recent,
+      project_root: project,
+    }) + "\n"
+  );
+
+  const status = buildGateStatusPayload({
+    gateLogDir: homeLogs,
+    projectRoot: project,
+    env: isolatedEnv(home),
+    now: Date.now(),
+    gateSettingsPath: join(base, "gate-settings.json"),
+    overridesPath: join(base, "tool-overrides.json"),
+  });
+  assert(status.connected === false, "home-only events do not mark workspace connected");
+  assert(status.reason === "no_gate_events", "workspace log empty → no_gate_events");
+
+  rmSync(base, { recursive: true, force: true });
+  console.error("[gate-log-dirs] ignore home in workspace view ok");
+}
+
+testCanonicalWorkspaceIgnoresHome();
+testGlobalUsesHomeOnly();
 testFreshnessFindsWorkspaceWhenHomeEmpty();
 testOfflineWhenNoLogsAnywhere();
 testStaleWhenOnlyOldEvents();
+testHomeEventsIgnoredInWorkspaceView();
 console.error("[gate-log-dirs] all passed");

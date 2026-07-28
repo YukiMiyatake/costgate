@@ -86,20 +86,12 @@ export function buildGateStatusPayload(options = {}) {
     projectRoot,
     strictProjectRoot: false,
   };
-  const settingsCandidates = logDirs.map((dir) =>
-    latestGateEvent(dir, "settings_reload", {
-      ...logOpts,
-      strictProjectRoot: Boolean(projectRoot) && gateLogDir && resolve(dir) !== resolve(gateLogDir),
-    })
+  const settingsReload = pickLatestReload(
+    ...logDirs.map((dir) => latestGateEvent(dir, "settings_reload", logOpts))
   );
-  const overridesCandidates = logDirs.map((dir) =>
-    latestGateEvent(dir, "overrides_reload", {
-      ...logOpts,
-      strictProjectRoot: Boolean(projectRoot) && gateLogDir && resolve(dir) !== resolve(gateLogDir),
-    })
+  const overridesReload = pickLatestReload(
+    ...logDirs.map((dir) => latestGateEvent(dir, "overrides_reload", logOpts))
   );
-  const settingsReload = pickLatestReload(...settingsCandidates);
-  const overridesReload = pickLatestReload(...overridesCandidates);
 
   const appliedSettingsGen = settingsReload?.row?.config_generation ?? null;
   const appliedOverridesGen = overridesReload?.row?.overrides_generation ?? null;
