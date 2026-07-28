@@ -624,7 +624,7 @@ MCP 仕様 `2026-07-28` はプロトコル層をステートレス化した（`i
 
 CostGate の価値（**tools/list 削減・透過メトリクス・Multi-MCP**）は同方向。現状は Cursor 向け **stdio Gate/Probe** が本線で、Streamable HTTP は **下流 URL backend** と Dashboard probe に限定。仕様追従は削減結果の持続とリモート MCP 計測を主目的とする。
 
-参考: [MCP 2026-07-28 RC](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)、[draft changelog](https://modelcontextprotocol.io/specification/draft/changelog)、[docs/mcp-reduction-survey.md](../mcp-reduction-survey.md)
+参考: [MCP 2026-07-28 RC](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)、[draft changelog](https://modelcontextprotocol.io/specification/draft/changelog)、[docs/mcp-reduction-survey.md](./mcp-reduction-survey.md)
 
 ### 現状とのギャップ（要約）
 
