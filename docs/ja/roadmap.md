@@ -60,21 +60,24 @@ Details: [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy).
 
 ## Development priority（2026-07）
 
-**方針: OSS 本体（削減 + 可視化）を優先。costgate-cloud（ホスト型 Dashboard / Billing / Team）は OSS Dashboard 基盤の後。**
+**方針: OSS 本体（削減 + 可視化）を優先。costgate-cloud（ホスト型 Dashboard / Billing / Team）は OSS Dashboard 基盤の後。MCP 仕様 `2026-07-28`（ステートレス化）への追従は削減効果の持続とリモート MCP 計測のため並行で進める。**
 
 | 優先 | 領域 | 理由 |
 |------|------|------|
 | **1** | Gate / Probe / eval / catalog（本 repo） | 全ユーザーが直接得るトークン削減 |
 | **2** | **OSS Dashboard**（Phase 23–29） | CLI 計測の UX 化・MCP ライフサイクル |
 | **3** | 配布・DX（npm publish、WSL、benchmark CI） | 導入摩擦と回帰防止 |
-| **4** | costgate-cloud（別 repo） | OSS Dashboard 完了後に Pro/Team 化 |
+| **4** | **MCP 2026 protocol 追従**（Phase 36–40） | list キャッシュ公式化・URL backend・SDK 互換 |
+| **5** | costgate-cloud（別 repo） | OSS Dashboard 完了後に Pro/Team 化 |
 
 ```
 Phase 16–22  OSS 強化              ✅ 完了
 Phase 23–27  OSS Dashboard        ✅ 完了
 Phase 28     プロジェクト別設定   ✅ 完了
 Phase 29     MCP マーケット拡充   ✅ 完了
-Phase 30+    costgate-cloud       ← 次の主戦場（MVP は Phase 6 済み）
+Phase 30+    costgate-cloud       （MVP は Phase 6 済み・後回し可）
+Phase 31–35  Shield & MCP Trust   （計画）
+Phase 36–40  MCP 2026-07-28 追従  ← OSS 次のプロトコル主戦場
 ```
 
 ---
@@ -612,6 +615,45 @@ MCP 経由機密漏洩防止 + MCP ごと信頼度。詳細: [docs/dev/shield-tr
 | **33** | `beforeSubmitPrompt` secret 検出ブロック | 計画 |
 | **34** | プロンプト自動 redact（Cursor API 待ち） | 待機 |
 | **35** | チャット UI 復元（Cursor API 待ち） | 待機 |
+
+---
+
+## Phase 36+ — MCP 2026-07-28 protocol alignment（計画）
+
+MCP 仕様 `2026-07-28` はプロトコル層をステートレス化した（`initialize` / `Mcp-Session-Id` 廃止、`_meta` 毎リクエスト、`server/discover`、Streamable HTTP の `Mcp-Method` / `Mcp-Name`、`tools/list` の `ttlMs` / `cacheScope`、`subscriptions/listen`、MRTR 等）。
+
+CostGate の価値（**tools/list 削減・透過メトリクス・Multi-MCP**）は同方向。現状は Cursor 向け **stdio Gate/Probe** が本線で、Streamable HTTP は **下流 URL backend** と Dashboard probe に限定。仕様追従は削減結果の持続とリモート MCP 計測を主目的とする。
+
+参考: [MCP 2026-07-28 RC](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)、[draft changelog](https://modelcontextprotocol.io/specification/draft/changelog)、[docs/mcp-reduction-survey.md](../mcp-reduction-survey.md)
+
+### 現状とのギャップ（要約）
+
+| MCP 2026 | CostGate 現状 |
+|----------|---------------|
+| `ttlMs` / `cacheScope` | Dashboard file cache TTL のみ（プロトコル未転送） |
+| `server/discover` | Gate 独自 `discover_tools` meta tool |
+| セッションレス HTTP | Gate は client 向け stdio；URL backend は長寿命 session |
+| `Mcp-Method` / `Mcp-Name` | 未実装（SDK 委譲） |
+| Probe URL backend | Probe は stdio のみ |
+| MRTR / Tasks extension | 未対応 |
+
+### Phases
+
+| Phase | 内容 | 優先 | 状態 |
+|-------|------|------|------|
+| **36** | **`ttlMs` / `cacheScope` 連携** — filter 後 `tools/list` にキャッシュヒント付与／backend TTL 尊重；list 順序の決定性保証 | 短期 | 計画 |
+| **37** | **Probe URL backend** — Streamable HTTP 下流の baseline 計測（GitHub Remote / survey P1） | 短期 | 計画 |
+| **38** | **SDK / handshake 追従** — go-sdk・`@modelcontextprotocol/sdk` を 2026-07 対応へ；テスト client / mock の `initialize` 廃止と `_meta`・`server/discover`；URL backend の per-request / pool 化と `Mcp-Method`/`Mcp-Name` | 中期 | 計画 |
+| **39** | **Gate Streamable HTTP サーバー** — IDE が HTTP-native なとき stdio 以外の入口；`discover_tools` と `server/discover` の役割整理 | 戦略 | 計画 |
+| **40** | **MRTR / Tasks / Dashboard** — Shield・確認フローの MRTR 化；Tasks 拡張の仲介；Dashboard に protocolVersion・transport・cache readiness 表示 | 戦略 | 計画 |
+
+### Out of scope（本トラック）
+
+| Item | Notes |
+|------|-------|
+| Roots / Sampling / Logging 新規採用 | 仕様側 Deprecated — 追従しない |
+| 旧 HTTP+SSE の新規実装 | Deprecated — Streamable HTTP のみ |
+| costgate-cloud ホスト課金 | Phase 30+（別 repo） |
 
 ---
 
