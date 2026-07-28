@@ -46,6 +46,8 @@ export default {
   token: {
     label: "書き込みトークン",
     placeholder: "COSTGATE_DASHBOARD_TOKEN",
+    unauthorized:
+      "書き込みが拒否されました。ページ上部の書き込みトークンを確認するか、Dashboard を再読み込みしてください。",
   },
   tabs: {
     overview: "概要",

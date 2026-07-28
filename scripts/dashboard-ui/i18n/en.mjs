@@ -46,6 +46,8 @@ export default {
   token: {
     label: "Write token",
     placeholder: "COSTGATE_DASHBOARD_TOKEN",
+    unauthorized:
+      "Write denied. Check the write token at the top of the page, or reload the Dashboard.",
   },
   tabs: {
     overview: "Overview",
