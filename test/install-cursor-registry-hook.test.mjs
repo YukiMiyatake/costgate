@@ -45,11 +45,19 @@ function testFormatHookCommand() {
     win === 'cmd /c node "C:\\Users\\me\\costgate\\scripts\\cursor-shield-prompt-hook.mjs"',
     `win32 command: ${win}`
   );
+
+  const msys = formatHookCommand("/e/Work/wsl/costgate/scripts/cursor-shield-prompt-hook.mjs", {
+    platform: "win32",
+  });
+  assert(
+    msys === 'cmd /c node "E:\\Work\\wsl\\costgate\\scripts\\cursor-shield-prompt-hook.mjs"',
+    `msys→win32 command: ${msys}`
+  );
   console.error("[install-cursor-registry] formatHookCommand ok");
 }
 
 function testBuildHookDefs() {
-  const defs = buildHookDefs({ platform: "linux" });
+  const defs = buildHookDefs({ platform: "linux", env: {} });
   const keys = defs.map((d) => d.key);
   assert(keys.includes("preToolUse"), "preToolUse defined");
   assert(keys.includes("beforeMCPExecution"), "beforeMCPExecution defined");
@@ -58,7 +66,7 @@ function testBuildHookDefs() {
   const promptDefs = defs.filter((d) => d.key === "beforeSubmitPrompt");
   const shieldPromptDef = promptDefs.find((d) => d.script.endsWith("cursor-shield-prompt-hook.mjs"));
   assert(shieldPromptDef, "shield prompt def");
-  assert(shieldPromptDef.hook.failClosed === true, "prompt failClosed");
+  assert(shieldPromptDef.hook.failClosed === undefined, "prompt failClosed off by default");
   assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD === "1", "prompt shield env");
   assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD_PROMPT === "1", "prompt env flag");
   assert(
@@ -73,15 +81,22 @@ function testBuildHookDefs() {
   assert(readDef.hook.env?.COSTGATE_SHIELD_SESSION === "cursor", "read session env");
 
   const mcpDef = defs.find((d) => d.key === "beforeMCPExecution");
-  assert(mcpDef.hook.failClosed === true, "mcp failClosed");
+  assert(mcpDef.hook.failClosed === undefined, "mcp failClosed off by default");
   assert(mcpDef.hook.env?.COSTGATE_SHIELD === "1", "mcp shield env");
   assert(mcpDef.hook.env?.COSTGATE_SHIELD_SESSION === "cursor", "mcp session env");
 
-  const winDefs = buildHookDefs({ platform: "win32" });
+  const winDefs = buildHookDefs({ platform: "win32", env: {} });
   assert(
     winDefs.every((d) => d.hook.command.startsWith("cmd /c node ")),
     "win32 hooks use cmd /c"
   );
+
+  const closed = buildHookDefs({
+    platform: "linux",
+    env: { COSTGATE_HOOKS_FAIL_CLOSED: "1" },
+  });
+  const closedPrompt = closed.find((d) => d.script.endsWith("cursor-shield-prompt-hook.mjs"));
+  assert(closedPrompt.hook.failClosed === true, "opt-in failClosed");
 
   console.error("[install-cursor-registry] buildHookDefs ok");
 }
@@ -111,7 +126,6 @@ function testMergeIdempotent() {
 }
 
 function testUpgradeExistingShieldMcp() {
-  const mcpName = scriptBasename(SHIELD_MCP_SCRIPT);
   const config = {
     version: 1,
     hooks: {
@@ -122,14 +136,25 @@ function testUpgradeExistingShieldMcp() {
           failClosed: true,
         },
       ],
+      beforeSubmitPrompt: [
+        {
+          command: `node ${SHIELD_PROMPT_SCRIPT}`,
+          timeout: 5,
+          failClosed: true,
+        },
+      ],
     },
   };
   const { config: merged, installed } = mergeCostGateHooks(config);
   assert(installed.includes("beforeMCPExecution"), "upgraded mcp hook");
+  assert(installed.includes("beforeSubmitPrompt"), "upgraded shield prompt hook");
   const mcpHook = findHook(merged.hooks, "beforeMCPExecution", SHIELD_MCP_SCRIPT);
   assert(mcpHook.env?.COSTGATE_SHIELD === "1", "env added to existing mcp hook");
   assert(mcpHook.env?.COSTGATE_SHIELD_SESSION === "cursor", "session added");
   assert(mcpHook.command.includes('"'), "command upgraded to quoted path");
+  assert(mcpHook.failClosed === undefined, "stale mcp failClosed stripped");
+  const promptHook = findHook(merged.hooks, "beforeSubmitPrompt", SHIELD_PROMPT_SCRIPT);
+  assert(promptHook.failClosed === undefined, "stale prompt failClosed stripped");
   console.error("[install-cursor-registry] upgrade shield-mcp ok");
 }
 
@@ -160,7 +185,7 @@ function testInstallWritesFile() {
     assert(readHook?.env?.COSTGATE_SHIELD === "1", "shield on disk");
     assert(config.hooks.beforeSubmitPrompt?.length === 2, "prompt-intent + shield-prompt");
     const shieldPromptHook = findHook(onDisk.hooks, "beforeSubmitPrompt", SHIELD_PROMPT_SCRIPT);
-    assert(shieldPromptHook?.failClosed === true, "shield prompt failClosed on disk");
+    assert(shieldPromptHook?.failClosed === undefined, "shield prompt failClosed absent on disk");
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

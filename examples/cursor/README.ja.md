@@ -15,13 +15,13 @@ npx @costgate/cli@latest init
 
 ### Windows / WSL で Agent が止まったとき
 
-CostGate の Shield hook（`failClosed`）が起動に失敗すると、Agent が「Planning next moves」のまま固まることがあります。
+`~/.cursor/hooks.json` は **全ワークスペース共通** です。Cursor 内部エラー `MainThreadShellExec not initialized` と旧設定の `failClosed: true` が重なると、どのワークスペースでもブロックされます。
 
-1. WSL 側で `npx @costgate/cli registry`（または `npm run cursor:registry`）を再実行し、`hooks.json` の command を引用付きに更新
-2. Cursor を完全終了して再起動
-3. それでもダメなら一時的に `~/.cursor/hooks.json` をリネームして切り分け（Output → Hooks も確認）
+1. CostGate リポジトリで `npm run cursor:registry`（または `npx @costgate/cli registry`）を再実行 — `failClosed` を外し command を更新
+2. Cursor を完全終了して再起動（Reload Window だけでは不足なことあり）
+3. 緊急回避: `%USERPROFILE%\.cursor\hooks.json`（Windows）または `~/.cursor/hooks.json`（WSL）を一時リネーム
 
-Windows ネイティブ Cursor では hook command が `cmd /c node "..."` 形式になります。
+Windows ネイティブ Cursor では `cmd /c node "E:\..."` 形式になります。`failClosed` を再び有効にする場合のみ `COSTGATE_HOOKS_FAIL_CLOSED=1`。
 
 ## 本番（リポジトリ clone）
 

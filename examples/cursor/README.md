@@ -13,15 +13,15 @@ npx @costgate/cli@latest init
 
 Update: `npx @costgate/cli update`
 
-### Windows / WSL: Agent stuck on “Planning next moves”
+### Windows / WSL: Agent stuck / “MainThreadShellExec not initialized”
 
-If a CostGate Shield hook (`failClosed`) fails to spawn, Agent can hang before the first token.
+User hooks in `~/.cursor/hooks.json` apply to **all workspaces**. Cursor’s `MainThreadShellExec not initialized` plus legacy `failClosed: true` blocks Agent everywhere.
 
-1. Re-run `npx @costgate/cli registry` (or `npm run cursor:registry`) to rewrite quoted hook commands
-2. Fully quit and restart Cursor
-3. If still stuck, temporarily rename `~/.cursor/hooks.json` to isolate (also check Output → Hooks)
+1. Re-run `npm run cursor:registry` (or `npx @costgate/cli registry`) — strips `failClosed` and rewrites commands
+2. Fully quit and restart Cursor (Reload Window is often not enough)
+3. Emergency: rename `%USERPROFILE%\.cursor\hooks.json` (Windows) or `~/.cursor/hooks.json` (WSL)
 
-On native Windows Cursor, hook commands use `cmd /c node "..."`.
+Native Windows Cursor uses `cmd /c node "E:\..."`. Opt back into `failClosed` only with `COSTGATE_HOOKS_FAIL_CLOSED=1`.
 
 ## Production (from cloned repo)
 

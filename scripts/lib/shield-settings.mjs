@@ -43,7 +43,7 @@ export const SHIELD_SETTING_DEFS = [
     key: "fail_open",
     type: "boolean",
     label: "Fail open on hook errors",
-    hint: "When off (default), hook errors block submit (fail-closed)",
+    hint: "When on, script errors allow submit. Cursor hooks.json failClosed stays off by default (avoids MainThreadShellExec lockouts).",
   },
 ];
 

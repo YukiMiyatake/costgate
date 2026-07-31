@@ -18,6 +18,7 @@ import {
   buildHookDefs,
   defaultHooksPath,
   ensureHookEntry,
+  hooksFailClosed,
   loadHooks,
   removeHookEntry,
   scriptBasename,
@@ -37,9 +38,11 @@ export {
   ensureHookEntry,
   findHookIndex,
   formatHookCommand,
+  hooksFailClosed,
   loadHooks,
   removeHookEntry,
   scriptBasename,
+  toHookScriptPath,
 } from "./lib/cursor-hooks.mjs";
 
 /** Merge CostGate hook definitions into an existing hooks.json config. */
@@ -85,7 +88,10 @@ function main() {
   console.error(`[cursor:hooks] shield-prompt: ${SHIELD_PROMPT_SCRIPT}`);
   console.error(`[cursor:hooks] shield-mcp: ${SHIELD_MCP_SCRIPT}`);
   console.error(`[cursor:hooks] shield-read: ${SHIELD_READ_SCRIPT}`);
-  console.error("[cursor:hooks] Restart Cursor after install.");
+  console.error(
+    `[cursor:hooks] failClosed: ${hooksFailClosed() ? "on (COSTGATE_HOOKS_FAIL_CLOSED)" : "off (default; avoids MainThreadShellExec lockouts)"}`
+  );
+  console.error("[cursor:hooks] Restart Cursor after install (user hooks apply to all workspaces).");
   console.error(
     "[cursor:hooks] Transcript tail (opt-in): COSTGATE_PROMPT_INTENT_TRANSCRIPT=1 on the hook process."
   );
