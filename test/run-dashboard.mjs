@@ -38,6 +38,7 @@ const TESTS = [
   "dashboard-probe.test.mjs",
   "cursor-registry-hook.test.mjs",
   "install-cursor-registry-hook.test.mjs",
+  "repair-cursor-hooks.test.mjs",
   "cursor-prompt-intent-hook.test.mjs",
   "cursor-shield-prompt-hook.test.mjs",
   "cursor-shield-mcp-hook.test.mjs",

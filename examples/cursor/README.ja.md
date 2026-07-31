@@ -20,9 +20,11 @@ npx @costgate/cli@latest init
 典型エラー:
 `MainThreadShellExec not initialized` + 旧 `failClosed: true` → 全ワークスペースでブロック
 
-1. CostGate で `npm run cursor:registry` — WSL では Linux 用と Windows Cursor 用（検出時）の両方を更新
-2. Cursor を完全終了して再起動（Reload だけでは不足なことあり）
-3. 緊急回避: `%USERPROFILE%\.cursor\hooks.json` と/または `~/.cursor/hooks.json` を一時リネーム
+CastLine など **別ワークスペースの AI 画面でも同じ**です（user hooks はホスト共通）。
+
+1. CostGate で `npm run cursor:hooks:repair`（または `cursor:registry`）— WSL なら Windows Cursor 用も更新
+2. Cursor を **全ウィンドウ完全終了**して再起動（Reload だけでは足りないことあり）
+3. まだダメなら `Developer: Reload Window`、緊急時は `%USERPROFILE%\.cursor\hooks.json` を一時リネーム
 
 | 環境変数 | 意味 |
 |---------|------|

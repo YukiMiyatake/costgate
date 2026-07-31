@@ -32,6 +32,7 @@ import {
 import { loadShieldSettings, DEFAULT_SHIELD_SETTINGS, applyShieldSettingsToHooks } from "./lib/shield-settings.mjs";
 
 export {
+  COSTGATE_HOOK_SCRIPTS,
   DEFAULT_HOOKS_PATH,
   PROMPT_SCRIPT,
   REGISTRY_SCRIPT,

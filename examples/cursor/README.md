@@ -19,9 +19,11 @@ User hooks apply to **all workspaces on that Cursor host**. WSL Cursor and Windo
 
 Typical failure: `MainThreadShellExec not initialized` + legacy `failClosed: true` → Agent blocked everywhere.
 
-1. Run `npm run cursor:registry` — from WSL this updates Linux hooks and, when detectable, Windows Cursor hooks too
-2. Fully quit and restart Cursor (Reload Window is often not enough)
-3. Emergency: rename `%USERPROFILE%\.cursor\hooks.json` and/or `~/.cursor/hooks.json`
+This also hits **other workspaces** (e.g. CastLine AI) — user hooks are per Cursor host, not per project.
+
+1. From CostGate: `npm run cursor:hooks:repair` (or `cursor:registry`) — from WSL also updates Windows Cursor hooks when detectable
+2. **Fully quit all Cursor windows** and reopen (Reload alone is often not enough)
+3. If still stuck: `Developer: Reload Window`; emergency: rename `%USERPROFILE%\.cursor\hooks.json`
 
 | Env | Meaning |
 |-----|---------|
