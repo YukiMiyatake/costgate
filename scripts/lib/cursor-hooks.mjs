@@ -26,33 +26,54 @@ export function defaultHooksPath() {
   return process.env.CURSOR_HOOKS_PATH ?? DEFAULT_HOOKS_PATH;
 }
 
-export function buildHookDefs() {
+/** Effective platform for hooks.json commands (override via COSTGATE_HOOKS_PLATFORM). */
+export function hooksPlatform(platform = process.platform) {
+  return process.env.COSTGATE_HOOKS_PLATFORM || platform;
+}
+
+/**
+ * Build a Cursor hook `command` that works on Windows (cmd /c + quoted path)
+ * and POSIX (quoted path). Unquoted paths and bare `node …` break Cursor's
+ * Windows launcher and can wedge Agent when failClosed hooks never spawn.
+ */
+export function formatHookCommand(scriptPath, options = {}) {
+  const plat = hooksPlatform(options.platform);
+  const nodeBin = options.nodeBin ?? "node";
+  const path = String(scriptPath);
+  const quoted =
+    plat === "win32" ? `"${path.replace(/"/g, '""')}"` : `"${path.replace(/(["\\$`])/g, "\\$1")}"`;
+  const invoke = `${nodeBin} ${quoted}`;
+  return plat === "win32" ? `cmd /c ${invoke}` : invoke;
+}
+
+export function buildHookDefs(options = {}) {
+  const cmd = (script) => formatHookCommand(script, options);
   return [
     {
       key: "workspaceOpen",
       script: REGISTRY_SCRIPT,
-      hook: { command: `node ${REGISTRY_SCRIPT}`, timeout: 30 },
+      hook: { command: cmd(REGISTRY_SCRIPT), timeout: 30 },
     },
     {
       key: "postToolUse",
       script: REGISTRY_SCRIPT,
-      hook: { command: `node ${REGISTRY_SCRIPT}`, timeout: 30, matcher: "Read" },
+      hook: { command: cmd(REGISTRY_SCRIPT), timeout: 30, matcher: "Read" },
     },
     {
       key: "beforeTabFileRead",
       script: REGISTRY_SCRIPT,
-      hook: { command: `node ${REGISTRY_SCRIPT}`, timeout: 30 },
+      hook: { command: cmd(REGISTRY_SCRIPT), timeout: 30 },
     },
     {
       key: "beforeSubmitPrompt",
       script: PROMPT_SCRIPT,
-      hook: { command: `node ${PROMPT_SCRIPT}`, timeout: 5 },
+      hook: { command: cmd(PROMPT_SCRIPT), timeout: 5 },
     },
     {
       key: "beforeSubmitPrompt",
       script: SHIELD_PROMPT_SCRIPT,
       hook: {
-        command: `node ${SHIELD_PROMPT_SCRIPT}`,
+        command: cmd(SHIELD_PROMPT_SCRIPT),
         timeout: 5,
         failClosed: true,
         env: { ...SHIELD_HOOK_ENV, COSTGATE_SHIELD_PROMPT: "1" },
@@ -62,7 +83,7 @@ export function buildHookDefs() {
       key: "beforeMCPExecution",
       script: SHIELD_MCP_SCRIPT,
       hook: {
-        command: `node ${SHIELD_MCP_SCRIPT}`,
+        command: cmd(SHIELD_MCP_SCRIPT),
         timeout: 5,
         failClosed: true,
         env: { ...SHIELD_HOOK_ENV },
@@ -72,7 +93,7 @@ export function buildHookDefs() {
       key: "preToolUse",
       script: SHIELD_READ_SCRIPT,
       hook: {
-        command: `node ${SHIELD_READ_SCRIPT}`,
+        command: cmd(SHIELD_READ_SCRIPT),
         timeout: 15,
         matcher: "Read",
         env: { ...SHIELD_HOOK_ENV },

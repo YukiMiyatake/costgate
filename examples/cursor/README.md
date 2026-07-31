@@ -13,6 +13,16 @@ npx @costgate/cli@latest init
 
 Update: `npx @costgate/cli update`
 
+### Windows / WSL: Agent stuck on “Planning next moves”
+
+If a CostGate Shield hook (`failClosed`) fails to spawn, Agent can hang before the first token.
+
+1. Re-run `npx @costgate/cli registry` (or `npm run cursor:registry`) to rewrite quoted hook commands
+2. Fully quit and restart Cursor
+3. If still stuck, temporarily rename `~/.cursor/hooks.json` to isolate (also check Output → Hooks)
+
+On native Windows Cursor, hook commands use `cmd /c node "..."`.
+
 ## Production (from cloned repo)
 
 **[mcp-production.json](./mcp-production.json)** — local paths via `npm run cursor:production`.

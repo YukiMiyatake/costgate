@@ -10,35 +10,27 @@
  * Install: npm run cursor:registry
  */
 import { touchRegistryPath, loadRegistry, registryPath } from "./lib/dashboard-workspaces.mjs";
+import { normalizeCursorPath, readHookStdin } from "./lib/cursor-hook-io.mjs";
 import { normalizeRegistryWorkspacePath } from "./lib/resolve-workspace-root.mjs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    process.stdin.on("data", (c) => chunks.push(c));
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
-}
-
 export function extractFilePathFromHook(payload) {
   const ti = payload.tool_input ?? payload.input ?? payload;
-  return (
+  const raw =
     ti.path ??
     ti.file_path ??
     ti.filePath ??
     payload.path ??
     payload.file_path ??
-    null
-  );
+    null;
+  return raw == null ? null : normalizeCursorPath(raw);
 }
 
 function touchFileActivity(filePath, touched, payload) {
   const reg = loadRegistry(registryPath());
   const knownRoots = [
-    ...(payload.workspace_roots ?? []),
+    ...(payload.workspace_roots ?? []).map((r) => normalizeCursorPath(r)),
     ...reg.workspaces.map((w) => w.path),
   ];
   const root = normalizeRegistryWorkspacePath(filePath, knownRoots);
@@ -54,8 +46,9 @@ export function handleCursorRegistryHook(payload) {
   if (event === "workspaceOpen") {
     for (const root of payload.workspace_roots ?? []) {
       if (!root) continue;
-      touchRegistryPath(root, { source: "cursor:workspace" });
-      touched.push(resolve(root));
+      const normalized = normalizeCursorPath(root);
+      touchRegistryPath(normalized, { source: "cursor:workspace" });
+      touched.push(resolve(normalized));
     }
   }
 
@@ -76,7 +69,7 @@ export function handleCursorRegistryHook(payload) {
 }
 
 async function main() {
-  const raw = (await readStdin()).trim();
+  const raw = (await readHookStdin()).trim();
   if (!raw) {
     process.stdout.write("{}\n");
     return;

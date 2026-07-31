@@ -36,6 +36,7 @@ export {
   buildHookDefs,
   ensureHookEntry,
   findHookIndex,
+  formatHookCommand,
   loadHooks,
   removeHookEntry,
   scriptBasename,

@@ -12,6 +12,7 @@ import {
   SHIELD_READ_SCRIPT,
   buildHookDefs,
   ensureHookEntry,
+  formatHookCommand,
   installCursorRegistryHooks,
   mergeCostGateHooks,
   scriptBasename,
@@ -31,8 +32,24 @@ function findHook(hooks, key, scriptPath) {
   return (hooks[key] ?? []).find((h) => String(h.command ?? "").includes(name));
 }
 
+function testFormatHookCommand() {
+  const posix = formatHookCommand("/tmp/costgate/scripts/cursor-shield-prompt-hook.mjs", {
+    platform: "linux",
+  });
+  assert(posix === 'node "/tmp/costgate/scripts/cursor-shield-prompt-hook.mjs"', `posix command: ${posix}`);
+
+  const win = formatHookCommand("C:\\Users\\me\\costgate\\scripts\\cursor-shield-prompt-hook.mjs", {
+    platform: "win32",
+  });
+  assert(
+    win === 'cmd /c node "C:\\Users\\me\\costgate\\scripts\\cursor-shield-prompt-hook.mjs"',
+    `win32 command: ${win}`
+  );
+  console.error("[install-cursor-registry] formatHookCommand ok");
+}
+
 function testBuildHookDefs() {
-  const defs = buildHookDefs();
+  const defs = buildHookDefs({ platform: "linux" });
   const keys = defs.map((d) => d.key);
   assert(keys.includes("preToolUse"), "preToolUse defined");
   assert(keys.includes("beforeMCPExecution"), "beforeMCPExecution defined");
@@ -44,6 +61,10 @@ function testBuildHookDefs() {
   assert(shieldPromptDef.hook.failClosed === true, "prompt failClosed");
   assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD === "1", "prompt shield env");
   assert(shieldPromptDef.hook.env?.COSTGATE_SHIELD_PROMPT === "1", "prompt env flag");
+  assert(
+    shieldPromptDef.hook.command.includes('"') && shieldPromptDef.hook.command.startsWith("node "),
+    "prompt command is quoted node invoke"
+  );
 
   const readDef = defs.find((d) => d.key === "preToolUse");
   assert(readDef.hook.matcher === "Read", "Read matcher");
@@ -55,6 +76,12 @@ function testBuildHookDefs() {
   assert(mcpDef.hook.failClosed === true, "mcp failClosed");
   assert(mcpDef.hook.env?.COSTGATE_SHIELD === "1", "mcp shield env");
   assert(mcpDef.hook.env?.COSTGATE_SHIELD_SESSION === "cursor", "mcp session env");
+
+  const winDefs = buildHookDefs({ platform: "win32" });
+  assert(
+    winDefs.every((d) => d.hook.command.startsWith("cmd /c node ")),
+    "win32 hooks use cmd /c"
+  );
 
   console.error("[install-cursor-registry] buildHookDefs ok");
 }
@@ -102,6 +129,7 @@ function testUpgradeExistingShieldMcp() {
   const mcpHook = findHook(merged.hooks, "beforeMCPExecution", SHIELD_MCP_SCRIPT);
   assert(mcpHook.env?.COSTGATE_SHIELD === "1", "env added to existing mcp hook");
   assert(mcpHook.env?.COSTGATE_SHIELD_SESSION === "cursor", "session added");
+  assert(mcpHook.command.includes('"'), "command upgraded to quoted path");
   console.error("[install-cursor-registry] upgrade shield-mcp ok");
 }
 
@@ -167,6 +195,7 @@ function testPreservesForeignHooks() {
 }
 
 function main() {
+  testFormatHookCommand();
   testBuildHookDefs();
   testMergeFreshConfig();
   testMergeIdempotent();

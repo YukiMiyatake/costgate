@@ -6,6 +6,7 @@
  * Install: npm run cursor:registry (Phase 33a)
  */
 import { pathToFileURL } from "node:url";
+import { readHookStdin } from "./lib/cursor-hook-io.mjs";
 import {
   inferSecrets,
   promptInferMode,
@@ -13,15 +14,6 @@ import {
   shieldPromptFailOpen,
 } from "./lib/shield-redact.mjs";
 import { writePromptBlockEvent } from "./lib/shield-prompt.mjs";
-
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    process.stdin.on("data", (c) => chunks.push(c));
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
-}
 
 export function extractPromptText(payload) {
   const prompt = payload?.prompt;
@@ -108,7 +100,7 @@ function errorOutput(message) {
 }
 
 async function main() {
-  const raw = (await readStdin()).trim();
+  const raw = (await readHookStdin()).trim();
   if (!raw) {
     process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
     return;

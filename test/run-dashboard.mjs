@@ -31,6 +31,7 @@ const TESTS = [
   "dashboard-admin-restart.test.mjs",
   "dashboard-gate-eval.test.mjs",
   "resolve-workspace-root.test.mjs",
+  "cursor-hook-io.test.mjs",
   "dashboard-config-merge.test.mjs",
   "tools-catalog.test.mjs",
   "dashboard-launcher.test.mjs",
