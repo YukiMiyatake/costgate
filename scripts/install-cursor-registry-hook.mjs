@@ -6,6 +6,9 @@
  *  · shield prompt secret block (beforeSubmitPrompt) — respects shield-settings.json
  *  · shield MCP trust (beforeMCPExecution)
  *  · shield Read sanitizer (preToolUse / Read)
+ *
+ * In WSL, also updates Windows Cursor's hooks.json when detectable
+ * (user hooks apply to all workspaces on that host).
  */
 import { pathToFileURL } from "node:url";
 import {
@@ -18,9 +21,11 @@ import {
   buildHookDefs,
   defaultHooksPath,
   ensureHookEntry,
+  finalizeCostGateHooks,
   hooksFailClosed,
   loadHooks,
   removeHookEntry,
+  resolveHooksInstallTargets,
   scriptBasename,
   writeHooks,
 } from "./lib/cursor-hooks.mjs";
@@ -35,12 +40,15 @@ export {
   SHIELD_PROMPT_SCRIPT,
   SHIELD_READ_SCRIPT,
   buildHookDefs,
+  commandInvokesScript,
   ensureHookEntry,
   findHookIndex,
   formatHookCommand,
   hooksFailClosed,
   loadHooks,
+  orderBeforeSubmitPrompt,
   removeHookEntry,
+  resolveHooksInstallTargets,
   scriptBasename,
   toHookScriptPath,
 } from "./lib/cursor-hooks.mjs";
@@ -50,8 +58,15 @@ export function mergeCostGateHooks(config, options = {}) {
   const loaded = loadShieldSettings(options.hooksPath);
   const shieldSettings =
     options.shieldSettings ?? (loaded.exists ? loaded.settings : DEFAULT_SHIELD_SETTINGS);
+  const defs = buildHookDefs({
+    platform: options.platform,
+    env: options.env,
+    failClosed: options.failClosed,
+  });
   const installed = [];
-  for (const { key, script, hook } of buildHookDefs()) {
+  config.hooks ??= {};
+
+  for (const { key, script, hook } of defs) {
     const scriptName = scriptBasename(script);
     config.hooks[key] ??= [];
 
@@ -66,23 +81,66 @@ export function mergeCostGateHooks(config, options = {}) {
       installed.push(key);
     }
   }
+
+  if (finalizeCostGateHooks(config)) {
+    installed.push("ordered:beforeSubmitPrompt");
+  }
+
   return { config, installed };
 }
 
-export function installCursorRegistryHooks(hooksPath = defaultHooksPath()) {
+/** Install/merge CostGate hooks into a single hooks.json path. */
+export function installCursorRegistryHooks(hooksPath = defaultHooksPath(), options = {}) {
+  const platform = options.platform ?? (options.env?.COSTGATE_HOOKS_PLATFORM || undefined);
   const config = loadHooks(hooksPath);
-  const { config: merged, installed } = mergeCostGateHooks(config, { hooksPath });
+  const { config: merged, installed } = mergeCostGateHooks(config, {
+    hooksPath,
+    platform,
+    env: options.env,
+    shieldSettings: options.shieldSettings,
+    failClosed: options.failClosed,
+  });
   writeHooks(merged, hooksPath);
   const loaded = loadShieldSettings(hooksPath);
-  const shield = loaded.exists ? loaded.settings : DEFAULT_SHIELD_SETTINGS;
-  applyShieldSettingsToHooks(shield, hooksPath);
-  return { hooksPath, installed, config: loadHooks(hooksPath) };
+  const shield = options.shieldSettings ?? (loaded.exists ? loaded.settings : DEFAULT_SHIELD_SETTINGS);
+  applyShieldSettingsToHooks(shield, hooksPath, {
+    platform,
+    env: options.env,
+  });
+  return { hooksPath, installed, platform: platform ?? process.platform, config: loadHooks(hooksPath) };
+}
+
+/**
+ * Install into primary hooks path, and on WSL also into Windows Cursor's hooks.json.
+ * Returns { targets: [...], primary }.
+ */
+export function installCursorRegistryHooksAll(options = {}) {
+  const targets = resolveHooksInstallTargets(options);
+  const results = [];
+  for (const t of targets) {
+    results.push(
+      installCursorRegistryHooks(t.hooksPath, {
+        ...options,
+        platform: t.platform,
+      })
+    );
+  }
+  return {
+    targets: results,
+    hooksPath: results[0]?.hooksPath,
+    installed: results[0]?.installed ?? [],
+    config: results[0]?.config,
+  };
 }
 
 function main() {
-  const { hooksPath, installed } = installCursorRegistryHooks();
-  console.error(`[cursor:hooks] → ${hooksPath}`);
-  console.error(`[cursor:hooks] added: ${installed.length ? installed.join(", ") : "(already present)"}`);
+  const { targets } = installCursorRegistryHooksAll();
+  for (const r of targets) {
+    console.error(`[cursor:hooks] → ${r.hooksPath} (${r.platform})`);
+    console.error(
+      `[cursor:hooks] changed: ${r.installed.length ? r.installed.join(", ") : "(already present)"}`
+    );
+  }
   console.error(`[cursor:hooks] registry: ${REGISTRY_SCRIPT}`);
   console.error(`[cursor:hooks] prompt-intent: ${PROMPT_SCRIPT}`);
   console.error(`[cursor:hooks] shield-prompt: ${SHIELD_PROMPT_SCRIPT}`);

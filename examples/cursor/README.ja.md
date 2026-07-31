@@ -15,13 +15,20 @@ npx @costgate/cli@latest init
 
 ### Windows / WSL で Agent が止まったとき
 
-`~/.cursor/hooks.json` は **全ワークスペース共通** です。Cursor 内部エラー `MainThreadShellExec not initialized` と旧設定の `failClosed: true` が重なると、どのワークスペースでもブロックされます。
+`hooks.json` は Cursor ホストごとに **全ワークスペース共通** です。WSL と Windows の Cursor は別ホスト（別ファイル）です。
 
-1. CostGate リポジトリで `npm run cursor:registry`（または `npx @costgate/cli registry`）を再実行 — `failClosed` を外し command を更新
-2. Cursor を完全終了して再起動（Reload Window だけでは不足なことあり）
-3. 緊急回避: `%USERPROFILE%\.cursor\hooks.json`（Windows）または `~/.cursor/hooks.json`（WSL）を一時リネーム
+典型エラー:
+`MainThreadShellExec not initialized` + 旧 `failClosed: true` → 全ワークスペースでブロック
 
-Windows ネイティブ Cursor では `cmd /c node "E:\..."` 形式になります。`failClosed` を再び有効にする場合のみ `COSTGATE_HOOKS_FAIL_CLOSED=1`。
+1. CostGate で `npm run cursor:registry` — WSL では Linux 用と Windows Cursor 用（検出時）の両方を更新
+2. Cursor を完全終了して再起動（Reload だけでは不足なことあり）
+3. 緊急回避: `%USERPROFILE%\.cursor\hooks.json` と/または `~/.cursor/hooks.json` を一時リネーム
+
+| 環境変数 | 意味 |
+|---------|------|
+| `COSTGATE_HOOKS_WINDOWS=0` | WSL から Windows hooks への同時書き込みを無効化 |
+| `COSTGATE_WINDOWS_HOOKS_PATH` | Windows hooks.json の明示パス（WSL から見える `/mnt/c/...`） |
+| `COSTGATE_HOOKS_FAIL_CLOSED=1` | hooks.json の failClosed を再有効化（非推奨） |
 
 ## 本番（リポジトリ clone）
 

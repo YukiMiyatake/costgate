@@ -1,7 +1,8 @@
 /**
  * Shared Cursor hooks.json helpers (install + Dashboard shield settings).
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +15,15 @@ export const PROMPT_SCRIPT = join(SCRIPTS_ROOT, "cursor-prompt-intent-hook.mjs")
 export const SHIELD_PROMPT_SCRIPT = join(SCRIPTS_ROOT, "cursor-shield-prompt-hook.mjs");
 export const SHIELD_MCP_SCRIPT = join(SCRIPTS_ROOT, "cursor-shield-mcp-hook.mjs");
 export const SHIELD_READ_SCRIPT = join(SCRIPTS_ROOT, "cursor-shield-read-hook.mjs");
+
+/** CostGate hook script basenames (used for match / dedupe / order). */
+export const COSTGATE_HOOK_SCRIPTS = [
+  "cursor-registry-hook.mjs",
+  "cursor-prompt-intent-hook.mjs",
+  "cursor-shield-prompt-hook.mjs",
+  "cursor-shield-mcp-hook.mjs",
+  "cursor-shield-read-hook.mjs",
+];
 
 const CURSOR_DIR = join(homedir(), ".cursor");
 export const DEFAULT_HOOKS_PATH = join(CURSOR_DIR, "hooks.json");
@@ -36,6 +46,10 @@ function truthyEnv(v) {
   return v === "1" || v === "true" || v === "yes";
 }
 
+function falsyEnv(v) {
+  return v === "0" || v === "false" || v === "no";
+}
+
 /**
  * Cursor hooks.json `failClosed` default.
  *
@@ -47,30 +61,120 @@ export function hooksFailClosed(env = process.env) {
   return truthyEnv(env.COSTGATE_HOOKS_FAIL_CLOSED);
 }
 
+export function isWslEnv(env = process.env) {
+  return Boolean(env.WSL_DISTRO_NAME || env.WSLENV);
+}
+
+/** Convert `C:\Users\x` → `/mnt/c/Users/x` (WSL mount). */
+export function windowsPathToWslMount(winPath) {
+  const normalized = String(winPath).trim().replace(/\\/g, "/");
+  const m = normalized.match(/^([A-Za-z]):\/(.*)$/);
+  if (!m) return null;
+  return `/mnt/${m[1].toLowerCase()}/${m[2]}`;
+}
+
+/** Read Windows %USERPROFILE% via cmd.exe (WSL interop). */
+export function windowsUserProfile(env = process.env) {
+  if (env.COSTGATE_WINDOWS_USERPROFILE) return env.COSTGATE_WINDOWS_USERPROFILE;
+  try {
+    const out = execFileSync("cmd.exe", ["/c", "echo", "%USERPROFILE%"], {
+      encoding: "utf8",
+      timeout: 8000,
+      windowsHide: true,
+    });
+    const line = out
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .pop();
+    return line && /^[A-Za-z]:/.test(line) ? line : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Windows Cursor user hooks path, readable from WSL (`/mnt/c/Users/.../.cursor/hooks.json`).
+ * Override with COSTGATE_WINDOWS_HOOKS_PATH.
+ */
+export function detectWindowsCursorHooksPath(env = process.env) {
+  if (env.COSTGATE_WINDOWS_HOOKS_PATH) return env.COSTGATE_WINDOWS_HOOKS_PATH;
+  const profile = windowsUserProfile(env);
+  if (!profile) return null;
+  const mount = windowsPathToWslMount(profile);
+  if (!mount) return null;
+  return join(mount, ".cursor", "hooks.json");
+}
+
+/**
+ * Where to write hooks.json.
+ * In WSL, also update Windows Cursor's hooks (all workspaces on that host)
+ * unless COSTGATE_HOOKS_WINDOWS=0.
+ */
+export function resolveHooksInstallTargets(options = {}) {
+  const env = options.env ?? process.env;
+  const primary = options.hooksPath ?? defaultHooksPath();
+  const targets = [
+    {
+      hooksPath: primary,
+      platform: hooksPlatform(options.platform ?? process.platform),
+      label: "primary",
+    },
+  ];
+
+  const wantWindows =
+    !falsyEnv(env.COSTGATE_HOOKS_WINDOWS) &&
+    (truthyEnv(env.COSTGATE_HOOKS_WINDOWS) ||
+      truthyEnv(env.COSTGATE_CURSOR_HOST_WINDOWS) ||
+      isWslEnv(env));
+
+  if (wantWindows && isWslEnv(env)) {
+    const winPath = detectWindowsCursorHooksPath(env);
+    if (winPath && winPath !== primary) {
+      targets.push({ hooksPath: winPath, platform: "win32", label: "windows-cursor" });
+    }
+  }
+
+  return targets;
+}
+
 /**
  * Normalize script paths for the Cursor host that will run hooks.
- * Git Bash / MSYS often yields `/e/Work/...` which cmd.exe cannot execute.
+ * - Git Bash / MSYS: `/e/Work/...` → `E:\Work\...` (first segment is a single letter)
+ * - WSL mount when targeting win32: `/mnt/e/Work/...` → `E:\Work\...`
+ * - Cursor style: `/c:/Users/...` → `C:\Users\...`
+ * Does not rewrite Unix roots like `/etc/...` or `/home/...`.
  */
 export function toHookScriptPath(scriptPath, options = {}) {
   const plat = hooksPlatform(options.platform);
   let p = String(scriptPath).replace(/\\/g, "/");
-  // MSYS: /e/Work/...  or  /e:/Work/...
-  const msys = p.match(/^\/([A-Za-z])(?:\:)?\/(.*)$/);
-  if (msys && plat === "win32") {
-    p = `${msys[1].toUpperCase()}:/${msys[2]}`;
-  } else {
-    p = normalizeCursorPath(p);
-  }
+
   if (plat === "win32") {
+    const wslMount = p.match(/^\/mnt\/([A-Za-z])\/(.*)$/);
+    if (wslMount) {
+      p = `${wslMount[1].toUpperCase()}:/${wslMount[2]}`;
+      return p.replace(/\//g, "\\");
+    }
+
+    const parts = p.split("/").filter(Boolean);
+    if (parts.length >= 2 && /^[A-Za-z]$/.test(parts[0])) {
+      // MSYS: /e/Work/wsl/...
+      p = `${parts[0].toUpperCase()}:/${parts.slice(1).join("/")}`;
+    } else if (parts.length >= 1 && /^[A-Za-z]:$/.test(parts[0])) {
+      // /e:/Work/... or normalizeCursorPath-style /c:/Users/...
+      p = `${parts[0].toUpperCase()}/${parts.slice(1).join("/")}`;
+    } else {
+      p = normalizeCursorPath(p);
+    }
     return p.replace(/\//g, "\\");
   }
-  return p;
+
+  return normalizeCursorPath(p);
 }
 
 /**
  * Build a Cursor hook `command` that works on Windows (cmd /c + quoted path)
- * and POSIX (quoted path). Unquoted paths and bare `node …` break Cursor's
- * Windows launcher; failClosed + spawn errors wedge Agent in every workspace.
+ * and POSIX (quoted path).
  */
 export function formatHookCommand(scriptPath, options = {}) {
   const plat = hooksPlatform(options.platform);
@@ -95,7 +199,6 @@ export function buildHookDefs(options = {}) {
     timeout: 5,
     env: { ...SHIELD_HOOK_ENV },
   };
-  // Only set the key when true so upgrades can strip stale failClosed: true.
   if (failClosed) {
     shieldPrompt.failClosed = true;
     shieldMcp.failClosed = true;
@@ -145,6 +248,10 @@ export function buildHookDefs(options = {}) {
   ];
 }
 
+/**
+ * Load hooks.json. On corrupt JSON, backup and return empty config
+ * (caller should write only after merge — backup preserves the broken file).
+ */
 export function loadHooks(hooksPath = defaultHooksPath()) {
   if (!existsSync(hooksPath)) {
     return { version: 1, hooks: {} };
@@ -152,7 +259,15 @@ export function loadHooks(hooksPath = defaultHooksPath()) {
   try {
     const data = JSON.parse(readFileSync(hooksPath, "utf8"));
     return { version: data.version ?? 1, hooks: data.hooks ?? {} };
-  } catch {
+  } catch (err) {
+    const backup = `${hooksPath}.corrupt.${Date.now()}.bak`;
+    try {
+      copyFileSync(hooksPath, backup);
+      console.error(`[cursor:hooks] corrupt hooks.json backed up → ${backup}`);
+      console.error(`[cursor:hooks] parse error: ${err?.message ?? err}`);
+    } catch {
+      // ignore backup failures
+    }
     return { version: 1, hooks: {} };
   }
 }
@@ -166,55 +281,96 @@ export function scriptBasename(scriptPath) {
   return String(scriptPath).replace(/\\/g, "/").split("/").pop();
 }
 
-export function findHookIndex(list, scriptName) {
-  return (list ?? []).findIndex((h) => String(h.command ?? "").includes(scriptName));
+/**
+ * True when `command` invokes the CostGate script basename as a path segment
+ * (not a coincidental substring in an echo/comment).
+ */
+export function commandInvokesScript(command, scriptName) {
+  const cmd = String(command ?? "").replace(/\\/g, "/");
+  const name = scriptBasename(scriptName);
+  if (!name || !cmd) return false;
+  // Match .../name or ...\name, optionally quoted, as a path ending or followed by quote/space
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?:^|[/\\\\"])${escaped}(?:["'\\s]|$)`);
+  return re.test(cmd);
 }
 
+export function findHookIndex(list, scriptName) {
+  return (list ?? []).findIndex((h) => commandInvokesScript(h.command, scriptName));
+}
+
+export function findAllHookIndices(list, scriptName) {
+  const out = [];
+  (list ?? []).forEach((h, i) => {
+    if (commandInvokesScript(h.command, scriptName)) out.push(i);
+  });
+  return out;
+}
+
+/** Remove all entries that invoke scriptName. Returns count removed. */
 export function removeHookEntry(list, scriptName) {
   const hooks = list ?? [];
-  const idx = findHookIndex(hooks, scriptName);
-  if (idx === -1) return false;
-  hooks.splice(idx, 1);
-  return true;
+  let removed = 0;
+  for (let i = hooks.length - 1; i >= 0; i -= 1) {
+    if (commandInvokesScript(hooks[i].command, scriptName)) {
+      hooks.splice(i, 1);
+      removed += 1;
+    }
+  }
+  return removed > 0;
 }
 
+/**
+ * Upsert a CostGate hook: full replace (drops stale matcher/env/failClosed),
+ * and remove duplicate entries for the same script.
+ */
 export function ensureHookEntry(list, scriptName, hook) {
   const hooks = list ?? [];
-  const idx = findHookIndex(hooks, scriptName);
-  if (idx === -1) {
-    hooks.push({ ...hook });
+  const indices = findAllHookIndices(hooks, scriptName);
+  const next = { ...hook };
+  if (indices.length === 0) {
+    hooks.push(next);
     return true;
   }
 
-  const existing = hooks[idx];
+  const primary = indices[0];
+  const prev = JSON.stringify(hooks[primary]);
+  hooks[primary] = next;
+  // Drop duplicates (higher indices first)
+  for (let i = indices.length - 1; i >= 1; i -= 1) {
+    hooks.splice(indices[i], 1);
+  }
+  return prev !== JSON.stringify(next) || indices.length > 1;
+}
+
+/**
+ * Ensure beforeSubmitPrompt order: prompt-intent, then shield-prompt, then others.
+ */
+export function orderBeforeSubmitPrompt(list) {
+  const hooks = list ?? [];
+  const intent = [];
+  const shield = [];
+  const other = [];
+  for (const h of hooks) {
+    if (commandInvokesScript(h.command, "cursor-prompt-intent-hook.mjs")) intent.push(h);
+    else if (commandInvokesScript(h.command, "cursor-shield-prompt-hook.mjs")) shield.push(h);
+    else other.push(h);
+  }
+  const ordered = [...intent, ...shield, ...other];
+  const changed = JSON.stringify(ordered) !== JSON.stringify(hooks);
+  if (changed) {
+    hooks.length = 0;
+    hooks.push(...ordered);
+  }
+  return changed;
+}
+
+/** Strip leftover CostGate failClosed duplicates and normalize beforeSubmitPrompt order. */
+export function finalizeCostGateHooks(config) {
+  config.hooks ??= {};
   let changed = false;
-
-  if (hook.env) {
-    const merged = { ...existing.env, ...hook.env };
-    const envChanged = JSON.stringify(existing.env ?? {}) !== JSON.stringify(merged);
-    if (envChanged) {
-      existing.env = merged;
-      changed = true;
-    }
+  if (config.hooks.beforeSubmitPrompt) {
+    if (orderBeforeSubmitPrompt(config.hooks.beforeSubmitPrompt)) changed = true;
   }
-
-  // Strip stale failClosed when the new def omits it (default fail-open).
-  if (hook.failClosed === true) {
-    if (existing.failClosed !== true) {
-      existing.failClosed = true;
-      changed = true;
-    }
-  } else if (Object.prototype.hasOwnProperty.call(existing, "failClosed")) {
-    delete existing.failClosed;
-    changed = true;
-  }
-
-  for (const field of ["matcher", "timeout", "command"]) {
-    if (hook[field] !== undefined && existing[field] !== hook[field]) {
-      existing[field] = hook[field];
-      changed = true;
-    }
-  }
-
   return changed;
 }

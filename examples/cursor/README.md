@@ -15,13 +15,19 @@ Update: `npx @costgate/cli update`
 
 ### Windows / WSL: Agent stuck / “MainThreadShellExec not initialized”
 
-User hooks in `~/.cursor/hooks.json` apply to **all workspaces**. Cursor’s `MainThreadShellExec not initialized` plus legacy `failClosed: true` blocks Agent everywhere.
+User hooks apply to **all workspaces on that Cursor host**. WSL Cursor and Windows Cursor use different `hooks.json` files.
 
-1. Re-run `npm run cursor:registry` (or `npx @costgate/cli registry`) — strips `failClosed` and rewrites commands
+Typical failure: `MainThreadShellExec not initialized` + legacy `failClosed: true` → Agent blocked everywhere.
+
+1. Run `npm run cursor:registry` — from WSL this updates Linux hooks and, when detectable, Windows Cursor hooks too
 2. Fully quit and restart Cursor (Reload Window is often not enough)
-3. Emergency: rename `%USERPROFILE%\.cursor\hooks.json` (Windows) or `~/.cursor/hooks.json` (WSL)
+3. Emergency: rename `%USERPROFILE%\.cursor\hooks.json` and/or `~/.cursor/hooks.json`
 
-Native Windows Cursor uses `cmd /c node "E:\..."`. Opt back into `failClosed` only with `COSTGATE_HOOKS_FAIL_CLOSED=1`.
+| Env | Meaning |
+|-----|---------|
+| `COSTGATE_HOOKS_WINDOWS=0` | Do not also write Windows hooks from WSL |
+| `COSTGATE_WINDOWS_HOOKS_PATH` | Explicit Windows hooks.json path (WSL-visible `/mnt/c/...`) |
+| `COSTGATE_HOOKS_FAIL_CLOSED=1` | Re-enable hooks.json failClosed (not recommended) |
 
 ## Production (from cloned repo)
 
