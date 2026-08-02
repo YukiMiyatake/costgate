@@ -196,7 +196,7 @@ Phase 17  Eval v2                … GitHub live + 回帰履歴
 Phase 18  DX & benchmark CI      … --mock レポート、drift 検知
 Phase 19  Multi-MCP 実測          … filesystem / browser catalog
 Phase 20  Result intelligence    … JSON-aware compress、dedupe
-Phase 21  Release & 配布         … npm v0.5.0、Gate installer 改善
+Phase 21  Release & 配布         … npm v1.0.0、Gate installer 改善
 Phase 22  Smart intent           … Probe JSONL intent
 Phase 23  Dashboard read-only    … ローカル Web UI
 Phase 24–27 Dashboard 拡張       … 制御・本番 log・追加・リコメンド
@@ -273,7 +273,7 @@ Phase 24–27 Dashboard 拡張       … 制御・本番 log・追加・リコ�
 - [docs/RELEASE.md](./RELEASE.md) — npm tag / Gate release / Cursor 手順
 - `npm run publish:check` — schema/probe バージョン整合
 - `install-gate.sh` — PATH 案内
-- 初回 npm publish: tag `v0.5.0` + `NPM_TOKEN`（手動）
+- 初回 npm publish: tag `v1.0.0` + `NPM_TOKEN`（手動）
 
 ### Phase 22 — Smart intent ✅
 
@@ -604,15 +604,15 @@ Pro/Team の新機能開発は **OSS Phase 29 完了後**に costgate-cloud 再�
 
 ---
 
-## Phase 31+ — Shield & MCP Trust（計画）
+## Phase 31+ — Shield & MCP Trust
 
 MCP 経由機密漏洩防止 + MCP ごと信頼度。詳細: [docs/dev/shield-trust.md](./dev/shield-trust.md)
 
 | Phase | 内容 | 状態 |
 |-------|------|------|
-| **31** | Gate redact/unredact + `mcp-trust.json` + Dashboard | 計画 |
-| **32** | `preToolUse` Read サニタイズ（コード隠匿） | 計画 |
-| **33** | `beforeSubmitPrompt` secret 検出ブロック | 計画 |
+| **31** | Gate redact/unredact + `mcp-trust.json` + Dashboard | ✅ 完了 |
+| **32** | `preToolUse` Read サニタイズ（コード隠匿） | ✅ 完了 |
+| **33** | `beforeSubmitPrompt` secret 検出ブロック | ✅ 完了 |
 | **34** | プロンプト自動 redact（Cursor API 待ち） | 待機 |
 | **35** | チャット UI 復元（Cursor API 待ち） | 待機 |
 
