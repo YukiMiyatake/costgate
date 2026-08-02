@@ -231,6 +231,23 @@ export async function ensureGateBinaryForCli(opts = {}) {
     return { path: dest, skipped: true, version: cliVer, tag: `v${cliVer}` };
   }
 
+  const monorepoBin = join(cliPackageRoot(), "..", "gate", "bin", `costgate-gate${platform() === "win32" ? ".exe" : ""}`);
+  if (existsSync(monorepoBin)) {
+    mkdirSync(installDir, { recursive: true });
+    copyFileSync(monorepoBin, dest);
+    if (platform() !== "win32") {
+      chmodSync(dest, 0o755);
+    }
+    writeInstalledGateVersionMeta(cliVer, installDir);
+    return {
+      path: dest,
+      skipped: false,
+      version: cliVer,
+      tag: `v${cliVer}`,
+      source: "monorepo",
+    };
+  }
+
   return installGateBinary({
     ...opts,
     version: cliVer,

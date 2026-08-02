@@ -25,8 +25,8 @@ export async function runInit(opts = {}) {
   });
   steps.push(
     gate.skipped
-      ? `Gate binary: ${gate.path} (already installed)`
-      : `Gate binary: ${gate.path} (${gate.tag ?? version})`
+      ? `Gate binary: ${gate.path} (already installed${gate.source ? `, ${gate.source}` : ""})`
+      : `Gate binary: ${gate.path} (${gate.tag ?? version}${gate.source ? `, ${gate.source}` : ""})`
   );
 
   const backends = ensureBackendsTemplate(runtimeRoot, opts.backendsPath ?? DEFAULT_BACKENDS_PATH);

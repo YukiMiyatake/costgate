@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { bytesToTokens } from "./tokens.mjs";
+import { bytesToTokens } from "./tokens-estimate.mjs";
 
-export { bytesToTokens, countTokens } from "./tokens.mjs";
+export { bytesToTokens, countTokens } from "./tokens-estimate.mjs";
 
 export function defaultLogDir() {
   return (

@@ -34,6 +34,7 @@
     "cursor:production": "node scripts/cursor-mcp.mjs production",
     "cursor:registry": "node packages/cli/bin/costgate.mjs registry",
     "cursor:hooks:repair": "node scripts/repair-cursor-hooks.mjs",
+    "cursor:deps": "node scripts/ensure-cursor-deps.mjs",
     "cursor:update": "node scripts/cursor-update.mjs",
 
     "dashboard": "node packages/cli/bin/costgate.mjs dashboard",

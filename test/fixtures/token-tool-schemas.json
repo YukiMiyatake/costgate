@@ -1,0 +1,39 @@
+[
+  {
+    "name": "get_file_contents",
+    "description": "Read a file from a repository",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": { "type": "string" },
+        "repo": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "required": ["owner", "repo", "path"]
+    }
+  },
+  {
+    "name": "search_code",
+    "description": "Search code in a repository",
+    "inputSchema": {
+      "type": "object",
+      "properties": { "query": { "type": "string" } },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "create_pull_request",
+    "description": "Open a pull request",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": { "type": "string" },
+        "repo": { "type": "string" },
+        "title": { "type": "string" },
+        "head": { "type": "string" },
+        "base": { "type": "string" }
+      },
+      "required": ["owner", "repo", "title", "head", "base"]
+    }
+  }
+]

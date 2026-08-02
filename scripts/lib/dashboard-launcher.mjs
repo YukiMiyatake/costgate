@@ -6,10 +6,9 @@ import { spawn, execFile } from "node:child_process";
 import {
   existsSync,
 } from "node:fs";
-import { platform } from "node:os";
-import { join } from "node:path";
+import { homedir, platform } from "node:os";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createDashboardServer } from "../dashboard-server.mjs";
 import {
   browserOpenedFlagPath,
   clearDashboardBrowserOpenedFlag,
@@ -27,6 +26,16 @@ import {
 } from "./dashboard-probe.mjs";
 
 const SCRIPTS_ROOT = fileURLToPath(new URL("..", import.meta.url));
+
+/** Prefer ~/.costgate/node_modules (Linux FS) so Dashboard works when repo is on DrvFs/WSL. */
+export function withCostgateNodePath(env = process.env) {
+  const extra = join(homedir(), ".costgate", "node_modules");
+  if (!existsSync(extra)) return { ...env };
+  const prev = env.NODE_PATH ? String(env.NODE_PATH) : "";
+  const parts = prev.split(delimiter).filter(Boolean);
+  if (!parts.includes(extra)) parts.unshift(extra);
+  return { ...env, NODE_PATH: parts.join(delimiter) };
+}
 
 export {
   dashboardUrl,
@@ -101,12 +110,12 @@ export function spawnDashboardProcess(options = {}) {
   }
   const host = options.host ?? process.env.COSTGATE_DASHBOARD_HOST ?? "127.0.0.1";
   const port = String(options.port ?? process.env.COSTGATE_DASHBOARD_PORT ?? 8787);
-  const env = {
+  const env = withCostgateNodePath({
     ...process.env,
     ...options.env,
     COSTGATE_DASHBOARD_HOST: host,
     COSTGATE_DASHBOARD_PORT: port,
-  };
+  });
   if (options.projectRoot) {
     env.COSTGATE_PROJECT_ROOT = options.projectRoot;
   }
@@ -198,4 +207,3 @@ export async function ensureDashboard(options = {}) {
 }
 
 /** @internal test helper */
-export { createDashboardServer };
