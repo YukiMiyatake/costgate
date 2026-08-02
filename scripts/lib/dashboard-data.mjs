@@ -30,11 +30,13 @@ import { applyExcludeScores } from "./tool-exclude-score.mjs";
 import { enrichMcpsWithTrust, loadMcpTrust } from "./mcp-trust.mjs";
 import { readLatestPromptIntent, promptIntentDir } from "./prompt-intent.mjs";
 import { buildShieldPromptSnapshot, shieldPromptBlockDir } from "./shield-prompt.mjs";
+import { collectGateLogDirs } from "./dashboard-gate-log-dirs.mjs";
 
 const GATE_MCP_NAMES = new Set(["costgate-gate", "costgate-probe"]);
 const MS_PER_DAY = 86_400_000;
-const GATE_LOG_FRESH_MS = 60 * 60 * 1000;
-export const DASHBOARD_VERSION = "31a";
+/** Gate considered "connected" if any gate_event is newer than this. */
+export const GATE_LOG_FRESH_MS = 60 * 60 * 1000;
+export const DASHBOARD_VERSION = "31c";
 
 export function defaultPaths() {
   const home = homedir();
@@ -270,31 +272,40 @@ function latestGateLogTimestamp(gateLogDir, options = {}) {
 /** Latest Gate JSONL activity for overview / tools freshness badges. */
 export function buildGateLogFreshness(options = {}) {
   const now = options.now ?? Date.now();
-  const sources = [];
-  if (options.gateLogDir) {
-    sources.push({
-      dir: options.gateLogDir,
-      projectRootFilter: options.projectRoot ?? null,
-      strictProjectRoot: false,
-    });
-  }
-  const globalDir = options.globalGateLogDir ?? null;
-  if (options.projectRoot && globalDir && globalDir !== options.gateLogDir) {
-    sources.push({
-      dir: globalDir,
-      projectRootFilter: options.projectRoot,
-      strictProjectRoot: true,
-    });
-  }
+  const projectRoot = options.projectRoot ?? null;
+  const dirs = collectGateLogDirs({
+    gateLogDir: options.gateLogDir,
+    globalGateLogDir: options.globalGateLogDir,
+    projectRoot,
+    env: options.env,
+  });
+
+  // Single canonical dir: soft-filter by project_root when scoped.
+  const sources = dirs.map((dir) => ({
+    dir,
+    projectRootFilter: projectRoot,
+    strictProjectRoot: false,
+  }));
 
   let latestTs = null;
+  let sourceDir = null;
   for (const src of sources) {
     const ts = latestGateLogTimestamp(src.dir, src);
-    if (ts != null && (latestTs == null || ts > latestTs)) latestTs = ts;
+    if (ts != null && (latestTs == null || ts > latestTs)) {
+      latestTs = ts;
+      sourceDir = src.dir;
+    }
   }
 
   if (latestTs == null) {
-    return { last_ts: null, age_sec: null, stale: true, has_events: false };
+    return {
+      last_ts: null,
+      age_sec: null,
+      stale: true,
+      has_events: false,
+      log_dirs: dirs,
+      source_dir: null,
+    };
   }
   const ageMs = now - latestTs;
   return {
@@ -302,6 +313,8 @@ export function buildGateLogFreshness(options = {}) {
     age_sec: Math.round(ageMs / 1000),
     stale: ageMs > GATE_LOG_FRESH_MS,
     has_events: true,
+    log_dirs: dirs,
+    source_dir: sourceDir,
   };
 }
 

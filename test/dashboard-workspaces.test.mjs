@@ -16,6 +16,7 @@ import {
   touchRegistryPath,
 } from "../scripts/lib/dashboard-workspaces.mjs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { DASHBOARD_VERSION } from "../scripts/lib/dashboard-data.mjs";
 import { writeAuthHeaders } from "./lib/dashboard-fetch.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -196,7 +197,7 @@ async function testHttpScopedApi() {
     assert(toolPatch.ok, `scoped PATCH tool ${toolPatch.status}`);
 
     const health = await fetch(`${origin}/api/health`).then((r) => r.json());
-    assert(health.version === "31a", "dashboard health version");
+    assert(health.version === DASHBOARD_VERSION, "dashboard health version");
 
     console.error("[workspaces] HTTP scoped API ok");
   } finally {

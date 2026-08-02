@@ -1035,7 +1035,9 @@ function renderGateStatus(status) {
   badgeWrap.replaceChildren(badge(label, ok, "gate-status-pill"));
   const age = status.gate_log?.has_events
     ? relativeAgeSec(status.gate_log.age_sec) || "—"
-    : t("gateStatus.noActivity");
+    : status.reason === "no_gate_events"
+      ? t("gateStatus.noLogs")
+      : t("gateStatus.noActivity");
   const pending = status.pending_changes ? t("gateStatus.pendingHint") : "";
   text.textContent = t("gateStatus.detail", { age, pending });
 }

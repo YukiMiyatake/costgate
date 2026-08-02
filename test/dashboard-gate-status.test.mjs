@@ -42,7 +42,11 @@ async function main() {
     gateSettingsPath: join(base, "gate-settings.json"),
     overridesPath: join(base, "tool-overrides.json"),
     now,
+    includeRegistry: false,
+    env: { HOME: base, USERPROFILE: base },
   });
+  assert(unit.connected === true, "connected when recent reload events");
+  assert(unit.reason === "ok", "reason ok");
   assert(unit.ok === true, "payload ok");
   assert(unit.hot_reload.gate_settings === true, "hot_reload gate_settings");
   assert(unit.last_reload_event === "overrides_reload", "latest reload event");

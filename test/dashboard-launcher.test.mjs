@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, unlinkSync } from "node:fs";
 import { createDashboardServer } from "../scripts/dashboard-server.mjs";
+import { join } from "node:path";
 import {
   ensureDashboard,
   fetchDashboardHealth,
@@ -10,6 +11,7 @@ import {
   dashboardServerScript,
   isDashboardAutoEnabled,
   resolveDashboardAutoOpen,
+  resolveDashboardSpawnEnv,
   shouldOpenDashboardBrowser,
   markDashboardBrowserOpened,
   clearDashboardBrowserOpenedFlag,
@@ -84,6 +86,32 @@ function testEnvFlags() {
   assert(resolveDashboardAutoOpen({ COSTGATE_DASHBOARD_AUTO_OPEN: "always" }) === "always", "always");
   assert(resolveDashboardAutoOpen({ COSTGATE_DASHBOARD_AUTO_OPEN: "0" }) === "never", "never");
   assert(existsSync(dashboardServerScript()), "dashboard script path");
+
+  const project = "/tmp/costgate-ws-example";
+  const spawnEnv = resolveDashboardSpawnEnv({
+    projectRoot: project,
+    env: {
+      COSTGATE_DASHBOARD_AUTO: "1",
+      COSTGATE_DASHBOARD_AUTO_OPEN: "0",
+    },
+    host: "127.0.0.1",
+    port: 8787,
+  });
+  assert(spawnEnv.COSTGATE_PROJECT_ROOT === project, "spawn sets project root");
+  assert(
+    spawnEnv.COSTGATE_GATE_LOG_DIR === join(project, ".costgate", "logs"),
+    "spawn defaults gate log dir to workspace"
+  );
+  assert(
+    spawnEnv.COSTGATE_PROBE_LOG_DIR === join(project, ".costgate", "logs"),
+    "spawn defaults probe log dir to workspace"
+  );
+  const preserved = resolveDashboardSpawnEnv({
+    projectRoot: project,
+    env: { COSTGATE_GATE_LOG_DIR: "/custom/logs" },
+  });
+  assert(preserved.COSTGATE_GATE_LOG_DIR === "/custom/logs", "explicit gate log dir preserved");
+
   console.error("[dashboard-launcher] env ok");
 }
 

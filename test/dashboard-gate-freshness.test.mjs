@@ -8,10 +8,17 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
 
+function isoEnv(base) {
+  const home = join(base, "home");
+  mkdirSync(join(home, ".costgate", "logs"), { recursive: true });
+  return { HOME: home, USERPROFILE: home };
+}
+
 function testFreshnessFromLogs() {
   const base = join(tmpdir(), `costgate-fresh-${process.pid}-${Date.now()}`);
   const logDir = join(base, "logs");
   mkdirSync(logDir, { recursive: true });
+  const env = isoEnv(base);
   const recent = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const old = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
   writeFileSync(
@@ -22,11 +29,19 @@ function testFreshnessFromLogs() {
     ].join("\n") + "\n"
   );
 
-  const fresh = buildGateLogFreshness({ gateLogDir: logDir, now: Date.now() });
+  const fresh = buildGateLogFreshness({
+    gateLogDir: logDir,
+    now: Date.now(),
+    includeRegistry: false,
+    env,
+  });
   assert(fresh.has_events, "has events");
   assert(!fresh.stale, "recent event not stale");
   assert(fresh.age_sec != null && fresh.age_sec < 600, "age reflects recent row");
 
+  writeFileSync(join(base, "usage.json"), "{}");
+  writeFileSync(join(base, "backends.json"), JSON.stringify({ backends: {} }));
+  writeFileSync(join(base, "mcp.json"), "{}");
   const data = buildDashboardData({
     logDir,
     gateLogDir: logDir,
@@ -35,9 +50,6 @@ function testFreshnessFromLogs() {
     mcpPath: join(base, "mcp.json"),
     now: Date.now(),
   });
-  writeFileSync(join(base, "usage.json"), "{}");
-  writeFileSync(join(base, "backends.json"), JSON.stringify({ backends: {} }));
-  writeFileSync(join(base, "mcp.json"), "{}");
 
   assert(data.overview.gate_log_freshness?.has_events, "overview includes freshness");
   assert(data.tools.gate_log_freshness?.has_events, "tools includes freshness");
@@ -50,12 +62,18 @@ function testStaleWhenOld() {
   const base = join(tmpdir(), `costgate-fresh-stale-${process.pid}-${Date.now()}`);
   const logDir = join(base, "logs");
   mkdirSync(logDir, { recursive: true });
+  const env = isoEnv(base);
   const old = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
   writeFileSync(
     join(logDir, "gate-2026-01-01.jsonl"),
     JSON.stringify({ type: "gate_event", event: "tool_call", tool: "a", ts: old }) + "\n"
   );
-  const fresh = buildGateLogFreshness({ gateLogDir: logDir, now: Date.now() });
+  const fresh = buildGateLogFreshness({
+    gateLogDir: logDir,
+    now: Date.now(),
+    includeRegistry: false,
+    env,
+  });
   assert(fresh.stale, "old event is stale");
   rmSync(base, { recursive: true, force: true });
   console.error("[gate-freshness] stale ok");
@@ -65,7 +83,13 @@ function testNoEvents() {
   const base = join(tmpdir(), `costgate-fresh-none-${process.pid}-${Date.now()}`);
   const logDir = join(base, "logs");
   mkdirSync(logDir, { recursive: true });
-  const fresh = buildGateLogFreshness({ gateLogDir: logDir, now: Date.now() });
+  const env = isoEnv(base);
+  const fresh = buildGateLogFreshness({
+    gateLogDir: logDir,
+    now: Date.now(),
+    includeRegistry: false,
+    env,
+  });
   assert(!fresh.has_events && fresh.stale, "empty logs marked stale");
   rmSync(base, { recursive: true, force: true });
   console.error("[gate-freshness] none ok");
