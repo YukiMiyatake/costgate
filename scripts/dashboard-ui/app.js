@@ -92,6 +92,9 @@ async function fetchJson(path, options = {}) {
       const text = await res.text().catch(() => "");
       if (text) err = { error: text };
     }
+    if (res.status === 401 || err.error === "unauthorized") {
+      throw new Error(t("token.unauthorized"));
+    }
     throw new Error(err.error ?? err.path ?? `${path}: HTTP ${res.status}`);
   }
   return res.json();
@@ -2192,7 +2195,14 @@ function setupTokenBar(health) {
   } else {
     mode.textContent = t("app.writeModeLocal");
   }
-  input.value = sessionStorage.getItem("costgate_dashboard_token") ?? "";
+  // Loopback health includes bootstrap_token so marketplace Add works when
+  // Gate spawned Dashboard (token never appeared in a visible console).
+  let stored = sessionStorage.getItem("costgate_dashboard_token") ?? "";
+  if (health.writes?.bootstrap_token) {
+    stored = health.writes.bootstrap_token;
+    sessionStorage.setItem("costgate_dashboard_token", stored);
+  }
+  input.value = stored;
   input.addEventListener("change", () => {
     sessionStorage.setItem("costgate_dashboard_token", input.value);
   });

@@ -23,6 +23,7 @@ const TESTS = [
   "dashboard-project-recommend.test.mjs",
   "dashboard-routes.test.mjs",
   "dashboard-write-auth.test.mjs",
+  "dashboard-write-token.test.mjs",
   "dashboard-ui-settings.test.mjs",
   "dashboard-workspaces.test.mjs",
   "dashboard-gate-log-workspace.test.mjs",
