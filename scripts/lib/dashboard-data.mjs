@@ -119,7 +119,9 @@ export function parseProbeToolStats(logDir, windowDays = null, gateLogDir = logD
   const byBackend = new Map();
   let cutoff = null;
   if (windowDays != null && windowDays > 0) {
-    cutoff = Date.now() - windowDays * MS_PER_DAY;
+    // Prefer options.now so fixture tests (and frozen clocks) stay deterministic.
+    const now = options.now ?? Date.now();
+    cutoff = now - windowDays * MS_PER_DAY;
   }
 
   const listTokenSamples = [];
@@ -616,6 +618,7 @@ export function buildDashboardData(options = {}) {
     windowDays,
     paths.gateLogDir,
     {
+      now,
       projectRoot: paths.scoped ? paths.projectRoot : null,
       globalGateLogDir: paths.scoped
         ? (options.globalPaths?.gateLogDir ?? globalPaths.gateLogDir)
