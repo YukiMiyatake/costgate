@@ -98,6 +98,23 @@ Only `main` is used. There is no `develop` branch.
 | CI, review comment, auto-merge | GitHub Actions (`ci.yml`, `pr-automation.yml`) |
 | Sync local `main` after merge | Optional (`npm run feat:sync`) |
 
+### CI tiers (path-filtered)
+
+Not every PR needs the full ~20+ min mock-MCP suite. `.github/workflows/ci.yml` selects jobs from the diff:
+
+| Change set | Jobs |
+|------------|------|
+| **docs-only** (`docs/**`, `*.md`, `examples/**`, …) | `quick` (syntax + script guards) |
+| **Dashboard / Cursor hooks** | `quick` + `dashboard` |
+| **Gate Go** (`packages/gate/**`) | `quick` + `gate-go` (+ `gate-mcp` / `dashboard` when scripts/tests also change) |
+| **MCP / scripts / tests / lockfile** | `quick` + `gate-go` + parallel `gate-mcp` matrix + `dashboard` |
+| **push to `main`** | full suite always |
+
+`gate-mcp` runs suites **in parallel** (`filter-core`, `filter-heavy`, `integration`, `eval`, `benchmark`, `filesystem`) so wall clock tracks the slowest suite (~10–13 min) instead of the old sequential ~20–25 min.
+
+Local full equivalent: `npm run test:ci`.  
+Required check for merge: job id **`build-and-test`** (aggregator).
+
 ### Daily workflow
 
 **One feature = one branch = one PR** to `main`:

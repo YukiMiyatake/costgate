@@ -15,6 +15,23 @@
 | CI / レビューコメント / auto-merge | GitHub Actions |
 | マージ後の main 同期 | 任意（`feat:sync`） |
 
+### CI ティア（パス別）
+
+すべての PR でフルの mock-MCP スイート（旧 ~20 分超）を回す必要はありません。`.github/workflows/ci.yml` が差分から job を選びます:
+
+| 変更内容 | 実行ジョブ |
+|----------|------------|
+| **docs のみ**（`docs/**`, `*.md`, `examples/**` など） | `quick`（syntax + script guards） |
+| **Dashboard / Cursor hooks** | `quick` + `dashboard` |
+| **Gate Go**（`packages/gate/**`） | `quick` + `gate-go`（scripts/tests も触れば MCP も） |
+| **MCP / scripts / tests / lockfile** | `quick` + `gate-go` + 並列 `gate-mcp` + `dashboard` |
+| **`main` への push** | 常にフル |
+
+`gate-mcp` はスイートを **並列**実行するため、壁時計は最長スイート（おおよそ 10–13 分）に抑えられます。
+
+ローカル相当: `npm run test:ci`  
+必須チェック: job id **`build-and-test`**（集約ジョブ）
+
 ### 日常ワークフロー
 
 ```bash
