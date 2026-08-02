@@ -95,13 +95,13 @@ async function measureToolCall(compress, { codeMode = false, invoke = DEFAULT_IN
   return withMcpProcess(
     GATE_BIN,
     [],
-    {
-      ...baseEnv,
+    measureEnv({
+      COSTGATE_GATE_MODE: "filter",
       COSTGATE_COMPRESS: compress ? "1" : "0",
       COSTGATE_CODE_MODE: codeMode ? "1" : "0",
       COSTGATE_COMPRESS_MAX_CHARS:
         process.env.COSTGATE_COMPRESS_MAX_CHARS ?? "12000",
-    },
+    }),
     async (client) => {
       await client.initialize(`compress-tool-${compress ? "on" : "off"}`);
       const result = await client.callTool("invoke_tool", {
