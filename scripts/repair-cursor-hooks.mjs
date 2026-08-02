@@ -9,8 +9,9 @@
  * Usage:
  *   npm run cursor:hooks:repair
  *   node scripts/repair-cursor-hooks.mjs
+ *   # Windows host (no Node/WSL): scripts/repair-cursor-hooks.ps1
  *
- * What it does (Linux + Windows Cursor targets when in WSL):
+ * What it does (primary + Windows Cursor when WSL or COSTGATE_WINDOWS_HOOKS_PATH):
  *   1. Re-merge CostGate hooks with quoted / cmd /c commands
  *   2. Strip failClosed from CostGate entries (default)
  *   3. Dedupe + order beforeSubmitPrompt

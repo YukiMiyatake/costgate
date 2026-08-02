@@ -21,14 +21,19 @@ Typical failure: `MainThreadShellExec not initialized` + legacy `failClosed: tru
 
 This also hits **other workspaces** (e.g. CastLine AI) — user hooks are per Cursor host, not per project.
 
-1. From CostGate: `npm run cursor:hooks:repair` (or `cursor:registry`) — from WSL also updates Windows Cursor hooks when detectable
-2. **Fully quit all Cursor windows** and reopen (Reload alone is often not enough)
-3. If still stuck: `Developer: Reload Window`; emergency: rename `%USERPROFILE%\.cursor\hooks.json`
+1. **Fix Windows Cursor directly (recommended — PowerShell)**
+   ```powershell
+   cd E:\path\to\costgate   # this branch
+   powershell -ExecutionPolicy Bypass -File .\scripts\repair-cursor-hooks.ps1
+   ```
+2. Or from WSL update both: `npm run cursor:hooks:repair` (Linux `~/.cursor` + Windows `%USERPROFILE%\.cursor`)
+3. **Fully quit all Cursor windows** and reopen (Reload alone is often not enough)
+4. If still stuck: `Developer: Reload Window`; emergency: rename `%USERPROFILE%\.cursor\hooks.json`
 
 | Env | Meaning |
 |-----|---------|
 | `COSTGATE_HOOKS_WINDOWS=0` | Do not also write Windows hooks from WSL |
-| `COSTGATE_WINDOWS_HOOKS_PATH` | Explicit Windows hooks.json path (WSL-visible `/mnt/c/...`) |
+| `COSTGATE_WINDOWS_HOOKS_PATH` | Explicit Windows hooks.json path (e.g. `/mnt/c/Users/you/.cursor/hooks.json`). Also works outside WSL when set |
 | `COSTGATE_HOOKS_FAIL_CLOSED=1` | Re-enable hooks.json failClosed (not recommended) |
 
 ## Production (from cloned repo)

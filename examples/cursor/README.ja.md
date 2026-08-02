@@ -22,14 +22,19 @@ npx @costgate/cli@latest init
 
 CastLine など **別ワークスペースの AI 画面でも同じ**です（user hooks はホスト共通）。
 
-1. CostGate で `npm run cursor:hooks:repair`（または `cursor:registry`）— WSL なら Windows Cursor 用も更新
-2. Cursor を **全ウィンドウ完全終了**して再起動（Reload だけでは足りないことあり）
-3. まだダメなら `Developer: Reload Window`、緊急時は `%USERPROFILE%\.cursor\hooks.json` を一時リネーム
+1. **Windows Cursor を直接直す（推奨・PowerShell）**
+   ```powershell
+   cd E:\path\to\costgate   # このブランチ
+   powershell -ExecutionPolicy Bypass -File .\scripts\repair-cursor-hooks.ps1
+   ```
+2. または WSL から両方更新: `npm run cursor:hooks:repair`（Linux `~/.cursor` + Windows `%USERPROFILE%\.cursor`）
+3. Cursor を **全ウィンドウ完全終了**して再起動（Reload だけでは足りないことあり）
+4. まだダメなら `Developer: Reload Window`、緊急時は `%USERPROFILE%\.cursor\hooks.json` を一時リネーム
 
 | 環境変数 | 意味 |
 |---------|------|
 | `COSTGATE_HOOKS_WINDOWS=0` | WSL から Windows hooks への同時書き込みを無効化 |
-| `COSTGATE_WINDOWS_HOOKS_PATH` | Windows hooks.json の明示パス（WSL から見える `/mnt/c/...`） |
+| `COSTGATE_WINDOWS_HOOKS_PATH` | Windows hooks.json の明示パス（例: `/mnt/c/Users/you/.cursor/hooks.json`）。WSL 外でも指定すれば Windows 側を更新 |
 | `COSTGATE_HOOKS_FAIL_CLOSED=1` | hooks.json の failClosed を再有効化（非推奨） |
 
 ## 本番（リポジトリ clone）

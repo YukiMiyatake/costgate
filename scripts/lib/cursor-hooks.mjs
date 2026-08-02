@@ -108,8 +108,9 @@ export function detectWindowsCursorHooksPath(env = process.env) {
 
 /**
  * Where to write hooks.json.
- * In WSL, also update Windows Cursor's hooks (all workspaces on that host)
- * unless COSTGATE_HOOKS_WINDOWS=0.
+ * In WSL (or when COSTGATE_HOOKS_WINDOWS=1 / COSTGATE_WINDOWS_HOOKS_PATH is set),
+ * also update Windows Cursor's hooks.json unless COSTGATE_HOOKS_WINDOWS=0.
+ * User hooks apply to all workspaces on that Cursor host.
  */
 export function resolveHooksInstallTargets(options = {}) {
   const env = options.env ?? process.env;
@@ -122,13 +123,15 @@ export function resolveHooksInstallTargets(options = {}) {
     },
   ];
 
+  const explicitWindowsPath = Boolean(env.COSTGATE_WINDOWS_HOOKS_PATH);
   const wantWindows =
     !falsyEnv(env.COSTGATE_HOOKS_WINDOWS) &&
     (truthyEnv(env.COSTGATE_HOOKS_WINDOWS) ||
       truthyEnv(env.COSTGATE_CURSOR_HOST_WINDOWS) ||
+      explicitWindowsPath ||
       isWslEnv(env));
 
-  if (wantWindows && isWslEnv(env)) {
+  if (wantWindows) {
     const winPath = detectWindowsCursorHooksPath(env);
     if (winPath && winPath !== primary) {
       targets.push({ hooksPath: winPath, platform: "win32", label: "windows-cursor" });

@@ -291,6 +291,18 @@ function testResolveTargetsWslWindows() {
     },
   });
   assert(disabled.length === 1, "COSTGATE_HOOKS_WINDOWS=0 skips windows");
+
+  // Explicit Windows path must work even outside WSL (e.g. CI / remote Linux helper).
+  const explicit = resolveHooksInstallTargets({
+    hooksPath: "/home/u/.cursor/hooks.json",
+    platform: "linux",
+    env: {
+      COSTGATE_WINDOWS_HOOKS_PATH: "/mnt/c/Users/u/.cursor/hooks.json",
+    },
+  });
+  assert(explicit.length === 2, "COSTGATE_WINDOWS_HOOKS_PATH alone adds windows target");
+  assert(explicit[1].label === "windows-cursor", "windows label");
+
   console.error("[install-cursor-registry] resolve targets ok");
 }
 
