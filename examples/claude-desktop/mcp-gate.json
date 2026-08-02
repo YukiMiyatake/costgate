@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "costgate-gate": {
+      "command": "npx",
+      "args": ["-y", "@costgate/cli@latest", "gate"],
+      "env": {
+        "COSTGATE_CONFIG": "~/.costgate/backends.json",
+        "COSTGATE_GATE_MODE": "filter",
+        "COSTGATE_COMPRESS": "1",
+        "COSTGATE_CODE_MODE": "1",
+        "COSTGATE_SHIELD": "1",
+        "COSTGATE_DASHBOARD_AUTO": "1",
+        "COSTGATE_DASHBOARD_AUTO_OPEN": "never",
+        "COSTGATE_CLIENT": "claude-desktop"
+      }
+    }
+  }
+}
