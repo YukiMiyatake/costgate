@@ -47,22 +47,23 @@ const CODE_MODE_INVOKE = {
   },
 };
 
-const baseEnv = useMock
-  ? mockGateEnv("compress-report", {
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT: "pull request",
-      COSTGATE_INTENT_DYNAMIC: "0",
-    })
-  : baseGateEnv("compress-report", {
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT_DYNAMIC: "0",
-    });
+function measureEnv(extra = {}) {
+  const defaults = {
+    COSTGATE_INTENT_DYNAMIC: "0",
+    ...(useMock ? { COSTGATE_INTENT: "pull request" } : {}),
+    ...extra,
+  };
+  return useMock
+    ? mockGateEnv("compress-report", defaults)
+    : baseGateEnv("compress-report", defaults);
+}
 
 async function measureDefinitions() {
+  // Rebuild env per mode so mock gate-settings.json matches COSTGATE_GATE_MODE.
   const before = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    measureEnv({ COSTGATE_GATE_MODE: "transparent" }),
     async (client) => {
       await client.initialize("compress-def-before");
       return summarizeTools(await client.listTools());
@@ -73,7 +74,7 @@ async function measureDefinitions() {
   const after = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "filter", COSTGATE_COMPRESS: "0" },
+    measureEnv({ COSTGATE_GATE_MODE: "filter", COSTGATE_COMPRESS: "0" }),
     async (client) => {
       await client.initialize("compress-def-after");
       return summarizeTools(await client.listTools());
