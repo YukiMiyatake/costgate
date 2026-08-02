@@ -16,6 +16,7 @@ import {
   loadToolOverrides,
   loadMcpJson,
 } from "../scripts/lib/dashboard-control.mjs";
+import { DASHBOARD_VERSION } from "../scripts/lib/dashboard-data.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -181,7 +182,7 @@ async function testHttpPatch() {
 
   try {
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert(health.version === "31a", "dashboard health version");
+    assert(health.version === DASHBOARD_VERSION, "dashboard health version");
     assert(health.read_only === false, "not read-only");
 
     const patch = await fetch(`${base}/api/tools/create_issue`, {
