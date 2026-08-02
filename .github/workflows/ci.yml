@@ -245,9 +245,9 @@ jobs:
       - name: Dashboard + Cursor hook tests
         run: npm run dashboard:test
 
-  # Keep job id `build-and-test` so existing branch protection / auto-merge keep working.
+  # Branch protection requires the check context literally named "CI / build-and-test".
   build-and-test:
-    name: build-and-test
+    name: CI / build-and-test
     runs-on: ubuntu-latest
     if: always()
     needs: [changes, quick, gate-go, gate-mcp, dashboard]
