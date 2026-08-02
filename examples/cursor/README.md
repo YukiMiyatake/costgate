@@ -13,6 +13,29 @@ npx @costgate/cli@latest init
 
 Update: `npx @costgate/cli update`
 
+### Windows / WSL: Agent stuck / “MainThreadShellExec not initialized”
+
+User hooks apply to **all workspaces on that Cursor host**. WSL Cursor and Windows Cursor use different `hooks.json` files.
+
+Typical failure: `MainThreadShellExec not initialized` + legacy `failClosed: true` → Agent blocked everywhere.
+
+This also hits **other workspaces** (e.g. CastLine AI) — user hooks are per Cursor host, not per project.
+
+1. **Fix Windows Cursor directly (recommended — PowerShell)**
+   ```powershell
+   cd E:\path\to\costgate   # this branch
+   powershell -ExecutionPolicy Bypass -File .\scripts\repair-cursor-hooks.ps1
+   ```
+2. Or from WSL update both: `npm run cursor:hooks:repair` (Linux `~/.cursor` + Windows `%USERPROFILE%\.cursor`)
+3. **Fully quit all Cursor windows** and reopen (Reload alone is often not enough)
+4. If still stuck: `Developer: Reload Window`; emergency: rename `%USERPROFILE%\.cursor\hooks.json`
+
+| Env | Meaning |
+|-----|---------|
+| `COSTGATE_HOOKS_WINDOWS=0` | Do not also write Windows hooks from WSL |
+| `COSTGATE_WINDOWS_HOOKS_PATH` | Explicit Windows hooks.json path (e.g. `/mnt/c/Users/you/.cursor/hooks.json`). Also works outside WSL when set |
+| `COSTGATE_HOOKS_FAIL_CLOSED=1` | Re-enable hooks.json failClosed (not recommended) |
+
 ## Production (from cloned repo)
 
 **[mcp-production.json](./mcp-production.json)** — local paths via `npm run cursor:production`.

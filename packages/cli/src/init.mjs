@@ -42,8 +42,12 @@ export async function runInit(opts = {}) {
   steps.push(`mcp.json: production mode → ${mcpPath}`);
 
   if (opts.hooks !== false) {
-    const hooks = installRegistryHooks(opts.hooksPath);
-    steps.push(`hooks.json: ${hooks.hooksPath} (+${hooks.installed.length || "already present"})`);
+    const hooks = await installRegistryHooks(opts.hooksPath);
+    const results = Array.isArray(hooks.targets) ? hooks.targets : [hooks];
+    for (const r of results) {
+      const added = Array.isArray(r.installed) ? r.installed.length : 0;
+      steps.push(`hooks.json: ${r.hooksPath} (+${added || "already present"})`);
+    }
   }
 
   return {

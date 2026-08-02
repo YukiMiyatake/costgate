@@ -4,12 +4,28 @@
  */
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { normalizeCursorPath } from "./cursor-hook-io.mjs";
 
 const MARKERS = [".git", "go.mod", "package.json", ".costgate"];
 
+function resolveSafe(input) {
+  const normalized = normalizeCursorPath(input);
+  return resolve(normalized);
+}
+
 export function isPathUnder(child, parent) {
-  const c = resolve(child);
-  const p = resolve(parent);
+  let c;
+  let p;
+  try {
+    c = resolveSafe(child).replace(/\\/g, "/");
+    p = resolveSafe(parent).replace(/\\/g, "/");
+  } catch {
+    return false;
+  }
+  if (process.platform === "win32") {
+    c = c.toLowerCase();
+    p = p.toLowerCase();
+  }
   return c === p || c.startsWith(`${p}/`);
 }
 
@@ -18,13 +34,23 @@ export function findContainingWorkspaceRoot(absPath, knownRoots = []) {
   if (!absPath) return null;
   let abs;
   try {
-    abs = resolve(absPath);
+    abs = resolveSafe(absPath);
   } catch {
     return null;
   }
-  const matches = [...new Set(knownRoots.map((r) => resolve(r)))].filter((r) =>
-    isPathUnder(abs, r)
-  );
+  const matches = [
+    ...new Set(
+      knownRoots
+        .map((r) => {
+          try {
+            return resolveSafe(r);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+    ),
+  ].filter((r) => isPathUnder(abs, r));
   if (!matches.length) return null;
   return matches.sort((a, b) => a.length - b.length)[0];
 }
@@ -42,7 +68,7 @@ export function normalizeRegistryWorkspacePath(absPath, knownRoots = []) {
 export function collapseNestedWorkspacePaths(items) {
   const normalized = (items ?? []).map((item) => ({
     ...item,
-    path: resolve(item.path),
+    path: resolveSafe(item.path),
   }));
   return normalized.filter(
     (item) =>
@@ -56,7 +82,7 @@ export function resolveWorkspaceRootFromPath(fileOrDir) {
   if (!fileOrDir) return null;
   let dir = String(fileOrDir);
   try {
-    const abs = resolve(dir);
+    const abs = resolveSafe(dir);
     if (existsSync(abs) && !statSync(abs).isDirectory()) {
       dir = dirname(abs);
     } else {

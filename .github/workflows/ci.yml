@@ -1,14 +1,196 @@
 name: CI
 
+# Selective / parallel CI.
+# - docs-only PR: quick checks only (~1–2 min)
+# - code PR: path-filtered jobs in parallel (wall clock bound by slowest MCP suite)
+# - push to main: full suite (all jobs)
+# Branch protection should require the aggregator job `ci-result` only.
+
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      gate_go: ${{ steps.set.outputs.gate_go }}
+      mcp: ${{ steps.set.outputs.mcp }}
+      dashboard: ${{ steps.set.outputs.dashboard }}
+      docs_only: ${{ steps.set.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            gate_go:
+              - 'packages/gate/**'
+              - '.goreleaser.yaml'
+            mcp:
+              - 'packages/gate/**'
+              - 'packages/probe/**'
+              - 'packages/schema/**'
+              - 'packages/cli/**'
+              - 'scripts/**'
+              - 'test/**'
+              - 'catalog/**'
+              - 'package.json'
+              - 'package-lock.json'
+            dashboard:
+              - 'scripts/dashboard*/**'
+              - 'scripts/dashboard*.mjs'
+              - 'scripts/lib/dashboard*.mjs'
+              - 'scripts/lib/shield*.mjs'
+              - 'scripts/lib/cursor*.mjs'
+              - 'scripts/lib/mcp*.mjs'
+              - 'scripts/install-cursor*.mjs'
+              - 'scripts/repair-cursor*.mjs'
+              - 'scripts/cursor-*.mjs'
+              - 'test/dashboard*.mjs'
+              - 'test/run-dashboard.mjs'
+              - 'test/*cursor*'
+              - 'test/*shield*'
+              - 'test/*hook*'
+              - 'test/fixtures/dashboard/**'
+              - 'packages/cli/**'
+              - 'examples/cursor/**'
+            code:
+              - 'packages/**'
+              - 'scripts/**'
+              - 'test/**'
+              - 'catalog/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.goreleaser.yaml'
+              - '.github/workflows/**'
+            docs:
+              - 'docs/**'
+              - '**/*.md'
+              - 'examples/**'
+              - 'README*'
+              - 'CHANGELOG*'
+              - 'CONTRIBUTING*'
+              - 'LICENSE*'
+
+      - name: Resolve job flags
+        id: set
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "gate_go=true" >> "$GITHUB_OUTPUT"
+            echo "mcp=true" >> "$GITHUB_OUTPUT"
+            echo "dashboard=true" >> "$GITHUB_OUTPUT"
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "Resolved: full suite (push to main)"
+            exit 0
+          fi
+          gate_go="${{ steps.filter.outputs.gate_go }}"
+          mcp="${{ steps.filter.outputs.mcp }}"
+          dashboard="${{ steps.filter.outputs.dashboard }}"
+          code="${{ steps.filter.outputs.code }}"
+          docs="${{ steps.filter.outputs.docs }}"
+          docs_only=false
+          if [ "$docs" = "true" ] && [ "$code" != "true" ]; then
+            docs_only=true
+          fi
+          # Workflow-only changes are under `code` but may not hit mcp globs — run MCP+dashboard.
+          if [ "$code" = "true" ] && [ "$mcp" != "true" ] && [ "$dashboard" != "true" ]; then
+            mcp=true
+            dashboard=true
+          fi
+          {
+            echo "gate_go=${gate_go:-false}"
+            echo "mcp=${mcp:-false}"
+            echo "dashboard=${dashboard:-false}"
+            echo "docs_only=$docs_only"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved: gate_go=$gate_go mcp=$mcp dashboard=$dashboard docs_only=$docs_only code=$code docs=$docs"
+
+  # Fast always-on lane (docs-only PRs stop here + ci-result).
+  quick:
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Script syntax check
+        run: npm run check:syntax
+
+      - name: Package script guards
+        run: npm run test:package-scripts
+
+      - name: Build TypeScript packages
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run build
+
+      - name: Token / CLI / schema unit tests
+        if: needs.changes.outputs.docs_only != 'true'
+        run: |
+          npm run test:tokens
+          npm run test:cli
+          npm run test:schema
+
+      - name: Docs-only marker
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "docs-only PR — skipped TS build and unit tests beyond syntax/script guards"
+
+  gate-go:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.gate_go == 'true' || needs.changes.outputs.mcp == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build Gate
+        run: |
+          # Node not required for Go build; use npm script for path consistency.
+          cd packages/gate && CGO_ENABLED=0 go build -o bin/costgate-gate ./cmd/costgate-gate
+
+      - name: Gate unit tests
+        working-directory: packages/gate
+        run: go test ./...
+
+      - name: Goreleaser config check
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: check
+
+  # Heavy mock-MCP suites — parallel matrix (was ~23 min sequential).
+  gate-mcp:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - filter-core
+          - filter-heavy
+          - integration
+          - eval
+          - benchmark
+          - filesystem
     steps:
       - uses: actions/checkout@v4
 
@@ -24,51 +206,95 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Script syntax check
-        run: npm run check:syntax
-
-      - name: Package script guards
-        run: npm run test:package-scripts
-
       - name: Build TypeScript packages
         run: npm run build
 
       - name: Build Gate
         run: npm run build:gate
 
-      - name: Gate unit tests
-        working-directory: packages/gate
-        run: go test ./...
+      - name: Run suite (${{ matrix.suite }})
+        run: |
+          case "${{ matrix.suite }}" in
+            filter-core)  npm run test:gate:filter:core ;;
+            filter-heavy) npm run test:gate:filter:heavy ;;
+            integration)  npm run test:integration ;;
+            eval)         npm run eval ;;
+            benchmark)    npm run benchmark:ci ;;
+            filesystem)   npm run test:filesystem ;;
+            *) echo "unknown suite"; exit 1 ;;
+          esac
 
-      - name: Gate filter integration
-        run: npm run test:gate:filter
+  dashboard:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.mcp == 'true'
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Goreleaser config check
-        uses: goreleaser/goreleaser-action@v6
+      - uses: actions/setup-node@v4
         with:
-          version: "~> v2"
-          args: check
+          node-version: "20"
+          cache: npm
 
-      - name: Token counter tests
-        run: npm run test:tokens
+      - name: Install dependencies
+        run: npm ci
 
-      - name: CLI package tests
-        run: npm run test:cli
+      - name: Build TypeScript packages
+        run: npm run build
 
-      - name: Schema validation tests
-        run: npm run test:schema
-
-      - name: Integration tests (mock MCP)
-        run: npm run test:integration
-
-      - name: Accuracy eval (mock MCP)
-        run: npm run eval
-
-      - name: Benchmark CI (mock compare)
-        run: npm run benchmark:ci
-
-      - name: Filesystem MCP smoke
-        run: npm run test:filesystem
-
-      - name: Dashboard tests
+      - name: Dashboard + Cursor hook tests
         run: npm run dashboard:test
+
+  # Branch protection requires the check context literally named "CI / build-and-test".
+  build-and-test:
+    name: CI / build-and-test
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [changes, quick, gate-go, gate-mcp, dashboard]
+    steps:
+      - name: Aggregate results
+        run: |
+          echo "quick=${{ needs.quick.result }}"
+          echo "gate-go=${{ needs.gate-go.result }}"
+          echo "gate-mcp=${{ needs.gate-mcp.result }}"
+          echo "dashboard=${{ needs.dashboard.result }}"
+          echo "docs_only=${{ needs.changes.outputs.docs_only }}"
+
+          fail=0
+          # quick always required
+          if [ "${{ needs.quick.result }}" != "success" ]; then
+            echo "::error::quick job failed or was skipped unexpectedly"
+            fail=1
+          fi
+
+          # Optional jobs: failure fails CI; skipped is OK
+          for pair in \
+            "gate-go:${{ needs.gate-go.result }}" \
+            "gate-mcp:${{ needs.gate-mcp.result }}" \
+            "dashboard:${{ needs.dashboard.result }}"
+          do
+            name="${pair%%:*}"
+            result="${pair##*:}"
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "::error::$name job $result"
+              fail=1
+            fi
+          done
+
+          # On main push, expect full suite (no skips except matrix internals).
+          if [ "${{ github.event_name }}" = "push" ]; then
+            for pair in \
+              "gate-go:${{ needs.gate-go.result }}" \
+              "gate-mcp:${{ needs.gate-mcp.result }}" \
+              "dashboard:${{ needs.dashboard.result }}"
+            do
+              name="${pair%%:*}"
+              result="${pair##*:}"
+              if [ "$result" != "success" ]; then
+                echo "::error::main push requires $name=success (got $result)"
+                fail=1
+              fi
+            done
+          fi
+
+          exit "$fail"

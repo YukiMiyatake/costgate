@@ -11,6 +11,8 @@ import {
   SHIELD_PROMPT_SCRIPT,
   buildHookDefs,
   defaultHooksPath,
+  ensureHookEntry,
+  finalizeCostGateHooks,
   findHookIndex,
   loadHooks,
   removeHookEntry,
@@ -43,7 +45,7 @@ export const SHIELD_SETTING_DEFS = [
     key: "fail_open",
     type: "boolean",
     label: "Fail open on hook errors",
-    hint: "When off (default), hook errors block submit (fail-closed)",
+    hint: "When on, script errors allow submit. Cursor hooks.json failClosed stays off by default (avoids MainThreadShellExec lockouts).",
   },
 ];
 
@@ -101,8 +103,8 @@ export function loadShieldSettings(hooksPath = defaultHooksPath()) {
   };
 }
 
-function shieldPromptHookFromSettings(settings) {
-  const def = buildHookDefs().find((d) => d.script === SHIELD_PROMPT_SCRIPT);
+function shieldPromptHookFromSettings(settings, hookOptions = {}) {
+  const def = buildHookDefs(hookOptions).find((d) => d.script === SHIELD_PROMPT_SCRIPT);
   if (!def) throw new Error("shield prompt hook definition missing");
   const env = {
     ...SHIELD_HOOK_ENV,
@@ -121,7 +123,7 @@ function backupHooks(hooksPath) {
 }
 
 /** Install or remove the shield-prompt hook entry to match settings. */
-export function applyShieldSettingsToHooks(settings, hooksPath = defaultHooksPath()) {
+export function applyShieldSettingsToHooks(settings, hooksPath = defaultHooksPath(), options = {}) {
   const normalized = normalizeShieldSettings(settings);
   const config = loadHooks(hooksPath);
   config.hooks ??= {};
@@ -129,21 +131,21 @@ export function applyShieldSettingsToHooks(settings, hooksPath = defaultHooksPat
   const list = config.hooks.beforeSubmitPrompt;
   const scriptName = scriptBasename(SHIELD_PROMPT_SCRIPT);
   let changed = false;
+  const hookOptions = {
+    platform: options.platform,
+    env: options.env,
+  };
 
   if (!normalized.prompt_block) {
     changed = removeHookEntry(list, scriptName);
   } else {
-    const hook = shieldPromptHookFromSettings(normalized);
-    const idx = findHookIndex(list, scriptName);
-    if (idx === -1) {
-      list.push(hook);
+    const hook = shieldPromptHookFromSettings(normalized, hookOptions);
+    if (ensureHookEntry(list, scriptName, hook)) {
       changed = true;
-    } else {
-      const prev = JSON.stringify(list[idx]);
-      list[idx] = { ...hook };
-      changed = prev !== JSON.stringify(list[idx]);
     }
   }
+
+  if (finalizeCostGateHooks(config)) changed = true;
 
   let backup = null;
   if (changed) {

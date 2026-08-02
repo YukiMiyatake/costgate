@@ -7,6 +7,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { normalizeCursorPath, readHookStdin } from "./lib/cursor-hook-io.mjs";
 import { cursorMcpPath, loadMcpDisabled, mcpDisabledStorePath } from "./lib/dashboard-control.mjs";
 import {
   globalMcpTrustPath,
@@ -17,15 +18,6 @@ import {
 import { resolveWorkspaceRootFromPath } from "./lib/resolve-workspace-root.mjs";
 
 const GATE_NAMES = new Set(["costgate-gate", "costgate-probe"]);
-
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    process.stdin.on("data", (c) => chunks.push(c));
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
-}
 
 function loadMcpConfigSafe(path) {
   if (!existsSync(path)) return { mcpServers: {} };
@@ -65,7 +57,7 @@ export function extractMcpServerName(payload, mcpConfig = {}) {
 }
 
 export function resolveProjectRoot(payload) {
-  const roots = payload?.workspace_roots ?? [];
+  const roots = (payload?.workspace_roots ?? []).map((r) => normalizeCursorPath(r));
   for (const root of roots) {
     const resolved = resolveWorkspaceRootFromPath(root);
     if (resolved) return resolved;
@@ -200,7 +192,7 @@ export function handleCursorShieldMcpHook(payload, context = {}) {
 }
 
 async function main() {
-  const raw = (await readStdin()).trim();
+  const raw = (await readHookStdin()).trim();
   if (!raw) {
     process.stdout.write(`${JSON.stringify({ permission: "allow" })}\n`);
     return;

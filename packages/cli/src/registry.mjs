@@ -17,7 +17,11 @@ export async function installRegistryHooks(hooksPath = DEFAULT_HOOKS_PATH) {
     pathToFileURL(join(runtimeRoot, "scripts", "install-cursor-registry-hook.mjs")).href
   );
 
-  const result = mod.installCursorRegistryHooks(hooksPath);
+  const install =
+    typeof mod.installCursorRegistryHooksAll === "function"
+      ? mod.installCursorRegistryHooksAll
+      : mod.installCursorRegistryHooks;
+  const result = install({ hooksPath });
   if (prev === undefined) delete process.env.COSTGATE_RUNTIME_ROOT;
   else process.env.COSTGATE_RUNTIME_ROOT = prev;
   return result;

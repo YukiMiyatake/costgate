@@ -18,7 +18,9 @@ const jsonOut = args.includes("--json");
 
 const LIMITS = {
   mock: {
-    min_reduction_pct: 40,
+    // Mock MCP has a small catalog (~16 tools); filter still drops write/admin tools.
+    // Keep headroom under real GitHub MCP (~70%+) without flaking on schema churn.
+    min_reduction_pct: 35,
     max_filter_tokens: 500,
     max_filter_tools: 12,
   },

@@ -7,16 +7,8 @@
  */
 import { inferPromptIntent, writePromptIntent } from "./lib/prompt-intent.mjs";
 import { appendTurn } from "./lib/history-store.mjs";
+import { readHookStdin } from "./lib/cursor-hook-io.mjs";
 import { pathToFileURL } from "node:url";
-
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    process.stdin.on("data", (c) => chunks.push(c));
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
-}
 
 export function handleCursorPromptIntentHook(payload) {
   const event = payload?.hook_event_name ?? payload?.event ?? "";
@@ -30,7 +22,7 @@ export function handleCursorPromptIntentHook(payload) {
 }
 
 async function main() {
-  const raw = (await readStdin()).trim();
+  const raw = (await readHookStdin()).trim();
   if (!raw) {
     process.stdout.write(`${JSON.stringify({ continue: true })}\n`);
     return;

@@ -16,12 +16,12 @@ async function main() {
     process.exit(1);
   }
 
-  const baseEnv = mockGateEnv("fs-smoke", {}, "filesystem");
-
+  // mockGateEnv rewrites gate-settings.json from COSTGATE_GATE_MODE; call per
+  // measurement so ApplyEffective() does not clobber transparent → filter.
   const before = await withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    mockGateEnv("fs-smoke", { COSTGATE_GATE_MODE: "transparent" }, "filesystem"),
     async (client) => {
       await client.initialize("fs-before");
       return summarizeTools(await client.listTools());
@@ -32,12 +32,15 @@ async function main() {
   const after = await withMcpProcess(
     GATE_BIN,
     [],
-    {
-      ...baseEnv,
-      COSTGATE_GATE_MODE: "filter",
-      COSTGATE_INTENT: "read file",
-      COSTGATE_INTENT_DYNAMIC: "0",
-    },
+    mockGateEnv(
+      "fs-smoke",
+      {
+        COSTGATE_GATE_MODE: "filter",
+        COSTGATE_INTENT: "read file",
+        COSTGATE_INTENT_DYNAMIC: "0",
+      },
+      "filesystem"
+    ),
     async (client) => {
       await client.initialize("fs-after");
       return summarizeTools(await client.listTools());

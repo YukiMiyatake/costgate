@@ -41,15 +41,20 @@ const exposureMaxB = readArg("--exposure-max-b") || process.env.COSTGATE_EXPOSUR
 const exposureTokenBudget =
   readArg("--exposure-token-budget") || process.env.COSTGATE_EXPOSURE_TOKEN_BUDGET || "";
 
-const baseEnv = useMock
-  ? mockGateEnv("compare-report", {}, mockBackend)
-  : baseGateEnv("compare-report");
+/** Build env for a Gate measurement. Mock path rewrites gate-settings.json per mode
+ *  so ApplyEffective() does not clobber COSTGATE_GATE_MODE back to a stale value. */
+function gateMeasureEnv(extra = {}) {
+  if (useMock) {
+    return mockGateEnv("compare-report", extra, mockBackend);
+  }
+  return baseGateEnv("compare-report", extra);
+}
 
 async function measureGateTransparent() {
   return withMcpProcess(
     GATE_BIN,
     [],
-    { ...baseEnv, COSTGATE_GATE_MODE: "transparent" },
+    gateMeasureEnv({ COSTGATE_GATE_MODE: "transparent" }),
     async (client) => {
       await client.initialize("compare-before");
       const tools = await client.listTools();
@@ -64,7 +69,7 @@ async function measureProbe() {
     "node",
     [PROBE_JS],
     {
-      ...baseEnv,
+      ...gateMeasureEnv(),
       COSTGATE_PROBE_LOG_DIR:
         process.env.COSTGATE_PROBE_LOG_DIR ??
         join(process.env.HOME ?? "", ".costgate/logs"),
@@ -79,20 +84,19 @@ async function measureProbe() {
 }
 
 async function measureGateFilter() {
-  const filterEnv = {
-    ...baseEnv,
+  const filterExtra = {
     COSTGATE_GATE_MODE: "filter",
     COSTGATE_INTENT: intent,
     COSTGATE_INTENT_DYNAMIC: args.includes("--dynamic") ? "1" : "0",
   };
-  if (exposureMode) filterEnv.COSTGATE_EXPOSURE_MODE = exposureMode;
-  if (exposureMaxB) filterEnv.COSTGATE_EXPOSURE_MAX_B = exposureMaxB;
-  if (exposureTokenBudget) filterEnv.COSTGATE_EXPOSURE_TOKEN_BUDGET = exposureTokenBudget;
+  if (exposureMode) filterExtra.COSTGATE_EXPOSURE_MODE = exposureMode;
+  if (exposureMaxB) filterExtra.COSTGATE_EXPOSURE_MAX_B = exposureMaxB;
+  if (exposureTokenBudget) filterExtra.COSTGATE_EXPOSURE_TOKEN_BUDGET = exposureTokenBudget;
 
   return withMcpProcess(
     GATE_BIN,
     [],
-    filterEnv,
+    gateMeasureEnv(filterExtra),
     async (client) => {
       await client.initialize("compare-after");
       const tools = await client.listTools();

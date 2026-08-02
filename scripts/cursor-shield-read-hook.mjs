@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { normalizeCursorPath, readHookStdin } from "./lib/cursor-hook-io.mjs";
 import { isBinaryFile } from "./lib/shield-binary.mjs";
 import {
   buildCacheMeta,
@@ -24,15 +25,6 @@ import { resolveWorkspaceRootFromPath } from "./lib/resolve-workspace-root.mjs";
 const SANITIZED_SEGMENT = ".costgate/sanitized";
 const READ_TOOL_NAMES = new Set(["Read"]);
 
-function readStdin() {
-  return new Promise((resolvePromise, reject) => {
-    const chunks = [];
-    process.stdin.on("data", (c) => chunks.push(c));
-    process.stdin.on("end", () => resolvePromise(Buffer.concat(chunks).toString("utf8")));
-    process.stdin.on("error", reject);
-  });
-}
-
 export function extractReadToolInput(payload) {
   return payload?.tool_input ?? payload?.input ?? payload ?? {};
 }
@@ -40,7 +32,7 @@ export function extractReadToolInput(payload) {
 export function extractReadPath(payload) {
   const input = extractReadToolInput(payload);
   const path = input.path ?? input.file_path ?? input.filePath ?? null;
-  return typeof path === "string" && path ? path : null;
+  return typeof path === "string" && path ? normalizeCursorPath(path) : null;
 }
 
 export function isReadPreToolUse(payload) {
@@ -77,7 +69,7 @@ function shortPathHash(absPath) {
 
 export function resolveProjectRootForFile(filePath, payload, context = {}) {
   if (context.projectRoot) return context.projectRoot;
-  const roots = payload?.workspace_roots ?? [];
+  const roots = (payload?.workspace_roots ?? []).map((r) => normalizeCursorPath(r));
   for (const root of roots) {
     const resolved = resolveWorkspaceRootFromPath(root);
     if (resolved) return resolved;
@@ -245,7 +237,7 @@ export function handleCursorShieldReadHook(payload, context = {}) {
 }
 
 async function main() {
-  const raw = (await readStdin()).trim();
+  const raw = (await readHookStdin()).trim();
   if (!raw) {
     process.stdout.write(`${JSON.stringify({ permission: "allow" })}\n`);
     return;
